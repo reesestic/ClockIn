@@ -96,7 +96,7 @@ SUPABASE_URL=your-url
 
 SUPABASE_KEY=your-key
 
-▶️ Third Step: Run Development Servers
+## ▶️ Third Step: Run Development Servers
 
 You must run both the frontend and backend servers during development.
 
