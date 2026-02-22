@@ -1,35 +1,103 @@
 # ClockIn Study Hub
+## 🚀 Local Dev Instructions
+### 🛠 Installation
 
-## Local Dev Instructions 
+To install and develop ClockIn locally, there are 3 main steps:
 
-### Installation
-To install and develop ClockIn locally, there are 3 main steps.
 1. Clone the Repo
+
 2. Install dependencies
-3. Run development server
 
-## First Step: Clone the Repo
-Navigate to the root of where you would like your file created and git clone the URL of this repo. After cloning the repo locally, you will have the backend and frontend files needed for development, along with the needed requirements file.
-To set up the frontend after cloning, run 
+3. Run development servers
 
+## 📦 First Step: Clone the Repo
+
+Navigate to the root directory where you would like the project created and clone the repository:
+
+`git clone <repo-url>`
+
+After cloning the repo locally, you will have the backend and frontend folders needed for development, along with the required requirements.txt file.
+
+### 🎨 Frontend Setup
+
+To set up the frontend after cloning, run the following commands from the root:
+
+`cd frontend`
 `npm install`
 
-This installs the node_modules that are not uploaded to Github that are required for functionality.
-To set up the backend, there are two main steps. First, create the virtual environment. Run the following commands in your terminal from *inside the backend folder*.
+This installs the node_modules folder that is not uploaded to GitHub but is required for functionality.
+
+### 🧠 Backend Setup
+
+To set up the backend, there are two main steps.
+
+First, navigate into the backend folder:
+
+`cd backend`
+
+Then create the virtual environment:
 
 `python -m venv venv`
 
-`source venv/bin/activate`  # Mac/Linux
+Now activate the virtual environment:
 
-### OR
-`venv\Scripts\activate`     # Windows
-### Note: If the venv activation did not work, try this command instead.
-`venv\Scripts\Activate.ps1`
+Mac/Linux:
+`source venv/bin/activate`
 
-After this command, your venv should be activated and you are ready for stpe two.
-Next, install the dependencies inside your virtual environment for development compatibility.
+Windows (Command Prompt):
+`venv\Scripts\activate`
+
+Windows (PowerShell):
+`.\venv\Scripts\Activate.ps1`
+
+If activation fails in PowerShell due to execution policy restrictions, run:
+
+`Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+
+After activation, your virtual environment should be active and you are ready for step two.
+
+## 📚 Second Step: Install Dependencies
+
+Install the backend dependencies inside your activated virtual environment:
+
 `pip install -r requirements.txt`
-`uvicorn main:app --reload`
-This creates a file of local requirements for your virtual environment.
 
-For your .env file, copy our .env.example and fill in your own API keys.
+This installs the required backend packages listed in requirements.txt.
+
+🔐 Environment Variables
+
+For your .env file:
+
+Copy .env.example and rename it to .env, then fill in your own API keys.
+
+Example:
+
+SUPABASE_URL=your-url
+
+SUPABASE_KEY=your-key
+
+▶️ Third Step: Run Development Servers
+
+You must run both the frontend and backend servers during development.
+
+### Run the Frontend (React + Vite)
+
+From **inside the frontend folder**:
+
+`npm run dev`
+
+The frontend will run at:
+http://localhost:5173
+
+### Run the Backend (FastAPI)
+
+From **inside the backend folder** __(with venv activated)__:
+
+`uvicorn main:app --reload`
+
+The backend will run at:
+http://127.0.0.1:8000
+
+### ✅ Important
+
+**Both frontend** and backend servers must be running simultaneously for full application functionality.
