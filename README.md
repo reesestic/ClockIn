@@ -1,4 +1,24 @@
 # ClockIn Study Hub
+
+## 🛠 Tech Stack
+
+### Frontend
+- React
+- TypeScript
+- Vite
+- DND Kit
+
+### Backend
+- Python
+- FastAPI
+
+### Database & Services
+- Supabase (PostgreSQL + Auth)
+
+### Deployment
+- Vercel (Frontend Hosting)
+- Railway (Backend Hosting)
+  
 ## 🚀 Local Dev Instructions
 ### 🛠 Installation
 
