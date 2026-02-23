@@ -42,7 +42,10 @@ After cloning the repo locally, you will have the backend and frontend folders n
 
 To set up the frontend after cloning, run the following commands from the root:
 
+`cd ClockIn`
+
 `cd frontend`
+
 `npm install`
 
 This installs the node_modules folder that is not uploaded to GitHub but is required for functionality.
