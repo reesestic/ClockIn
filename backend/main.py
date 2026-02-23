@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 from supabase_client import supabase
 
-
 app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"message": "Backend running"}
+    return {"message": "Backend is running"}
 
-@app.get("/test-supabase")
-def test_supabase():
-    response = supabase.table("tasks").select("*").execute()
+@app.get("/bertha")
+def get_bertha():
+    response = supabase.table("Bertha") \
+        .select("id, Task, Importance") \
+        .execute()
+
     return response.data
