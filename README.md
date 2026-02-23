@@ -52,9 +52,13 @@ This installs the node_modules folder that is not uploaded to GitHub but is requ
 
 ### 🧠 Backend Setup
 
-To set up the backend, there are two main steps.
+After setting up the frontend, to set up the backend, there are three main steps.
 
-First, navigate into the backend folder:
+First, navigate back to the ClockIn folder:
+
+`cd ClockIn`
+
+Second, navigate into the backend folder:
 
 `cd backend`
 
