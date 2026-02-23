@@ -128,3 +128,18 @@ http://127.0.0.1:8000
 ### ✅ Important
 
 **Both frontend** and backend servers must be running simultaneously for full application functionality.
+
+## 🖥️ Development Branching and Pull Request Strategies
+
+### Branching Strategy
+- GitHub Flow (main/feature)
+- The main branch will be continuously deployable, and new features will be implemented in temporary branches that will merge with the main branch after thorough testing and review has been completed
+
+### Pull Request Process
+- Developers will create a descriptively titled branch of the repository to modify the file they would like to edit
+- After finishing the changes and performing local testing, the developer will ask the code to be reviewed by another technical teammate
+- After passing the review, the developer will pull any recent changes, resolving any conflicts on their end, and then merge their changes with the main branch
+- If two developers are working on the same file, the second developer will pull changes made by the first developer, resolve conflicts on their end, and then merge with the main branch
+- If the code within a branch does not work or is rejected by a review, the developer will either work to debug the code or delete the branch.
+
+
