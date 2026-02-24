@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import type Task from "./interfaces/task";
 
 function App() {
-    const [tasks, setTasks] = useState<any[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
     console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
 
     useEffect(() => {
