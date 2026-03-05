@@ -13,12 +13,19 @@ class AIService:
 
         Return JSON:
         {{
-            "task_title": "",
-            "description": "",
-            "due_date": "",
+            "title": "",
+            "taskDuration": "",
             "priority": "",
-            "task_duration": ""
+            "dueDate": "",
+            "description": ""
         }}
+        
+        where the types of each field are as follows:
+        title: string
+        taskDuration: integer (number of seconds)
+        priority: string (one of "low", "medium", "high")
+        dueDate: string (Supabase timestamp format including timezone)
+        description: string
         """
 
         response = await self.client.chat.completions.create(
