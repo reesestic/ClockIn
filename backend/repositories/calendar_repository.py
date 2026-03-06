@@ -12,11 +12,11 @@ def _row_to_task(row: dict) -> Task:
     """Convert a Supabase row dict into a Task domain object."""
     return Task(
         task_id=UUID(row["task_id"]),
-        task_name=row["task_name"],
+        title=row["title"],
         description=row.get("description", ""),
         due_date=datetime.fromisoformat(row["due_date"]),
-        estimated_duration=row["estimated_duration"],
-        priority_level=PriorityLevel(row["priority_level"]),
+        task_duration=row["task_duration"],
+        priority=PriorityLevel(row["priority"]),
         source_note_id=UUID(row["source_note_id"]),
         is_complete=row.get("is_complete", False),
         calendar_event_id=row.get("calendar_event_id"),
@@ -55,11 +55,11 @@ class CalendarRepository:
 
     def create_task(self, payload: TaskCreateRequest) -> Task:
         data = {
-            "task_name": payload.task_name,
+            "title": payload.title,
             "description": payload.description,
             "due_date": payload.due_date.isoformat(),
-            "estimated_duration": payload.estimated_duration,
-            "priority_level": payload.priority_level.value,
+            "task_duration": payload.task_duration,
+            "priority": payload.priority.value,
             "source_note_id": str(payload.source_note_id),
         }
         response = supabase.table(self.TABLE).insert(data).execute()
@@ -67,16 +67,16 @@ class CalendarRepository:
 
     def update_task(self, task_id: UUID, payload: TaskUpdateRequest) -> Task:
         updates: dict = {}
-        if payload.task_name is not None:
-            updates["task_name"] = payload.task_name
+        if payload.title is not None:
+            updates["title"] = payload.title
         if payload.description is not None:
             updates["description"] = payload.description
         if payload.due_date is not None:
             updates["due_date"] = payload.due_date.isoformat()
-        if payload.estimated_duration is not None:
-            updates["estimated_duration"] = payload.estimated_duration
-        if payload.priority_level is not None:
-            updates["priority_level"] = payload.priority_level.value
+        if payload.task_duration is not None:
+            updates["task_duration"] = payload.task_duration
+        if payload.priority is not None:
+            updates["priority"] = payload.priority.value
         if payload.is_complete is not None:
             updates["is_complete"] = payload.is_complete
 

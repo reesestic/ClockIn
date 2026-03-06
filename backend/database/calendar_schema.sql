@@ -7,11 +7,11 @@ CREATE TYPE priority_level AS ENUM ('LOW', 'MED', 'HIGH');
 -- Tasks table
 CREATE TABLE IF NOT EXISTS tasks (
     task_id             UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
-    task_name           TEXT            NOT NULL,
+    title               TEXT            NOT NULL,
     description         TEXT            NOT NULL DEFAULT '',
     due_date            TIMESTAMPTZ     NOT NULL,
-    estimated_duration  INTEGER         NOT NULL CHECK (estimated_duration > 0),
-    priority_level      priority_level  NOT NULL DEFAULT 'MED',
+    task_duration       INTEGER         NOT NULL CHECK (task_duration > 0),
+    priority            priority_level  NOT NULL DEFAULT 'MED',
     is_complete         BOOLEAN         NOT NULL DEFAULT FALSE,
     calendar_event_id   TEXT            NULL,
     scheduled_start     TIMESTAMPTZ     NULL,

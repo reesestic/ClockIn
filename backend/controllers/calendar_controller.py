@@ -21,11 +21,11 @@ repo = CalendarRepository()
 def _task_to_response(task) -> TaskResponse:
     return TaskResponse(
         task_id=task.task_id,
-        task_name=task.task_name,
+        title=task.title,
         description=task.description,
         due_date=task.due_date,
-        estimated_duration=task.estimated_duration,
-        priority_level=task.priority_level,
+        task_duration=task.task_duration,
+        priority=task.priority,
         is_complete=task.is_complete,
         calendar_event_id=task.calendar_event_id,
         scheduled_start=task.scheduled_start,
@@ -33,10 +33,7 @@ def _task_to_response(task) -> TaskResponse:
     )
 
 
-# ---------------------------------------------------------------------------
-# CRUD endpoints
-# ---------------------------------------------------------------------------
-
+# CRUD Endpoints
 
 @router.post("/tasks", response_model=TaskResponse, status_code=201)
 def create_task(payload: TaskCreateRequest):
@@ -74,19 +71,16 @@ def delete_task(task_id: UUID):
         raise HTTPException(status_code=404, detail="Task not found")
 
 
-# ---------------------------------------------------------------------------
-# Schedule endpoint
-# ---------------------------------------------------------------------------
-
+# Schedule Endpoint
 
 @router.post("/schedule/{task_id}", response_model=ScheduleTaskResponse)
 def schedule_task(task_id: UUID, body: ScheduleTaskRequest):
-    # Step 1 – load task
+    # load task
     task = repo.get_task_by_id(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Step 2 – validate schedulability
+    # validate schedulability
     if not task.isSchedulable():
         raise HTTPException(status_code=400, detail="Task is already complete")
 
@@ -97,20 +91,20 @@ def schedule_task(task_id: UUID, body: ScheduleTaskRequest):
             detail=f"Task is missing required fields: {', '.join(missing)}",
         )
 
-    # Step 3 – instantiate calendar service
+    # instantiate calendar service
     cal_service = CalendarService(
         oauth_token=body.oauth_token,
         refresh_token=body.refresh_token,
         user_id=body.user_id,
     )
 
-    # Step 4 – find open slot
+    # find open slot
     try:
         slot = cal_service.findOpenSlot(task)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
 
-    # Step 5 – create Google Calendar event
+    # create Google Calendar event
     try:
         event_id = cal_service.createEvent(task, slot)
     except Exception as exc:
@@ -119,10 +113,10 @@ def schedule_task(task_id: UUID, body: ScheduleTaskRequest):
             detail=f"Google Calendar API error: {exc}",
         )
 
-    # Step 6 – persist back to Supabase
+    # go back to Supabase
     repo.save_scheduled_event(task_id, event_id, slot)
 
-    # Step 7 – return response
+    # return response
     return ScheduleTaskResponse(
         task_id=task_id,
         calendar_event_id=event_id,

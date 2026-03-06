@@ -128,7 +128,7 @@ class CalendarService:
         existing_events = self.getExistingEvents(candidate, due_date)
         busy_intervals = _parse_busy_intervals(existing_events)
 
-        task_duration = timedelta(minutes=task.estimated_duration)
+        task_duration = timedelta(minutes=task.task_duration)
         step = timedelta(minutes=SLOT_STEP_MINUTES)
 
         # Step 3 – walk forward
@@ -152,7 +152,7 @@ class CalendarService:
             candidate += step
 
         raise ValueError(
-            f"No available slot found for task '{task.task_name}' before its due_date."
+            f"No available slot found for task '{task.title}' before its due_date."
         )
 
     def createEvent(self, task: Task, slot: datetime) -> str:
