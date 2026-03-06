@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controllers import sticky_note_controller
 
-app = FastAPI()
+# app = FastAPI()
 
 # Only allows FASTAPI to take requests from these frontends (security)
 # If new domains are deployed, update this list

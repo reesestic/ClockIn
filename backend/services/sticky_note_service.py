@@ -3,3 +3,30 @@ from repositories.sticky_note_repository import create_note_repository
 def create_note_service(title: str, content: str, user_id: int):
     # Business logic later
     return create_note_repository(title, content, user_id)
+
+class StickyNoteService:
+    def __init__(self, SNRepo, AIService, TaskService):
+        self.SNRepo = SNRepo
+        self.AIService = AIService
+        self.TaskService = TaskService
+    
+    async def note_to_task(self, sticky_id):
+        
+        #get sticky note fields to feed to OpenAI
+        title = self.SNRepo.get_title(sticky_id)
+        text = self.SNRepo.get_text(sticky_id)
+        
+        # Extract structured task data from the sticky note
+        task_data = await self.AIService.extract_task_fields(title, text)
+        
+        # Create a new task using the extracted data
+        await self.TaskService.create_task(task_data)
+        
+        
+        # Include delete method of database from SNRepo here 
+        # to delete the sticky note after conversion
+        return 
+    
+    async def sticky_to_db(self, title, text, id, user_id, posX, posY, posZ):
+        self.SNRepo.create_sticky_note(title, text, id, user_id, posX, posY, posZ)
+        return
