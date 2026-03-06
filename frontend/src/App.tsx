@@ -1,29 +1,21 @@
-import { useEffect, useState } from "react";
-import type Task from "./interfaces/task";
+//import { useEffect, useState } from "react";
+//import StickyNote from "./components/stickyNoteComponents/StickyNote.tsx";
 
-function App() {
-    const [tasks, setTasks] = useState<Task[]>([]);
-    console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
+// returns views that are needed but with appropriate urls (bookmark)
+import {createBrowserRouter, RouterProvider} from "react-router-dom";
+import Root from "./Root.tsx"
 
-    useEffect(() => {
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/bertha`)
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error("Error:", err));
-    }, []);
+const router = createBrowserRouter(
+    [ {path: "*", Component: Root} ]
+);
+
+export default function App() {
 
     return (
-        <div>
-            <h1>Bertha Tasks</h1>
-            {tasks.map(task => (
-                <div key={task.id}>
-                    <p>{task.Task} — Importance: {task.Importance}</p>
-                </div>
-            ))}
-        </div>
-    );
+        <>
+            <RouterProvider router={router}/>
+        </>
+    )
 }
 
-export default App;
+
