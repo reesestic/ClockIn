@@ -1,53 +1,58 @@
 import styled from "styled-components";
+import StickyNoteBackground from "./StickyNoteBackground";
+import { useState } from "react";
+import type { Note } from "../../types/Note.ts";
 
-const StickyNoteContainer = styled.div`
-  width: 240px;
-  height: 240px;
-  background: #efe08a;
-  border-radius: 18px;
-  padding: 16px;
-  position: relative;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+const NoteWrapper = styled.div`
+    position: relative;
+    width: clamp(200px, 20vw, 300px);
+    aspect-ratio: 1;
 `;
 
-const NoteHeader = styled.div`
-  font-weight: bold;
-  background: #e1d478;
-  padding: 10px;
-  border-radius: 12px 12px 0 0;
-
-  display: flex;
-  justify-content: space-between;
+const NoteContent = styled.div`
+    position: absolute;
+    top: 50px;
+    left: 50px;
 `;
 
-const NoteText = styled.p`
-  margin-top: 12px;
-`;
+type StickyNoteProps = {
+    note: Note;
+    onChange: (id: number, title: string, content: string) => void;
+};
 
-const CornerFold = styled.div`
-  position: absolute;
-  bottom: 0;
-  right: 0;
+export default function StickyNote({ note, onChange }: StickyNoteProps) {
 
-  width: 40px;
-  height: 40px;
+    const [title, setTitle] = useState(note.title);
+    const [content, setContent] = useState(note.content);
 
-  background: #b9a94d;
+    const handleTitleChange = (value: string) => {
+        setTitle(value);
+        onChange(note.id, value, content);
+    };
 
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
-`;
+    const handleContentChange = (value: string) => {
+        setContent(value);
+        onChange(note.id, title, value);
+    };
 
-export default function StickyNote() {
     return (
-        <StickyNoteContainer>
-            <NoteHeader>
-                <span>Sticky Note Name</span>
-                <span>⋮</span>
-            </NoteHeader>
+        <NoteWrapper onClick={(e) => e.stopPropagation()}>
+            <StickyNoteBackground />
 
-            <NoteText>• Jot down a note...</NoteText>
+            <NoteContent>
 
-            <CornerFold />
-        </StickyNoteContainer>
+                <input
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                />
+
+                <textarea
+                    value={content}
+                    onChange={(e) => handleContentChange(e.target.value)}
+                />
+
+            </NoteContent>
+
+        </NoteWrapper>
     );
 }

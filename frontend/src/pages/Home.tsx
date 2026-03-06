@@ -25,7 +25,7 @@ const StyledButton = styled(Link)`
 export default function Home() {
     return (
         <DivWrapper>
-            <StyledButton to="/stickyNoteContainer">
+            <StyledButton to="/sticky-notes">
                 Open Sticky Notes
             </StyledButton>
 

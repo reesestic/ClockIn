@@ -4,9 +4,6 @@ from controllers import sticky_note_controller
 
 app = FastAPI()
 
-app.include_router(sticky_note_controller.router)
-
-
 # Only allows FASTAPI to take requests from these frontends (security)
 # If new domains are deployed, update this list
 origins = [
@@ -21,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(sticky_note_controller.router)
 
 #@app.get("/")
 #def root():
