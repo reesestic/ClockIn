@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from supabase_client import supabase
+from controllers.calendar_controller import router as calendar_router
 
 app = FastAPI()
+app.include_router(calendar_router)
 
 # ✅ ADD THIS
 origins = [
