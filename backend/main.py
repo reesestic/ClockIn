@@ -6,14 +6,14 @@ app = FastAPI()
 
 # Only allows FASTAPI to take requests from these frontends (security)
 # If new domains are deployed, update this list
-origins = [
-    "http://localhost:5173",
-    "https://clock-in-orcin.vercel.app"
-]
+# origins = [
+#     "http://localhost:5173",
+#     "https://clock-in-orcin.vercel.app"
+# ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
