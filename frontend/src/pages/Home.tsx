@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
+import { ROUTES } from "../constants/Routes";
 
 const DivWrapper = styled.div`
     width: 100%;
@@ -25,7 +26,7 @@ const StyledButton = styled(Link)`
 export default function Home() {
     return (
         <DivWrapper>
-            <StyledButton to="/sticky-notes">
+            <StyledButton to={ROUTES.STICKY_NOTES}>
                 Open Sticky Notes
             </StyledButton>
 
