@@ -1,7 +1,7 @@
 import StickyNoteHome from "./pages/StickyNoteHome.tsx";
 import Home from "./pages/Home.tsx";
+import { ROUTES } from "./constants/Routes";
 
-//import styled from "styled-components";
 //import Task from "./components/taskComponents/Task.tsx";
 
 import { Route, Routes } from "react-router-dom";
@@ -12,12 +12,12 @@ export default function Root() {
             <Routes>
 
                 <Route
-                    path={"/"}
+                    path={ROUTES.HOME}
                     element={<Home/>}
                 />
 
                 <Route
-                    path={"/sticky-notes"}
+                    path={ROUTES.STICKY_NOTES}
                     element={<StickyNoteHome/>}
                 />
 
