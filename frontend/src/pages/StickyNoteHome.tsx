@@ -5,7 +5,7 @@ import { ROUTES } from "../constants/Routes";
 import { useState, useEffect } from "react";
 import { sendNote, saveNote, getNotes } from "../api/StickyNoteApi";
 
-import type { Note } from "../types/Note";
+import type {Note, StickyNoteDB} from "../types/Note";
 
 import {
     PageTitle, StyledStickyNoteContainer, PageWrapper, NotesAndButtonsLayout,
@@ -43,7 +43,7 @@ export function StickyNoteHome() {
             try {
                 const notesFromDB = await getNotes();
 
-                const formatted = notesFromDB.map((n: any) => ({
+                const formatted = notesFromDB.map((n: StickyNoteDB) => ({
                     id: n.id,
                     title: n.title,
                     content: n.text,
