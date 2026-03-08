@@ -35,24 +35,27 @@ export const NotesAndButtonsLayout = styled.div`
 `;
 
 export const NotesBoard = styled.div`
-    flex: 4;
+    flex: 9;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-content: flex-start;
 
     gap: 30px;
-    padding: 40px;
-    border: 2px solid black;
+    padding: 2rem 0.5rem;
+    border: 1px dashed black;
 `;
 
 export const ActionColumn = styled.div`
     flex: 1;
     display: flex; 
-    flex-direction: column; 
+    flex-direction: column;
     align-items: center; 
-    justify-content: center; 
-    gap: 20px;
+    justify-content: space-between;
+
+    min-height: 60vh;
+
+    padding: 2rem 0;
 `
 
 export const Overlay = styled.div`

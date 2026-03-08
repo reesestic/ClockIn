@@ -17,22 +17,6 @@ import StickyNoteOverlay from "../components/stickyNoteComponents/StickyNoteOver
 
 export function StickyNoteHome() {
 
-    // // Notes currently in Supabase created by user
-    // const [notes, setNotes] = useState<Note[]>([
-    //     {
-    //         id: 0,
-    //         title: "Bio Midterm",
-    //         content: "Study mitochondria and how powerful its house is",
-    //         position: {x: 0, y: 0, z: 0}
-    //     },
-    //     {id: 1, title: "Calc Midterm", content: "Find the integral of my grocery list", position: {x: 0, y: 0, z: 0}},
-    //     {
-    //         id: 2,
-    //         title: "Make Presentation",
-    //         content: "My group didn't even make a slide deck",
-    //         position: {x: 0, y: 0, z: 0}
-    //     }
-    // ]);
     const [notes, setNotes] = useState<Note[]>([]);
 
     // Function to determine the note that is editable & overlayed
@@ -72,8 +56,9 @@ export function StickyNoteHome() {
     };
 
     const handleSendNote = async () => {
-        if (!activeNote) return;
-        await sendNote(activeNote);
+        if (!activeNote?.id) return;
+
+        await sendNote(activeNote.id);
     };
 
     const handleSaveNote = async () => {

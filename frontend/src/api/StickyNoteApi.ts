@@ -2,24 +2,12 @@ import {ROUTES} from "../constants/Routes.ts";
 import type { Note } from "../types/Note";
 
 
-export async function sendNote (activeNote : Note) {
-    if (!activeNote) return;
+export async function sendNote (noteId : string) {
 
     const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/send`,
+        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/send/${noteId}`,
         {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            // Only sends fields that the frontend modifies, not IDs
-            body: JSON.stringify({
-                id: activeNote.id,
-                title: activeNote.title,
-                content: activeNote.content,
-                position: activeNote.position
-            })
         }
     );
 
@@ -27,9 +15,7 @@ export async function sendNote (activeNote : Note) {
         throw new Error("Failed to create note");
     }
 
-    const data = await response.json();
-    console.log(data);
-    //return data.note;
+    return await response.json();
 }
 
 export async function saveNote (activeNote : Note) {
