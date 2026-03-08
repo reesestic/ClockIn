@@ -7,9 +7,8 @@ from dependencies import sticky_note_service
 router = APIRouter(prefix=STICKY_NOTES)
 
 @router.post("/send")
-def create_note_controller(note_id: int):
-
-    # Kev girl this all u!
+def send_to_planner(note_id: int):
+    sticky_note_service.note_to_task(note_id)
     print("IT WORKED BITCH!!!", note_id)
 
 
