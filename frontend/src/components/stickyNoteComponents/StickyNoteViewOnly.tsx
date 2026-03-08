@@ -4,7 +4,7 @@ import type { Note } from "../../types/Note.ts";
 
 const NoteWrapper = styled.div`
     position: relative;
-    width: clamp(200px, 15vw, 300px);
+    width: clamp(200px, 17vw, 300px);
     aspect-ratio: 1;
 `;
 

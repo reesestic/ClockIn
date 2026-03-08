@@ -7,19 +7,10 @@ from dependencies import sticky_note_service
 router = APIRouter(prefix=STICKY_NOTES)
 
 @router.post("/send")
-def create_note_controller(note: StickyNoteSave):
+def create_note_controller(note_id: int):
 
-    sticky = sticky_note_service.create_note(
-        note.title,
-        note.content,
-        note.position.x,
-        note.position.y,
-        note.position.z
-    )
-
-    print("IT WORKED BITCH!!! Controller got response from service/repo/database")
-
-    #return sticky
+    # Kev girl this all u!
+    print("IT WORKED BITCH!!!", note_id)
 
 
 @router.post("/save")
@@ -44,6 +35,8 @@ def save_note_controller(note: StickyNoteSave):
     return sticky
 
 
+# Endpoint to load sticky notes for user
+# In the future, add it to work for different users
 @router.get("")
 def get_notes():
     user_id = 1
