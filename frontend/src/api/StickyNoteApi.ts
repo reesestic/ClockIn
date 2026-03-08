@@ -2,7 +2,7 @@ import {ROUTES} from "../constants/Routes.ts";
 import type { Note } from "../types/Note";
 
 
-export async function sendNote (noteId : string) {
+export async function sendNote (noteId : number) {
 
     const response = await fetch(
         `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/send/${noteId}`,
