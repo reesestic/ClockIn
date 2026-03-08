@@ -38,29 +38,29 @@ export function StickyNoteHome() {
     // Function to determine the note that is editable & overlayed
     const [activeNote, setActiveNote] = useState<Note | null>(null);
 
-    async function loadNotes() {
-        try {
-            const notesFromDB = await getNotes();
-
-            const formatted = notesFromDB.map((n: any) => ({
-                id: n.id,
-                title: n.title,
-                content: n.text,
-                position: {
-                    x: n.posX,
-                    y: n.posY,
-                    z: n.posZ
-                }
-            }));
-
-            setNotes(formatted);
-
-        } catch (error) {
-            console.error("Failed to load notes", error);
-        }
-    }
-
     useEffect(() => {
+        async function loadNotes() {
+            try {
+                const notesFromDB = await getNotes();
+
+                const formatted = notesFromDB.map((n: any) => ({
+                    id: n.id,
+                    title: n.title,
+                    content: n.text,
+                    position: {
+                        x: n.posX,
+                        y: n.posY,
+                        z: n.posZ
+                    }
+                }));
+
+                setNotes(formatted);
+
+            } catch (error) {
+                console.error("Failed to load notes", error);
+            }
+        }
+
         loadNotes();
     }, []);
 
