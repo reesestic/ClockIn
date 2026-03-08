@@ -33,4 +33,8 @@ class StickyNoteService:
         return self.SNRepo.create_note(title, content, x, y, z)
         # Returns id, title, text, color, user_id, posX, posY, posZ
 
+    def update_note(self, id: int, title: str, content: str):
+        return self.SNRepo.update_note(id, title, content)
 
+    def get_notes(self, user_id: int):
+        return self.SNRepo.get_notes(user_id)

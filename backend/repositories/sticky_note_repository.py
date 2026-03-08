@@ -35,3 +35,24 @@ class StickyNoteRepository:
             "posZ" : z
         }).execute()
         return result.data[0]
+
+    def update_note(self, id: int, title: str, content: str):
+        result = (self.supabase.table("StickyNotes").update({
+                "title": title,
+                "text": content
+            })
+            .eq("id", id)
+            .execute()
+        )
+        return result.data[0]
+
+    def get_notes(self, user_id: int):
+        result = (
+            self.supabase
+            .table("StickyNotes")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        return result.data

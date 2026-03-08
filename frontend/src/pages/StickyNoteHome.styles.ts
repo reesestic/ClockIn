@@ -117,3 +117,20 @@ export const AddAndSelectWrapper = styled.div`
   width: 100%;
   margin: 20px 0;
 `;
+
+export const OverlayButtons = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+`;
+
+export const SaveButton = styled.button`
+  padding: 10px 18px;
+  font-size: 1rem;
+`;
+
+export const CancelButton = styled.button`
+  padding: 10px 18px;
+  font-size: 1rem;
+`;

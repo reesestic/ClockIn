@@ -1,4 +1,4 @@
-import StickyNoteHome from "./pages/StickyNoteHome.tsx";
+import {StickyNoteHome} from "./pages/StickyNoteHome.tsx";
 import Home from "./pages/Home.tsx";
 import { ROUTES } from "./constants/Routes";
 

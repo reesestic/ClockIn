@@ -1,6 +1,5 @@
 import styled from "styled-components";
 import StickyNoteBackground from "./StickyNoteBackground";
-import { useState } from "react";
 import type { Note } from "../../types/Note.ts";
 
 const NoteWrapper = styled.div`
@@ -17,22 +16,17 @@ const NoteContent = styled.div`
 
 type StickyNoteProps = {
     note: Note;
-    onChange: (id: number, title: string, content: string) => void;
+    onChange: (title: string, content: string) => void;
 };
 
 export default function StickyNote({ note, onChange }: StickyNoteProps) {
 
-    const [title, setTitle] = useState(note.title);
-    const [content, setContent] = useState(note.content);
-
     const handleTitleChange = (value: string) => {
-        setTitle(value);
-        onChange(note.id, value, content);
+        onChange(value, note.content);
     };
 
     const handleContentChange = (value: string) => {
-        setContent(value);
-        onChange(note.id, title, value);
+        onChange(note.title, value);
     };
 
     return (
@@ -42,17 +36,16 @@ export default function StickyNote({ note, onChange }: StickyNoteProps) {
             <NoteContent>
 
                 <input
-                    value={title}
+                    value={note.title}
                     onChange={(e) => handleTitleChange(e.target.value)}
                 />
 
                 <textarea
-                    value={content}
+                    value={note.content}
                     onChange={(e) => handleContentChange(e.target.value)}
                 />
 
             </NoteContent>
-
         </NoteWrapper>
     );
 }
