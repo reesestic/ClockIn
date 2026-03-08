@@ -17,9 +17,9 @@ export default function StickyNoteHome() {
 
     // Notes currently in Supabase created by user
     const [notes, setNotes] = useState<Note[]>([
-        { id: 0, title: "Bio Midterm", content: "bitch i need to study!!" },
-        { id: 1, title: "Calc Midterm", content: "bitch i need to study MORE!!" },
-        { id: 2, title: "pOP MY Pussy Midterm", content: "bitch i need to POP MY PUSSY!!" }
+        { id: 0, title: "Bio Midterm", content: "bitch i need to study!!", position: { x: 0, y: 0, z: 0}},
+        { id: 1, title: "Calc Midterm", content: "bitch i need to study MORE!!", position: { x: 0, y: 0, z: 0}},
+        { id: 2, title: "pOP MY Pussy Midterm", content: "bitch i need to POP MY PUSSY!!", position: { x: 0, y: 0, z: 0} }
     ]);
 
     // Function to determine the note that is editable & overlayed
@@ -53,7 +53,8 @@ export default function StickyNoteHome() {
                         setActiveNote({
                             id: Date.now(),
                             title: "",
-                            content: ""
+                            content: "",
+                            position: { x: 0, y: 0, z: 0 }
                         })
                     }>
                     +

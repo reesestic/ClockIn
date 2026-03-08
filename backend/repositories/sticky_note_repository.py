@@ -1,18 +1,4 @@
-from database.supabase_client import supabase
 
-def create_note_repository(title, content, user_id):
-    result = supabase.table("StickyNotes").insert({
-
-        "title": title,
-        "text": content,
-        "color" : "From Reese Test",
-        "user_id": user_id,
-        "posX" : 0,
-        "posY": 0,
-        "posZ" : 0
-    }).execute()
-
-    return result.data[0]
 class StickyNoteRepository:
     def __init__(self, supabase):
         self.supabase = supabase
@@ -23,14 +9,29 @@ class StickyNoteRepository:
             .eq("id", sticky_id) \
             .execute()
         return response.data[0]['title'] if response.data else None
-    
+
     def get_text(self, sticky_id):
         response = self.supabase.table("StickyNotes") \
             .select("text") \
             .eq("id", sticky_id) \
-            .execute() 
+            .execute()
         return response.data[0]['text'] if response.data else None
-    
-    def create_sticky_note(self, title, text, id, user_id, posX, posY, posZ):
-        self.supabase.table("StickyNotes").insert({"title": title, "text": text, "id": id, "user_id": user_id, "posX": posX, "posY": posY, "posZ": posZ}).execute()
-        return
+
+    # I dont think we want this method b/c of ID creation locations
+    # def create_sticky_note(self, title, text, id, user_id, posX, posY, posZ):
+    #     self.supabase.table("StickyNotes").insert({"title": title, "text": text, "id": id, "user_id": user_id, "posX": posX, "posY": posY, "posZ": posZ}).execute()
+    #     return
+
+    # Creation stuff
+    def create_note(self, title, content, x: int, y: int, z: int):
+        result = self.supabase.table("StickyNotes").insert({
+            # remember ID returned in this too!!
+            "title": title,
+            "text": content,
+            "color" : "From Reese Test",
+            "user_id": 1,
+            "posX" : x,
+            "posY": y,
+            "posZ" : z
+        }).execute()
+        return result.data[0]

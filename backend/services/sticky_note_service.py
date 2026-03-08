@@ -1,8 +1,4 @@
-from repositories.sticky_note_repository import create_note_repository
-
-def create_note_service(title: str, content: str, user_id: int):
-    # Business logic later
-    return create_note_repository(title, content, user_id)
+# removed supabase import
 
 class StickyNoteService:
     def __init__(self, SNRepo, AIService, TaskService):
@@ -30,3 +26,11 @@ class StickyNoteService:
     async def sticky_to_db(self, title, text, id, user_id, posX, posY, posZ):
         self.SNRepo.create_sticky_note(title, text, id, user_id, posX, posY, posZ)
         return
+
+
+    # Creation Stuff
+    def create_note(self, title: str, content: str, x: int, y: int, z: int):
+        return self.SNRepo.create_note(title, content, x, y, z)
+        # Returns id, title, text, color, user_id, posX, posY, posZ
+
+
