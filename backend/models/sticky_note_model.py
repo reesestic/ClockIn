@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class Position(BaseModel):
     x: int
@@ -10,3 +11,9 @@ class StickyNoteCreate(BaseModel):
     content: str
     position: Position
 
+
+class StickyNoteSave(BaseModel):
+    id: Optional[int] = None
+    title: str
+    content: str
+    position: Position
