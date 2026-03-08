@@ -1,8 +1,8 @@
 from fastapi import APIRouter
-from models.sticky_note_model import StickyNoteCreate
-from constants.routes import STICKY_NOTES
+from backend.models.sticky_note_model import StickyNoteCreate
+from backend.constants.routes import STICKY_NOTES
 
-from services.sticky_note_service import create_note
+from backend.dependencies import sticky_note_service
 
 router = APIRouter(prefix=STICKY_NOTES)
 
@@ -13,7 +13,7 @@ def get_notes():
 @router.post("")
 def create_note_controller(note: StickyNoteCreate):
 
-    sticky = create_note(
+    sticky = sticky_note_service.create_note(
         note.title,
         note.content,
         note.position.x,
