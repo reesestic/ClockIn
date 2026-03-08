@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 
+class Position(BaseModel):
+    x: int
+    y: int
+    z: int
+
 class StickyNoteCreate(BaseModel):
-    content: str
-    id: int
     title: str
+    content: str
+    position: Position
+

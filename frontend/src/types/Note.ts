@@ -3,5 +3,5 @@ export type Note = {
     userId?: number
     title: string
     content: string
-    position?: { x: number; y: number }
+    position?: { x: number; y: number, z: number}
 }

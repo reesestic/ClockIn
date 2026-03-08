@@ -5,20 +5,28 @@ import type { Note } from "../types/Note";
 export async function sendNote (activeNote : Note) {
     if (!activeNote) return;
 
-    try {
-        console.log(" Active Note: ", activeNote);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}`, {
+    const response = await fetch(
+        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}`,
+        {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(activeNote)
-        });
 
-        const data = await response.json();
-        console.log("Note saved:", data);
+            // Only sends fields that the frontend modifies, not IDs
+            body: JSON.stringify({
+                title: activeNote.title,
+                content: activeNote.content,
+                position: activeNote.position
+            })
+        }
+    );
 
-    } catch (error) {
-        console.error("Error sending note:", error);
+    if (!response.ok) {
+        throw new Error("Failed to create note");
     }
+
+    const data = await response.json();
+    console.log(data);
+    //return data.note;
 }

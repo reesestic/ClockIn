@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 from models.sticky_note_model import StickyNoteCreate
-from services.sticky_note_service import create_note_service
 from constants.routes import STICKY_NOTES
+
+from dependencies import sticky_note_service
 
 router = APIRouter(prefix=STICKY_NOTES)
 
@@ -10,14 +11,16 @@ def get_notes():
     return {"message": "notes"}
 
 @router.post("")
-def create_note_controller(note : StickyNoteCreate):
-    print("Note", note)
-    sticky_note = create_note_service(note.title, note.content, note.id)
-    return {
-        "message": "Note created",
-        "note": sticky_note
-    }
+def create_note_controller(note: StickyNoteCreate):
 
-# @router.post("/send")
-# def send:
+    sticky = sticky_note_service.create_note(
+        note.title,
+        note.content,
+        note.position.x,
+        note.position.y,
+        note.position.z
+    )
 
+    print("IT WORKED BITCH!!! Controller got response from service/repo/database")
+
+    #return sticky
