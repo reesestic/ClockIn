@@ -33,5 +33,5 @@ class AIService:
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
-
+        print("OpenAI response:", response.choices[0].message.content)
         return response.choices[0].message.content
