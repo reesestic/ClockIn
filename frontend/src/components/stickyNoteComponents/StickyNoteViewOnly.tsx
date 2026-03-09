@@ -10,8 +10,10 @@ const NoteWrapper = styled.div`
 
 const NoteContent = styled.div`
     position: absolute;
-    top: 50px;
-    left: 50px;
+    inset: 20% 15% 15% 15%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 `;
 
 type StickyNoteProps = {

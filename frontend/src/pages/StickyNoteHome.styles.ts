@@ -2,28 +2,37 @@ import StickyNoteContainer from "../components/stickyNoteComponents/StickyNoteCo
 import StickyNote from "../components/stickyNoteComponents/StickyNote";
 import styled from "styled-components";
 import {Link} from "react-router-dom";
+import { BackButton } from "../components/navigation/BackButton";
+import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
+
+
+export const PageBackButton = styled(BackButton)`
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+`;
 
 export const PageTitle = styled.h1`
     text-align: center;
-    text-decoration: underline;
-    margin: 0 auto;
+    font-size: clamp(0.8rem, 3rem, 4rem);
+    margin: 2rem 0 0rem;
+    color: white;
 `
 export const StyledStickyNoteContainer = styled(StickyNoteContainer)`
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
     padding: 40px;
-    border: 2px solid black;
     min-height: 60vh;
 `;
 
+
 export const PageWrapper = styled.div`
-  min-height: 100vh;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;   /* horizontal center */
+    min-height: 100vh;
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 `;
 
 export const NotesAndButtonsLayout = styled.div`
@@ -35,7 +44,7 @@ export const NotesAndButtonsLayout = styled.div`
 `;
 
 export const NotesBoard = styled.div`
-    flex: 9;
+    flex: 7;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -43,7 +52,6 @@ export const NotesBoard = styled.div`
 
     gap: 30px;
     padding: 2rem 0.5rem;
-    border: 1px dashed black;
 `;
 
 export const ActionColumn = styled.div`
@@ -141,4 +149,19 @@ export const CancelButton = styled.button`
 export const DeleteButton = styled.button`
   padding: 10px 18px;
   font-size: 1rem;
+`;
+
+export const Background = styled(HomepageBlankIcon)`
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+`;
+
+export const BackgroundOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: -1;
 `;
