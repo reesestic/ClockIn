@@ -4,16 +4,18 @@ import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect } from "react";
 import { sendNote, saveNote, deleteNote, getNotes } from "../api/StickyNoteApi";
-
 import type {Note, StickyNoteDB} from "../types/Note";
 
 import {
     PageTitle, StyledStickyNoteContainer, PageWrapper, NotesAndButtonsLayout,
-    NotesBoard, ActionColumn, StyledButton,
-    StyledAddStickyNoteButton, AddAndSelectWrapper,
+    NotesBoard, ActionColumn, AddAndSelectWrapper, PageBackButton,
+    Background, BackgroundOverlay
 } from "./StickyNoteHome.styles";
 
 import StickyNoteOverlay from "../components/stickyNoteComponents/StickyNoteOverlay";
+import { AddButton } from "../components/navigation/AddButton";
+import {CalendarDropZone} from "../components/navigation/CalendarDropZone.tsx";
+import {TrashDropZone} from "../components/navigation/TrashDropZone";
 
 export function StickyNoteHome() {
 
@@ -107,53 +109,58 @@ export function StickyNoteHome() {
     };
 
     return (
-        <PageWrapper>
-            <StyledButton to={ROUTES.HOME}>
-                Home
-            </StyledButton>
+        <>
+            <Background />
+            <BackgroundOverlay />
 
-            <PageTitle>Your Tasks Silly!</PageTitle>
+            <PageWrapper>
 
-            <AddAndSelectWrapper>
-                <StyledAddStickyNoteButton
-                    onClick={() =>
-                        setActiveNote({
-                            title: "",
-                            content: "",
-                            position: {x: 0, y: 0, z: 0}
-                        })
-                    }>
-                    +
-                </StyledAddStickyNoteButton>
-                <button>Select</button>
-            </AddAndSelectWrapper>
+                <PageBackButton to={ROUTES.HOME} label="Home" />
 
-            <NotesAndButtonsLayout>
-                <NotesBoard>
-                    <StyledStickyNoteContainer
-                        notes={notes}
-                        onNoteClick={setActiveNote}
+                <PageTitle>Your Sticky Notes</PageTitle>
+
+                <AddAndSelectWrapper>
+                    <AddButton
+                        label="New Note"
+                        onClick={() =>
+                            setActiveNote({
+                                title: "",
+                                content: "",
+                                position: { x: 0, y: 0, z: 0 }
+                            })}
                     />
-                </NotesBoard>
+                    {/*Commenting out select until later*/}
+                    {/*<button>Select</button>*/}
+                </AddAndSelectWrapper>
 
-                <ActionColumn>
-                    <button onClick={handleSendNote}>
-                        Send Button
-                    </button>
-                    <button>Delete Button</button>
-                </ActionColumn>
-            </NotesAndButtonsLayout>
+                <NotesAndButtonsLayout>
+                    <NotesBoard>
+                        <StyledStickyNoteContainer
+                            notes={notes}
+                            onNoteClick={setActiveNote}
+                        />
+                    </NotesBoard>
 
-            {activeNote && (
-                <StickyNoteOverlay
-                    note={activeNote}
-                    onChange={updateNote}
-                    onSave={handleSaveNote}
-                    onCancel={handleCancelNote}
-                    onDelete={handleDeleteNote}
-                />
-            )}
+                    <ActionColumn>
+                        <button onClick={handleSendNote}>
+                            Send Button
+                        </button>
+                        <CalendarDropZone/>
+                        <TrashDropZone/>
+                    </ActionColumn>
+                </NotesAndButtonsLayout>
 
-        </PageWrapper>
+                {activeNote && (
+                    <StickyNoteOverlay
+                        note={activeNote}
+                        onChange={updateNote}
+                        onSave={handleSaveNote}
+                        onCancel={handleCancelNote}
+                        onDelete={handleDeleteNote}
+                    />
+                )}
+
+            </PageWrapper>
+        </>
     );
 }
