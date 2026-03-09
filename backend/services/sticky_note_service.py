@@ -16,15 +16,11 @@ class StickyNoteService:
         task_data = await self.AIService.extract_task_fields(title, text)
         
         # Create a new task using the extracted data
-        await self.TaskService.create_task(task_data)
+        self.TaskService.create_task(task_data)
         
         
         # Include delete method of database from SNRepo here 
         # to delete the sticky note after conversion
-        return 
-    
-    async def sticky_to_db(self, title, text, id, user_id, posX, posY, posZ):
-        self.SNRepo.create_sticky_note(title, text, id, user_id, posX, posY, posZ)
         return
 
 
@@ -38,3 +34,8 @@ class StickyNoteService:
 
     def get_notes(self, user_id: int):
         return self.SNRepo.get_notes(user_id)
+
+        sticky_note_service.delete_note(note_id)
+    def delete_note(self, note_id: int):
+        return self.SNRepo.delete_note(note_id)
+        # returning an ID

@@ -58,3 +58,18 @@ export async function getNotes() {
 
     return response.json();
 }
+
+export async function deleteNote(noteId: number) {
+    const response = await fetch(
+        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/delete/${noteId}`,
+        {
+            method: "DELETE",
+        }
+    );
+    if (!response.ok) {
+        throw new Error("Failed to delete note");
+    }
+    return await response.json();
+    // { deleted_id: number }
+    // returns this
+}

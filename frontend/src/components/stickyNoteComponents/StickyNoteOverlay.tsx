@@ -3,7 +3,8 @@ import {
     ExpandedStickyNote,
     Overlay,
     OverlayButtons,
-    SaveButton
+    SaveButton,
+    DeleteButton
 } from "../../pages/StickyNoteHome.styles";
 
 import type { Note } from "../../types/Note";
@@ -13,9 +14,10 @@ type Props = {
     onChange: (title: string, content: string) => void;
     onSave: () => void;
     onCancel: () => void;
+    onDelete: () => void;
 };
 
-export default function StickyNoteOverlay({note, onChange, onSave, onCancel}: Props)
+export default function StickyNoteOverlay({note, onChange, onSave, onCancel, onDelete}: Props)
 {
 
     return (
@@ -34,6 +36,10 @@ export default function StickyNoteOverlay({note, onChange, onSave, onCancel}: Pr
                     <CancelButton onClick={onCancel}>
                         Cancel
                     </CancelButton>
+
+                    <DeleteButton onClick={onDelete}>
+                        Delete
+                    </DeleteButton>
                 </OverlayButtons>
             </div>
         </Overlay>
