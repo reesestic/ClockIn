@@ -137,3 +137,8 @@ export const CancelButton = styled.button`
   padding: 10px 18px;
   font-size: 1rem;
 `;
+
+export const DeleteButton = styled.button`
+  padding: 10px 18px;
+  font-size: 1rem;
+`;

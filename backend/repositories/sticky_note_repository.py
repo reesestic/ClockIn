@@ -17,11 +17,6 @@ class StickyNoteRepository:
             .execute()
         return response.data[0]['text'] if response.data else None
 
-    # I dont think we want this method b/c of ID creation locations
-    # def create_sticky_note(self, title, text, id, user_id, posX, posY, posZ):
-    #     self.supabase.table("StickyNotes").insert({"title": title, "text": text, "id": id, "user_id": user_id, "posX": posX, "posY": posY, "posZ": posZ}).execute()
-    #     return
-
     # Creation stuff
     def create_note(self, title, content, x: int, y: int, z: int):
         result = self.supabase.table("StickyNotes").insert({
@@ -56,3 +51,16 @@ class StickyNoteRepository:
         )
 
         return result.data
+
+    def delete_note(self, note_id):
+        result = (
+            self.supabase
+            .table("StickyNotes")
+            .delete()
+            .eq("id", note_id)
+            .execute()
+        )
+        if not result.data:
+            raise Exception("Note not found")
+
+        return note_id

@@ -3,7 +3,7 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect } from "react";
-import { sendNote, saveNote, getNotes } from "../api/StickyNoteApi";
+import { sendNote, saveNote, deleteNote, getNotes } from "../api/StickyNoteApi";
 
 import type {Note, StickyNoteDB} from "../types/Note";
 
@@ -59,6 +59,18 @@ export function StickyNoteHome() {
         if (!activeNote?.id) return;
 
         await sendNote(activeNote.id);
+    };
+
+    const handleDeleteNote = async () => {
+        if (!activeNote?.id) return;
+
+        const result = await deleteNote(activeNote.id);
+
+        setNotes(prev =>
+            prev.filter(n => n.id !== result.deleted_id)
+        );
+
+        setActiveNote(null);
     };
 
     const handleSaveNote = async () => {
@@ -138,6 +150,7 @@ export function StickyNoteHome() {
                     onChange={updateNote}
                     onSave={handleSaveNote}
                     onCancel={handleCancelNote}
+                    onDelete={handleDeleteNote}
                 />
             )}
 
