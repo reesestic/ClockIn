@@ -39,3 +39,8 @@ def save_note_controller(note: StickyNoteSave):
 def get_notes():
     user_id = 1
     return sticky_note_service.get_notes(user_id)
+
+@router.delete("/delete/{note_id}")
+def delete_note(note_id: int):
+    deleted_id = sticky_note_service.delete_note(note_id)
+    return {"deleted_id": deleted_id}
