@@ -3,8 +3,8 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect } from "react";
-import { sendNote, saveNote, deleteNote, getNotes } from "../api/StickyNoteApi";
-import type {Note, StickyNoteDB} from "../types/Note";
+import { sendNote, saveNote, deleteNote, getNotes, changeColor } from "../api/StickyNoteApi";
+import type {Note} from "../types/Note";
 
 import {
     PageTitle, StyledStickyNoteContainer, PageWrapper, NotesAndButtonsLayout,
@@ -16,6 +16,7 @@ import StickyNoteOverlay from "../components/stickyNoteComponents/StickyNoteOver
 import { AddButton } from "../components/navigation/AddButton";
 import {CalendarDropZone} from "../components/navigation/CalendarDropZone.tsx";
 import {TrashDropZone} from "../components/navigation/TrashDropZone";
+import type {StickyNoteColor} from "../types/StickyNoteThemes.ts";
 
 export function StickyNoteHome() {
 
@@ -27,20 +28,9 @@ export function StickyNoteHome() {
     useEffect(() => {
         async function loadNotes() {
             try {
-                const notesFromDB = await getNotes();
-
-                const formatted = notesFromDB.map((n: StickyNoteDB) => ({
-                    id: n.id,
-                    title: n.title,
-                    content: n.text,
-                    position: {
-                        x: n.posX,
-                        y: n.posY,
-                        z: n.posZ
-                    }
-                }));
-
-                setNotes(formatted);
+                // check normalization in StickyNoteServices to find syntax
+                const normalizedNotesFromDB = await getNotes();
+                setNotes(normalizedNotesFromDB);
 
             } catch (error) {
                 console.error("Failed to load notes", error);
@@ -50,7 +40,7 @@ export function StickyNoteHome() {
         loadNotes();
     }, []);
 
-    // Prop method passed down to Editable sticky note to edit title and content (StickyNote.tsx)
+    // Prop method passed down to Editable sticky note to edit title and content (StickyNoteEditable.tsx)
     const updateNote = (title: string, content: string) => {
         setActiveNote(prev =>
             prev ? {...prev, title, content} : prev
@@ -79,22 +69,11 @@ export function StickyNoteHome() {
         if (!activeNote) return;
 
         try {
-            const saved = await saveNote(activeNote);
-
-            const formatted = {
-                id: saved.id,
-                title: saved.title,
-                content: saved.text,
-                position: {
-                    x: saved.posX,
-                    y: saved.posY,
-                    z: saved.posZ
-                }
-            };
+            const normalizedNote = await saveNote(activeNote);
 
             setNotes(prev => {
-                const other = prev.filter(n => n.id !== formatted.id);
-                return [...other, formatted];
+                const other = prev.filter(n => n.id !== normalizedNote.id);
+                return [...other, normalizedNote];
             });
 
             setActiveNote(null);
@@ -106,6 +85,24 @@ export function StickyNoteHome() {
 
     const handleCancelNote = () => {
         setActiveNote(null);
+    };
+
+    const handleColorChange = async (noteId: number, color: StickyNoteColor) => {
+
+        setNotes(prev =>
+            prev.map(n =>
+                n.id === noteId
+                    ? { ...n, color }
+                    : n
+            )
+        );
+
+        try {
+            await changeColor(noteId, color);
+        } catch (error) {
+            console.error("Failed to update color", error);
+        }
+
     };
 
     return (
@@ -126,6 +123,7 @@ export function StickyNoteHome() {
                             setActiveNote({
                                 title: "",
                                 content: "",
+                                color: "yellow",
                                 position: { x: 0, y: 0, z: 0 }
                             })}
                     />
@@ -138,6 +136,8 @@ export function StickyNoteHome() {
                         <StyledStickyNoteContainer
                             notes={notes}
                             onNoteClick={setActiveNote}
+                            onColorChange={handleColorChange}
+
                         />
                     </NotesBoard>
 

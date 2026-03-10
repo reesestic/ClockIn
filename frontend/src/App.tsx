@@ -1,6 +1,3 @@
-//import { useEffect, useState } from "react";
-//import StickyNote from "./components/stickyNoteComponents/StickyNote.tsx";
-
 // returns views that are needed but with appropriate urls (bookmark)
 import {createBrowserRouter, RouterProvider} from "react-router-dom";
 import Root from "./Root.tsx"
