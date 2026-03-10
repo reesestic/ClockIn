@@ -11,7 +11,7 @@ class StickyNoteRepository:
             .execute()
         return response.data[0]['title'] if response.data else None
 
-    def get_text(self, sticky_id):
+    def get_text(self, sticky_id: str):
         response = self.supabase.table("StickyNotes") \
             .select("text") \
             .eq("id", sticky_id) \
@@ -25,14 +25,14 @@ class StickyNoteRepository:
             "title": title,
             "text": content,
             "color" : color,
-            "user_id": 1,
+            "user_id": "11111111-1111-1111-1111-111111111111",
             "posX" : x,
             "posY": y,
             "posZ" : z
         }).execute()
         return result.data[0]
 
-    def update_note(self, id: int, title: str, content: str):
+    def update_note(self, id: str, title: str, content: str):
         result = (self.supabase.table("StickyNotes").update({
                 "title": title,
                 "text": content
@@ -42,7 +42,7 @@ class StickyNoteRepository:
         )
         return result.data[0]
 
-    def get_notes(self, user_id: int):
+    def get_notes(self, user_id: str):
         result = (
             self.supabase
             .table("StickyNotes")
@@ -53,7 +53,7 @@ class StickyNoteRepository:
 
         return result.data
 
-    def delete_note(self, note_id):
+    def delete_note(self, note_id: str):
         result = (
             self.supabase
             .table("StickyNotes")
@@ -66,7 +66,7 @@ class StickyNoteRepository:
 
         return note_id
 
-    def update_color(self, note_id: int, color: StickyNoteColor):
+    def update_color(self, note_id: str, color: StickyNoteColor):
         result = (self.supabase.table("StickyNotes").update({"color" : color.value })
             .eq("id", note_id)
             .execute()

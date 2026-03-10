@@ -7,4 +7,3 @@ class TaskRepository:
         # For example, using Supabase client to insert a new record
         self.supabase.table('Tasks').insert(task_data).execute()
         return
-    

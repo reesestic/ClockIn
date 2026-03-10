@@ -85,7 +85,7 @@ const ViewOnlyMenu = ({ onColorChange }: { onColorChange: (color: string) => voi
 type Props = {
     note: Note;
     onClick?: () => void;
-    onColorChange: (noteId: number, color: string) => void;
+    onColorChange: (noteId: string, color: string) => void;
 };
 
 export default function StickyNoteViewOnly({note, onClick, onColorChange}: Props) {

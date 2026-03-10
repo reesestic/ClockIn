@@ -21,7 +21,7 @@ class StickyNoteCreate(BaseModel):
 
 
 class StickyNoteSave(BaseModel):
-    id: Optional[int] = None
+    id: Optional[str] = None
     title: str
     content: str
     color: str

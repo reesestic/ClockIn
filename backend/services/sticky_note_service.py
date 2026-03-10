@@ -45,17 +45,17 @@ class StickyNoteService:
 
     # Returns id, title, text, color, user_id, posX, posY, posZ
 
-    def update_note(self, id: int, title: str, content: str):
+    def update_note(self, id: str, title: str, content: str):
         row = self.SNRepo.update_note(id, title, content)
         return self._normalize_note(row)
 
-    def get_notes(self, user_id: int):
+    def get_notes(self, user_id: str):
         rows = self.SNRepo.get_notes(user_id)
         return [self._normalize_note(r) for r in rows]
 
-    def delete_note(self, note_id: int):
+    def delete_note(self, note_id: str):
         return self.SNRepo.delete_note(note_id)
         # returning an ID
 
-    def update_color(self, note_id: int, color: StickyNoteColor):
+    def update_color(self, note_id: str, color: StickyNoteColor):
         self.SNRepo.update_color(note_id, color)
