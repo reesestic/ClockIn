@@ -1,5 +1,6 @@
 import {ROUTES} from "../constants/Routes.ts";
 import type { Note } from "../types/Note";
+import type { StickyNoteColor } from "../types/StickyNoteThemes";
 
 
 export async function sendNote (noteId : number) {
@@ -34,7 +35,8 @@ export async function saveNote (activeNote : Note) {
                 id: activeNote.id,
                 title: activeNote.title,
                 content: activeNote.content,
-                position: activeNote.position
+                position: activeNote.position,
+                color: activeNote.color
             })
         }
     );
@@ -72,4 +74,23 @@ export async function deleteNote(noteId: number) {
     return await response.json();
     // { deleted_id: number }
     // returns this
+}
+
+export async function changeColor(noteId : number, color: StickyNoteColor) {
+    // stuff to change color
+    const response = await fetch(
+        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/${noteId}/color`,
+        {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ color })
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to update color");
+    }
+    console.log("Succcess, no return to frontend")
 }

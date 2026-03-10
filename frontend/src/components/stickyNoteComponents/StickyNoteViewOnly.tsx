@@ -1,38 +1,102 @@
+import StickyNoteFrame from "./StickyNoteFrame";
+import type {Note} from "../../types/Note";
 import styled from "styled-components";
-import StickyNoteBackground from "./StickyNoteBackground";
-import type { Note } from "../../types/Note.ts";
+import { StickyNoteThemes } from "../../types/StickyNoteThemes";
+import { useState} from "react";
 
-const NoteWrapper = styled.div`
-    position: relative;
-    width: clamp(200px, 17vw, 300px);
-    aspect-ratio: 1;
+const Title = styled.h3`
+    font-size: 1rem;
+    margin: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
-const NoteContent = styled.div`
-    position: absolute;
-    inset: 20% 15% 15% 15%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+const Content = styled.p`
+    font-size: 0.9rem;
+    line-height: 1.3;
+
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+
+    word-break: break-word;
 `;
 
-type StickyNoteProps = {
-    note: Note;
-    onClick?: () => void;
-};
+const ViewOnlyMenu = ({ onColorChange }: { onColorChange: (color: string) => void }) => {
 
-export default function StickyNoteViewOnly({ note, onClick }: StickyNoteProps) {
+    const [open, setOpen] = useState(false);
 
     return (
-        <NoteWrapper onClick={onClick}>
+        <div style={{ position: "relative", zIndex: 1000}}>
+            <button onClick={(e) => {e.stopPropagation();
+                setOpen(!open)}}>
+                ⋯
+            </button>
 
-            <StickyNoteBackground />
+            {open && (
+                <ul style={{
+                    position: "absolute",
+                    top: "0%",
+                    right: "100%",
+                    display: "flex",
+                    marginRight: "6px",
+                    listStyle: "none",
+                    zIndex: 1000,
+                    margin: 0,
+                    color: "white",
+                }}>
+                    <li style={{
+                        border: "2px solid #eeeeee",
+                        padding: "6px",
+                        display: "block",
+                        background: "black",
+                        cursor: "pointer"}}
+                        onClick={(e) => {e.stopPropagation();
+                            onColorChange("pink")}}
+                    >pink</li>
+                    <li style={{
+                        border: "2px solid #eeeeee",
+                        padding: "6px",
+                        display: "block",
+                        background: "black",
+                        cursor: "pointer"}}
+                        onClick={(e) => {e.stopPropagation();
+                            onColorChange("yellow")}}
+                    >yellow</li>
+                    <li style={{
+                        border: "2px solid #eeeeee",
+                        padding: "6px",
+                        display: "block",
+                        background: "black",
+                        cursor: "pointer"}}
+                        onClick={(e) => {e.stopPropagation();
+                            onColorChange("blue")}}
+                    >blue</li>
+                </ul>
+            )}
 
-            <NoteContent>
-                <h3>{note.title}</h3>
-                <p>{note.content}</p>
-            </NoteContent>
+        </div>
+    );
+};
 
-        </NoteWrapper>
+type Props = {
+    note: Note;
+    onClick?: () => void;
+    onColorChange: (noteId: number, color: string) => void;
+};
+
+export default function StickyNoteViewOnly({note, onClick, onColorChange}: Props) {
+    return (
+        // children passed auto by title, content
+        <StickyNoteFrame
+            onClick={onClick}
+            theme={StickyNoteThemes[note.color]}
+             menu={<ViewOnlyMenu onColorChange={(color) => onColorChange(note.id!, color)}/>} >
+            <Title>{note.title}</Title>
+            <Content>{note.content}</Content>
+        </StickyNoteFrame>
     );
 }

@@ -1,7 +1,6 @@
 import StickyNoteContainer from "../components/stickyNoteComponents/StickyNoteContainer";
-import StickyNote from "../components/stickyNoteComponents/StickyNote";
+import StickyNoteEditable from "../components/stickyNoteComponents/StickyNoteEditable";
 import styled from "styled-components";
-import {Link} from "react-router-dom";
 import { BackButton } from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 
@@ -82,35 +81,7 @@ export const Overlay = styled.div`
     z-index: 1000;
 `;
 
-export const StyledButton = styled(Link)`
-    display: inline-block;
-    width: 300px;
-    height: 50px;
-    background-color: black;
-    color: white;
-    border: 2px solid white;
-    text-align: center;
-    line-height: 50px;
-    text-decoration: none;
-    position: absolute;
-    top: 5px;
-    left: 5px;
-`;
-
-export const StyledAddStickyNoteButton = styled.button`
-    display: inline-block;
-    width: 50px;
-    height: 50px;
-    background-color: orange;
-    color: black;
-    font-size: clamp(0.5vw, 1.3vw, 2.5vw);
-    border: 2px solid black;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 50%;
-`;
-
-export const ExpandedStickyNote = styled(StickyNote)`
+export const ExpandedStickyNote = styled(StickyNoteEditable)`
   transform: scale(1.4);
   
   width: clamp(320px, 45vw, 600px);

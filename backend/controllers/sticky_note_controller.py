@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models.sticky_note_model import StickyNoteCreate, StickyNoteSave
+from models.sticky_note_model import StickyNoteCreate, StickyNoteSave, StickyNoteColorUpdate
 from constants.routes import STICKY_NOTES
 
 from dependencies import sticky_note_service
@@ -25,6 +25,7 @@ def save_note_controller(note: StickyNoteSave):
         sticky = sticky_note_service.create_note(
             note.title,
             note.content,
+            note.color,
             note.position.x,
             note.position.y,
             note.position.z
@@ -44,3 +45,9 @@ def get_notes():
 def delete_note(note_id: int):
     deleted_id = sticky_note_service.delete_note(note_id)
     return {"deleted_id": deleted_id}
+
+# Color updater
+@router.patch("/{note_id}/color")
+def update_note_color(note_id: int, update: StickyNoteColorUpdate):
+    sticky_note_service.update_color(note_id, update.color)
+    print("it worked!")

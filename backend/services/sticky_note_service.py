@@ -1,4 +1,6 @@
 # removed supabase import
+from typing import Dict, Any
+from models.sticky_note_model import StickyNoteColor
 
 class StickyNoteService:
     def __init__(self, SNRepo, AIService, TaskService):
@@ -23,19 +25,37 @@ class StickyNoteService:
         # to delete the sticky note after conversion
         return
 
-
+    @staticmethod
+    def _normalize_note(row: Dict[str, Any]):
+        return {
+            "id": row.get("id"),
+            "title": row.get("title"),
+            "content": row.get("text"),
+            "color": row.get("color"),
+            "position": {
+                "x": row.get("posX"),
+                "y": row.get("posY"),
+                "z": row.get("posZ")
+            }
+        }
     # Creation Stuff
-    def create_note(self, title: str, content: str, x: int, y: int, z: int):
-        return self.SNRepo.create_note(title, content, x, y, z)
-        # Returns id, title, text, color, user_id, posX, posY, posZ
+    def create_note(self, title: str, content: str, color: str, x: int, y: int, z: int):
+        row = self.SNRepo.create_note(title, content, color, x, y, z)
+        return self._normalize_note(row)
+
+    # Returns id, title, text, color, user_id, posX, posY, posZ
 
     def update_note(self, id: int, title: str, content: str):
-        return self.SNRepo.update_note(id, title, content)
+        row = self.SNRepo.update_note(id, title, content)
+        return self._normalize_note(row)
 
     def get_notes(self, user_id: int):
-        return self.SNRepo.get_notes(user_id)
+        rows = self.SNRepo.get_notes(user_id)
+        return [self._normalize_note(r) for r in rows]
 
-        sticky_note_service.delete_note(note_id)
     def delete_note(self, note_id: int):
         return self.SNRepo.delete_note(note_id)
         # returning an ID
+
+    def update_color(self, note_id: int, color: StickyNoteColor):
+        self.SNRepo.update_color(note_id, color)
