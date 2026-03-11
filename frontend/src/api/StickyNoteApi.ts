@@ -3,7 +3,7 @@ import type { Note } from "../types/Note";
 import type { StickyNoteColor } from "../types/StickyNoteThemes";
 
 
-export async function sendNote (noteId : number) {
+export async function sendNote (noteId : string) {
 
     const response = await fetch(
         `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/send/${noteId}`,
@@ -61,7 +61,7 @@ export async function getNotes() {
     return response.json();
 }
 
-export async function deleteNote(noteId: number) {
+export async function deleteNote(noteId: string) {
     const response = await fetch(
         `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/delete/${noteId}`,
         {
@@ -76,7 +76,7 @@ export async function deleteNote(noteId: number) {
     // returns this
 }
 
-export async function changeColor(noteId : number, color: StickyNoteColor) {
+export async function changeColor(noteId : string, color: StickyNoteColor) {
     // stuff to change color
     const response = await fetch(
         `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/${noteId}/color`,

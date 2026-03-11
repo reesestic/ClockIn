@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from controllers import sticky_note_controller
+from controllers.sticky_note_controller import router as sticky_note_router
 
 app = FastAPI()
 
@@ -19,4 +19,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(sticky_note_controller.router)
+app.include_router(sticky_note_router)

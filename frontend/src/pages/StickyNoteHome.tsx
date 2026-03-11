@@ -87,7 +87,7 @@ export function StickyNoteHome() {
         setActiveNote(null);
     };
 
-    const handleColorChange = async (noteId: number, color: StickyNoteColor) => {
+    const handleColorChange = async (noteId: string, color: StickyNoteColor) => {
 
         setNotes(prev =>
             prev.map(n =>
