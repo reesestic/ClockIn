@@ -7,8 +7,8 @@ from dependencies import sticky_note_service
 router = APIRouter(prefix=STICKY_NOTES)
 
 @router.post("/send/{note_id}")
-def send_to_planner(note_id: str):
-    sticky_note_service.note_to_task(note_id)
+async def send_to_planner(note_id: str):
+    await sticky_note_service.note_to_task(note_id)
 
 
 @router.post("/save")
