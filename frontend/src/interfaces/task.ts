@@ -1,6 +1,14 @@
-export default interface Task {
-id: number;
-Task: string;
-Importance: 1 | 2 | 3 | 4 | 5; // or number, depending on your data
-}
+export type Priority = "LOW" | "MED" | "HIGH";
 
+export default interface Task {
+    task_id: string;
+    title: string;
+    description: string;
+    due_date: string;
+    task_duration: number; // minutes
+    priority: Priority;
+    is_complete: boolean;
+    calendar_event_id: string | null;
+    scheduled_start: string | null;
+    source_note_id: string;
+}
