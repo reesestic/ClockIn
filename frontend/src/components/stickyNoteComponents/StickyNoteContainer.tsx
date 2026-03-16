@@ -6,10 +6,9 @@ import type { Note } from "../../types/Note";
 type StickyNoteContainerProps = {
     notes: Note[];
     onNoteClick: (note: Note) => void;
-    onColorChange: (noteId: string, color: string) => void;
 };
 
-export default function StickyNoteContainer({notes, onNoteClick, onColorChange }: StickyNoteContainerProps)
+export default function StickyNoteContainer({notes, onNoteClick }: StickyNoteContainerProps)
 {
 
     return (
@@ -19,7 +18,6 @@ export default function StickyNoteContainer({notes, onNoteClick, onColorChange }
                     key={note.id}
                     note={note}
                     onClick={() => onNoteClick(note)}
-                    onColorChange={onColorChange}
                 />
             ))}
         </>

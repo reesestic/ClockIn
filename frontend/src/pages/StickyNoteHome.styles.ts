@@ -14,14 +14,14 @@ export const PageBackButton = styled(BackButton)`
 export const PageTitle = styled.h1`
     text-align: center;
     font-size: clamp(0.8rem, 3rem, 4rem);
-    margin: 2rem 0 0rem;
+    margin: 2rem 0 0;
     color: white;
 `
 export const StyledStickyNoteContainer = styled(StickyNoteContainer)`
     display: flex;
     flex-wrap: wrap;
-    gap: 30px;
-    padding: 40px;
+    gap: 1rem;
+    padding: 1rem;
     min-height: 60vh;
 `;
 
@@ -40,6 +40,7 @@ export const NotesAndButtonsLayout = styled.div`
     min-height: 60vh;
     align-items: flex-start;
     gap: 20px;
+    padding: 0 2rem 0.5rem 0;
 `;
 
 export const NotesBoard = styled.div`
@@ -49,8 +50,8 @@ export const NotesBoard = styled.div`
     justify-content: center;
     align-content: flex-start;
 
-    gap: 30px;
-    padding: 2rem 0.5rem;
+    gap: 1rem;
+    padding: 0.5rem 1rem 0.5rem;
 `;
 
 export const ActionColumn = styled.div`

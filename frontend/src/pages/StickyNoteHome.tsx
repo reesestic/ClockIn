@@ -97,6 +97,13 @@ export function StickyNoteHome() {
             )
         );
 
+        // update the open editable note
+        setActiveNote(prev =>
+            prev && prev.id === noteId
+                ? { ...prev, color }
+                : prev
+        );
+
         try {
             await changeColor(noteId, color);
         } catch (error) {
@@ -136,8 +143,6 @@ export function StickyNoteHome() {
                         <StyledStickyNoteContainer
                             notes={notes}
                             onNoteClick={setActiveNote}
-                            onColorChange={handleColorChange}
-
                         />
                     </NotesBoard>
 
@@ -157,6 +162,7 @@ export function StickyNoteHome() {
                         onSave={handleSaveNote}
                         onCancel={handleCancelNote}
                         onDelete={handleDeleteNote}
+                        onColorChange={handleColorChange}
                     />
                 )}
 

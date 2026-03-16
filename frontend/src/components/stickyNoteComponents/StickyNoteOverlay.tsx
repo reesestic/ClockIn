@@ -6,6 +6,7 @@ import {
     SaveButton,
     DeleteButton
 } from "../../pages/StickyNoteHome.styles";
+import type { StickyNoteColor } from "../../types/StickyNoteThemes";
 
 import type { Note } from "../../types/Note";
 
@@ -15,9 +16,10 @@ type Props = {
     onSave: () => void;
     onCancel: () => void;
     onDelete: () => void;
+    onColorChange: (noteId: string, color: StickyNoteColor) => void;
 };
 
-export default function StickyNoteOverlay({note, onChange, onSave, onCancel, onDelete}: Props)
+export default function StickyNoteOverlay({note, onChange, onSave, onCancel, onDelete, onColorChange}: Props)
 {
 
     return (
@@ -26,6 +28,7 @@ export default function StickyNoteOverlay({note, onChange, onSave, onCancel, onD
                 <ExpandedStickyNote
                     note={note}
                     onChange={onChange}
+                    onColorChange={onColorChange}
                 />
 
                 <OverlayButtons>
