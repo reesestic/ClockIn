@@ -5,14 +5,14 @@ import type { StickyNoteTheme } from "../../types/StickyNoteThemes";
 
 const NoteWrapper = styled.div`
     position: relative;
-    width: clamp(200px, 17vw, 300px);
+    width: clamp(200px, 15vw, 300px);
     aspect-ratio: 1;
 `;
 
 const NoteContent = styled.div<{textColor: string}>`
     position: absolute;
-    inset: 20% 15% 15% 15%;
-
+    inset: 9% 9% 9% 13%;
+    
     display: flex;
     flex-direction: column;
     gap: 8px;
