@@ -31,7 +31,7 @@ def _row_to_task(row: dict) -> Task:
 class CalendarRepository:
     """Handles all Supabase CRUD operations for the tasks table."""
 
-    TABLE = "tasks"
+    TABLE = "Tasks"
 
     def get_task_by_id(self, task_id: UUID) -> Optional[Task]:
         response = (

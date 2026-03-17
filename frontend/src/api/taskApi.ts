@@ -1,6 +1,6 @@
 import type Task from "../interfaces/task";
 
-const BASE = import.meta.env.VITE_BACKEND_URL;
+const BASE = import.meta.env.VITE_API_URL;
 
 export async function getTasksForUser(userId: string): Promise<Task[]> {
     const res = await fetch(`${BASE}/calendar/tasks/user/${userId}`);

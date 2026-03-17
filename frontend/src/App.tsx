@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import type { Task } from "./interfaces/task";
 import { getTasksForUser, scheduleTask, markTaskComplete } from "./api/taskApi";
@@ -29,12 +29,33 @@ export default function App() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [schedulingId, setSchedulingId] = useState<string | null>(null);
+    const [leftPct, setLeftPct] = useState(50);
+    const isDragging = useRef(false);
+    const cardRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         getTasksForUser(USER_ID)
             .then(setTasks)
             .catch(console.error)
             .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        const onMouseMove = (e: MouseEvent) => {
+            if (!isDragging.current || !cardRef.current) return;
+            const rect = cardRef.current.getBoundingClientRect();
+            const pct = ((e.clientX - rect.left) / rect.width) * 100;
+            setLeftPct(Math.min(70, Math.max(15, pct)));
+        };
+        const onMouseUp = () => {
+            isDragging.current = false;
+        };
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+        return () => {
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseup", onMouseUp);
+        };
     }, []);
 
     async function handleSchedule(taskId: string) {
@@ -73,9 +94,18 @@ export default function App() {
     const dayNum = today.getDate();
     const monthName = today.toLocaleDateString("en-US", { month: "short" });
 
-    const colorMap = new Map(tasks.map((t, i) => [t.task_id, TASK_COLORS[i % TASK_COLORS.length]]));
-    const pendingTasks = tasks.filter(t => !t.is_complete);
-    const scheduledTasks = tasks.filter(t => t.scheduled_start && !t.is_complete);
+    const fakeTasks: Task[] = [
+        { task_id: "fake-1", title: "Finish project proposal", description: "Write up the Q2 proposal doc", due_date: "2026-03-18", task_duration: 60, priority: "HIGH", is_complete: false, scheduled_start: null, calendar_event_id: null, source_note_id: "fake" },
+        { task_id: "fake-2", title: "Call with Kevin", description: "Sync on backend endpoints", due_date: "2026-03-17", task_duration: 30, priority: "MED", is_complete: false, scheduled_start: "2026-03-17T10:00:00", calendar_event_id: null, source_note_id: "fake" },
+        { task_id: "fake-3", title: "Grocery run", description: "Eggs, bread, oat milk", due_date: "2026-03-17", task_duration: 45, priority: "LOW", is_complete: false, scheduled_start: "2026-03-17T13:30:00", calendar_event_id: null, source_note_id: "fake" },
+        { task_id: "fake-4", title: "Review PR #42", description: "Check Kevin's calendar changes", due_date: "2026-03-18", task_duration: 20, priority: "MED", is_complete: false, scheduled_start: null, calendar_event_id: null, source_note_id: "fake" },
+        { task_id: "fake-5", title: "Gym", description: "Leg day", due_date: "2026-03-17", task_duration: 60, priority: "LOW", is_complete: false, scheduled_start: "2026-03-17T17:00:00", calendar_event_id: null, source_note_id: "fake" },
+    ];
+
+    const allTasks = [...fakeTasks, ...tasks];
+    const colorMap = new Map(allTasks.map((t, i) => [t.task_id, TASK_COLORS[i % TASK_COLORS.length]]));
+    const pendingTasks = allTasks.filter(t => !t.is_complete);
+    const scheduledTasks = allTasks.filter(t => t.scheduled_start && !t.is_complete);
 
     return (
         <>
@@ -89,9 +119,9 @@ export default function App() {
                     </svg>
                 </BackBtn>
 
-                <MainCard>
+                <MainCard ref={cardRef}>
                     {/* LEFT: Tasks panel */}
-                    <TaskPanel>
+                    <TaskPanel $width={leftPct}>
                         <PanelHeading>
                             <PanelTitle>Tasks</PanelTitle>
                             <PanelSubtitle>things you need to get done...</PanelSubtitle>
@@ -115,10 +145,10 @@ export default function App() {
                         </TaskList>
                     </TaskPanel>
 
-                    <Divider />
+                    <Divider onMouseDown={() => { isDragging.current = true; }} />
 
                     {/* RIGHT: Schedule panel */}
-                    <SchedulePanel>
+                    <SchedulePanel $width={100 - leftPct}>
                         <ScheduleHeader>
                             <ScheduleHeaderLeft>
                                 <CalendarEmoji>📅</CalendarEmoji>
@@ -144,13 +174,16 @@ export default function App() {
                                 ))}
 
                                 {scheduledTasks.map(task => (
-                                    <EventDot
+                                    <EventBlock
                                         key={task.task_id}
-                                        style={{ top: getTopOffset(task.scheduled_start!) }}
+                                        style={{
+                                            top: getTopOffset(task.scheduled_start!),
+                                            height: Math.max((task.task_duration / 60) * ROW_HEIGHT, 22),
+                                        }}
                                         $color={colorMap.get(task.task_id) ?? "#e040b0"}
                                     >
-                                        {task.title.charAt(0).toUpperCase()}
-                                    </EventDot>
+                                        <EventBlockTitle>{task.title}</EventBlockTitle>
+                                    </EventBlock>
                                 ))}
                             </Timeline>
                         </TimelineScroll>
@@ -216,15 +249,18 @@ const MainCard = styled.div`
 `;
 
 const Divider = styled.div`
-    width: 1px;
+    width: 8px;
     background: #e8e8e8;
     flex-shrink: 0;
+    cursor: col-resize;
+    transition: background 0.15s;
+    &:hover { background: #d0d0d0; }
 `;
 
 // ── Left: Task Panel ───────────────────────────────────────
 
-const TaskPanel = styled.div`
-    width: 340px;
+const TaskPanel = styled.div<{ $width: number }>`
+    width: ${p => p.$width}%;
     flex-shrink: 0;
     background: #f5f5f5;
     display: flex;
@@ -269,8 +305,9 @@ const StatusMsg = styled.p`
 
 // ── Right: Schedule Panel ──────────────────────────────────
 
-const SchedulePanel = styled.div`
-    flex: 1;
+const SchedulePanel = styled.div<{ $width: number }>`
+    width: ${p => p.$width}%;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -364,20 +401,27 @@ const HourLine = styled.div`
     background: #ebebeb;
 `;
 
-const EventDot = styled.div<{ $color: string }>`
+const EventBlock = styled.div<{ $color: string }>`
     position: absolute;
-    left: 200px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #e040b0;
-    color: white;
-    font-weight: 700;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform: translateY(-50%);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    left: 48px;
+    right: 8px;
+    border-radius: 6px;
+    background: ${p => p.$color};
+    border-left: 3px solid ${p => p.$color}cc;
+    padding: 4px 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     z-index: 2;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+`;
+
+const EventBlockTitle = styled.span`
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
