@@ -1,0 +1,27 @@
+import React from "react";
+import styled from "styled-components";
+
+const Container = styled.div`
+    display: flex;
+    height: 100%;
+`;
+
+const Left = styled.div`
+  flex: 1;
+  border-right: 1px solid black;
+`;
+
+const Right = styled.div`
+  flex: 1;
+`;
+
+export default function TwoColumnLayout(
+    {left, right}: {left: React.ReactNode; right: React.ReactNode})
+{
+    return (
+        <Container>
+            <Left>{left}</Left>
+            <Right>{right}</Right>
+        </Container>
+    );
+}
