@@ -1,14 +1,16 @@
-export type Priority = "LOW" | "MED" | "HIGH";
+export type Importance = 1 | 2 | 3 | 4 | 5;
 
 export default interface Task {
-    task_id: string;
+    id: string;
+    user_id: string;
+    created_at: string;
     title: string;
-    description: string;
-    due_date: string;
-    task_duration: number; // minutes
-    priority: Priority;
+    description: string | null;
+    task_duration: number | null;
+    priority: Importance | null;
+    due_date: string | null;
+    can_schedule: boolean | null;
     is_complete: boolean;
-    calendar_event_id: string | null;
-    scheduled_start: string | null;
-    source_note_id: string;
+    // optional display-only field, not in Supabase
+    scheduled_start?: string | null;
 }
