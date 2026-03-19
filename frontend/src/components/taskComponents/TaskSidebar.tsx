@@ -1,22 +1,29 @@
-export function TaskSidebar({editable, onChangeView}: {
-    editable: boolean; onChangeView?: (mode: "manual" | "schedule") => void; }) {
+import TaskEditable from "./TaskEditable";
+import TaskViewOnly from "./TaskViewOnly";
+import type { Task } from "../../types/Task";
+import type {TaskSidebarProps} from "./TaskSidebarProps.ts";
+
+export default function TaskSidebar({tasks, mode, selectedTaskIds,
+             onToggleSelect, onUpdateTask, onSelectTask} : TaskSidebarProps) {
     return (
-        <div>
-            <h3>Tasks</h3>
-
-            {/* Tasks done by Kevin */}
-
-            {editable && (
-                <>
-                    <button onClick={() => onChangeView?.("manual")}>
-                        Add Task
-                    </button>
-
-                    <button onClick={() => onChangeView?.("schedule")}>
-                        Generate Schedule
-                    </button>
-                </>
+        <>
+            {tasks.map((task : Task) =>
+                mode === "planner" ? (
+                    <TaskEditable
+                        key={task.id}
+                        task={task}
+                        isSelected={selectedTaskIds?.includes(task.id!)}
+                        onClick={() => onToggleSelect?.(task.id!)}
+                        onChange={onUpdateTask}
+                    />
+                ) : (
+                    <TaskViewOnly
+                        key={task.id!}
+                        task={task}
+                        onClick={() => onSelectTask?.(task)}
+                    />
+                )
             )}
-        </div>
+        </>
     );
 }
