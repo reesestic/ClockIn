@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controllers.sticky_note_controller import router as sticky_note_router
+from controllers.task_controller import router as task_router  # add this
 
 app = FastAPI()
 
@@ -20,3 +21,4 @@ app.add_middleware(
 )
 
 app.include_router(sticky_note_router)
+app.include_router(task_router)

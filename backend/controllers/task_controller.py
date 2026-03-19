@@ -11,7 +11,20 @@
 # from repositories.calendar_repository import CalendarRepository
 #
 # router = APIRouter(prefix="/tasks", tags=["tasks"])
-#
+
+
+from fastapi import APIRouter
+
+from constants.routes import TASKS
+from dependencies import task_service
+
+router = APIRouter(prefix=TASKS)
+
+@router.get("")
+def get_tasks():
+    user_id = "11111111-1111-1111-1111-111111111111"
+    return task_service.get_tasks(user_id)
+
 #
 # @router.post("/tasks", response_model=TaskResponse, status_code=201)
 # def create_task(payload: TaskCreateRequest):

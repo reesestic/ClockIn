@@ -5,6 +5,7 @@ import { ROUTES } from "./constants/Routes";
 //import Task from "./components/taskComponents/Task.tsx";
 
 import { Route, Routes } from "react-router-dom";
+import {PlannerPage} from "./pages/PlannerPage.tsx";
 
 export default function Root() {
     return (
@@ -21,6 +22,10 @@ export default function Root() {
                     element={<StickyNoteHome/>}
                 />
 
+                <Route
+                    path={ROUTES.TASKS}
+                    element={<PlannerPage/>}
+                />
             </Routes>
         </>
     )

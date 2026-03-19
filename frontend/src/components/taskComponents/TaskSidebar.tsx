@@ -1,28 +1,28 @@
-import TaskEditable from "./TaskEditable";
-import TaskViewOnly from "./TaskViewOnly";
-import type { Task } from "../../types/Task";
-import type {TaskSidebarProps} from "./TaskSidebarProps.ts";
+import TaskList from "./TaskList";
+import type { Task } from "../../types/Task.ts";
 
-export default function TaskSidebar({tasks, mode, selectedTaskIds,
-             onToggleSelect, onUpdateTask, onSelectTask} : TaskSidebarProps) {
+export function TaskSidebar({ editable, tasklist, selectedTaskIds, onTaskSelect, onAddTask, onGenerateSchedule }: {
+    editable: boolean;
+    tasklist?: Task[];
+    selectedTaskIds?: Set<string>;
+    onTaskSelect?: (taskId: string) => void;
+    onAddTask?: () => void;
+    onGenerateSchedule?: () => void;
+}) {
     return (
         <>
-            {tasks.map((task : Task) =>
-                mode === "planner" ? (
-                    <TaskEditable
-                        key={task.id}
-                        task={task}
-                        isSelected={selectedTaskIds?.includes(task.id!)}
-                        onClick={() => onToggleSelect?.(task.id!)}
-                        onChange={onUpdateTask}
-                    />
-                ) : (
-                    <TaskViewOnly
-                        key={task.id!}
-                        task={task}
-                        onClick={() => onSelectTask?.(task)}
-                    />
-                )
+            <TaskList
+                tasks={tasklist ?? []}
+                editable={editable}
+                selectedTaskIds={selectedTaskIds}
+                onTaskSelect={onTaskSelect}
+            />
+
+            {editable && (
+                <>
+                    <button onClick={onAddTask}>Add Task</button>
+                    <button onClick={onGenerateSchedule}>Generate Schedule</button>
+                </>
             )}
         </>
     );
