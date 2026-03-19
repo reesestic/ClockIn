@@ -3,6 +3,8 @@ import type Task from "./interfaces/task";
 import { getTasksForUser, deleteTask, createTask } from "./api/taskApi";
 import HomepageBlankIcon from "./components/icons/HomepageBlankIcon";
 import TaskCard from "./components/taskComponents/TaskCard";
+import { useAuth } from "./context/AuthContext";
+
 const TASK_COLORS = ["#f0e06e", "#b8d0f0", "#f0b8c8", "#c0e0a0", "#d0c0f0"];
 
 const START_HOUR = 6;
@@ -22,7 +24,7 @@ function getTopOffset(iso: string): number {
 }
 
 export default function App() {
-    const USER_ID = "11111111-1111-1111-1111-111111111111";
+    const { signOut } = useAuth();
 
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,9 +38,8 @@ export default function App() {
     const isDragging = useRef(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
-    // ── Fetch tasks from Supabase ─────────────────────────────
     useEffect(() => {
-        getTasksForUser(USER_ID)
+        getTasksForUser()
             .then(setTasks)
             .catch(console.error)
             .finally(() => setLoading(false));
@@ -74,7 +75,6 @@ export default function App() {
         if (!newTitle.trim()) return;
         try {
             const task = await createTask({
-                user_id: USER_ID,
                 title: newTitle.trim(),
                 description: newDescription.trim() || undefined,
                 due_date: newDueDate ? (() => { const [m,d,y] = newDueDate.split("/"); return `${y}-${m}-${d}T00:00:00`; })() : undefined,
@@ -105,11 +105,13 @@ export default function App() {
 
     return (
         <>
-            {/* Background */}
             <HomepageBlankIcon className="bg-image" />
             <div className="bg-overlay" />
 
             <div className="page-wrapper">
+
+                {/* Sign out */}
+                <button className="sign-out-btn" onClick={signOut}>Sign out</button>
 
                 {/* Back button */}
                 <button className="back-btn" onClick={() => window.location.href = "https://clock-in-orcin.vercel.app"}>
@@ -185,7 +187,6 @@ export default function App() {
                         <div className="timeline-scroll">
                             <div className="timeline">
 
-                                {/* Hour rows */}
                                 {HOURS.map(h => (
                                     <div className="hour-row" key={h}>
                                         <span className="hour-label">{formatHour(h)}</span>
@@ -193,7 +194,6 @@ export default function App() {
                                     </div>
                                 ))}
 
-                                {/* Scheduled event blocks */}
                                 {scheduledTasks.map(task => {
                                     const color = colorMap.get(task.id) ?? "#e040b0";
                                     return (

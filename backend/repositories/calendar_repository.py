@@ -55,9 +55,9 @@ class CalendarRepository:
             return None
         return [_row_to_task(row) for row in response.data] #same thing but with users
 
-    def create_task(self, payload: TaskCreateRequest) -> Task:
+    def create_task(self, payload: TaskCreateRequest, user_id: str) -> Task:
         data = {
-            "user_id": str(payload.user_id),
+            "user_id": user_id,
             "title": payload.title,
             "description": payload.description,
             "due_date": payload.due_date.isoformat() if payload.due_date else None,

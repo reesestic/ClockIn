@@ -44,7 +44,6 @@ class Task:
 
 
 class TaskCreateRequest(BaseModel):  #what fields the frontend is sending as a request to retreive from backend
-    user_id: UUID
     title: str
     description: Optional[str] = None
     due_date: Optional[datetime] = None
