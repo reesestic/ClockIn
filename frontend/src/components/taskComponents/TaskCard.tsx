@@ -4,7 +4,7 @@ import type Task from "../../interfaces/task";
 interface Props {
     task: Task;
     color: string;
-    onComplete: (taskId: string) => void;
+    onDelete: (taskId: string) => void;
 }
 
 function formatDate(iso: string) {
@@ -18,12 +18,11 @@ function formatDuration(minutes: number) {
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-export default function TaskCard({ task, color, onComplete }: Props) {
+export default function TaskCard({ task, color, onDelete }: Props) {
     const [expanded, setExpanded] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Close menu when clicking outside
     useEffect(() => {
         function handleOutsideClick(e: MouseEvent) {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -48,7 +47,7 @@ export default function TaskCard({ task, color, onComplete }: Props) {
                         <div className="drop-menu">
                             <button
                                 className="drop-item danger"
-                                onClick={() => { onComplete(task.id); setMenuOpen(false); }}
+                                onClick={() => { onDelete(task.id); setMenuOpen(false); }}
                             >
                                 <span>🗑</span> Delete
                             </button>
@@ -61,7 +60,6 @@ export default function TaskCard({ task, color, onComplete }: Props) {
             <div className="card-body">
                 <p className="card-description">{task.description || "No description..."}</p>
 
-                {/* Expanded details */}
                 {expanded && (
                     <div className="card-details">
                         <div className="detail-row">
@@ -86,7 +84,6 @@ export default function TaskCard({ task, color, onComplete }: Props) {
                     </div>
                 )}
 
-                {/* Expand / collapse toggle */}
                 <button className="expand-btn" onClick={() => setExpanded(v => !v)}>
                     {expanded ? "∧" : "∨"}
                 </button>

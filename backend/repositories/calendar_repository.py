@@ -5,44 +5,44 @@ from typing import Optional
 from uuid import UUID
 
 from supabase_client import supabase
-from database.database_models import PriorityLevel, Task, TaskCreateRequest, TaskUpdateRequest
+from database.database_models import Task, TaskCreateRequest, TaskUpdateRequest
+#directly talks to supabase and tells what to pull. also imports models from 
 
 
 def _row_to_task(row: dict) -> Task:
     """Convert a Supabase row dict into a Task domain object."""
     return Task(
-        task_id=UUID(row["task_id"]),
+        id=UUID(row["id"]),
+        user_id=UUID(row["user_id"]),
+        created_at=datetime.fromisoformat(row["created_at"]),
         title=row["title"],
-        description=row.get("description", ""),
-        due_date=datetime.fromisoformat(row["due_date"]),
-        task_duration=row["task_duration"],
-        priority=PriorityLevel(row["priority"]),
-        source_note_id=UUID(row["source_note_id"]),
-        is_complete=row.get("is_complete", False),
-        calendar_event_id=row.get("calendar_event_id"),
-        scheduled_start=(
-            datetime.fromisoformat(row["scheduled_start"])
-            if row.get("scheduled_start")
-            else None
+        description=row.get("description"),
+        task_duration=row.get("task_duration"),
+        priority=row.get("priority"),
+        due_date=(
+            datetime.fromisoformat(row["due_date"]) if row.get("due_date") else None
         ),
+        can_schedule=row.get("can_schedule", False),
+        is_complete=row.get("is_complete", False),
     )
 
 
 class CalendarRepository:
     """Handles all Supabase CRUD operations for the tasks table."""
 
-    TABLE = "Tasks"
+    TABLE = "Tasks" #the name of the database from supabase
 
     def get_task_by_id(self, task_id: UUID) -> Optional[Task]:
         response = (
             supabase.table(self.TABLE)
             .select("*")
-            .eq("task_id", str(task_id))
+            .eq("id", str(task_id))
             .execute()
         )
         if not response.data:
             return None
-        return _row_to_task(response.data[0])
+        return _row_to_task(response.data[0]) #select all tasks from the supabase table where the task_id matches the given id (from top)
+        # if there isnt anything found, return None, otherwise, convert first result to a Task object
 
     def get_tasks_by_user(self, user_id: str) -> list[Task]:
         response = (
@@ -51,19 +51,22 @@ class CalendarRepository:
             .eq("user_id", user_id)
             .execute()
         )
-        return [_row_to_task(row) for row in response.data]
+        if not response.data: 
+            return None
+        return [_row_to_task(row) for row in response.data] #same thing but with users
 
     def create_task(self, payload: TaskCreateRequest) -> Task:
         data = {
+            "user_id": str(payload.user_id),
             "title": payload.title,
             "description": payload.description,
-            "due_date": payload.due_date.isoformat(),
+            "due_date": payload.due_date.isoformat() if payload.due_date else None,
             "task_duration": payload.task_duration,
-            "priority": payload.priority.value,
-            "source_note_id": str(payload.source_note_id),
+            "priority": payload.priority,
+            "can_schedule": payload.can_schedule,
         }
         response = supabase.table(self.TABLE).insert(data).execute()
-        return _row_to_task(response.data[0])
+        return _row_to_task(response.data[0]) #create a new row in supabase, creates a task, inserts it, then returns it again
 
     def update_task(self, task_id: UUID, payload: TaskUpdateRequest) -> Task:
         updates: dict = {}
@@ -76,41 +79,25 @@ class CalendarRepository:
         if payload.task_duration is not None:
             updates["task_duration"] = payload.task_duration
         if payload.priority is not None:
-            updates["priority"] = payload.priority.value
+            updates["priority"] = payload.priority
+        if payload.can_schedule is not None:
+            updates["can_schedule"] = payload.can_schedule
         if payload.is_complete is not None:
             updates["is_complete"] = payload.is_complete
 
         response = (
             supabase.table(self.TABLE)
             .update(updates)
-            .eq("task_id", str(task_id))
+            .eq("id", str(task_id))
             .execute()
         )
-        return _row_to_task(response.data[0])
-
-    def save_scheduled_event(
-        self,
-        task_id: UUID,
-        calendar_event_id: str,
-        scheduled_start: datetime,
-    ) -> Task:
-        updates = {
-            "calendar_event_id": calendar_event_id,
-            "scheduled_start": scheduled_start.isoformat(),
-        }
-        response = (
-            supabase.table(self.TABLE)
-            .update(updates)
-            .eq("task_id", str(task_id))
-            .execute()
-        )
-        return _row_to_task(response.data[0])
+        return _row_to_task(response.data[0]) #builds an empty updates dict and only updates the parts that arent none (all are optional)
 
     def delete_task(self, task_id: UUID) -> bool:
         response = (
             supabase.table(self.TABLE)
             .delete()
-            .eq("task_id", str(task_id))
+            .eq("id", str(task_id))
             .execute()
         )
-        return len(response.data) > 0
+        return len(response.data) > 0 #deletes a row based on ID, returns true if something was deleted and false otherwise 

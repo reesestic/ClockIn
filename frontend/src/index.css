@@ -605,3 +605,73 @@ button {
 .expand-btn:hover {
     color: #666;
 }
+
+/* ─── Add task button ────────────────────────────────────── */
+
+.add-task-btn {
+    background: #111;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.add-task-btn:hover {
+    background: #444;
+}
+
+/* ─── Create task form ───────────────────────────────────── */
+
+.create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.form-input {
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    padding: 7px 10px;
+    color: #111;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.form-input::placeholder {
+    color: #888;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.form-btn {
+    flex: 1;
+    padding: 7px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.form-btn.confirm {
+    background: #111;
+    color: #fff;
+}
+
+.form-btn.cancel {
+    background: rgba(0,0,0,0.08);
+    color: #111;
+}

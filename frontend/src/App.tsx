@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type Task from "./interfaces/task";
-import { getTasksForUser, markTaskComplete } from "./api/taskApi";
+import { getTasksForUser, deleteTask, createTask } from "./api/taskApi";
 import HomepageBlankIcon from "./components/icons/HomepageBlankIcon";
 import TaskCard from "./components/taskComponents/TaskCard";
 const TASK_COLORS = ["#f0e06e", "#b8d0f0", "#f0b8c8", "#c0e0a0", "#d0c0f0"];
@@ -27,6 +27,12 @@ export default function App() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [leftPct, setLeftPct] = useState(50);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [newTitle, setNewTitle] = useState("");
+    const [newDescription, setNewDescription] = useState("");
+    const [newDueDate, setNewDueDate] = useState("");
+    const [newDuration, setNewDuration] = useState("");
+    const [newPriority, setNewPriority] = useState("");
     const isDragging = useRef(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
@@ -55,12 +61,35 @@ export default function App() {
         };
     }, []);
 
-    async function handleComplete(taskId: string) {
+    async function handleDelete(taskId: string) {
         try {
-            const updated = await markTaskComplete(taskId);
-            setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
+            await deleteTask(taskId);
+            setTasks(prev => prev.filter(t => t.id !== taskId));
         } catch {
-            alert("Failed to mark task complete");
+            alert("Failed to delete task");
+        }
+    }
+
+    async function handleCreate() {
+        if (!newTitle.trim()) return;
+        try {
+            const task = await createTask({
+                user_id: USER_ID,
+                title: newTitle.trim(),
+                description: newDescription.trim() || undefined,
+                due_date: newDueDate ? (() => { const [m,d,y] = newDueDate.split("/"); return `${y}-${m}-${d}T00:00:00`; })() : undefined,
+                task_duration: newDuration ? parseInt(newDuration) : undefined,
+                priority: newPriority ? parseInt(newPriority) : undefined,
+            });
+            setTasks(prev => [task, ...prev]);
+            setShowCreateForm(false);
+            setNewTitle("");
+            setNewDescription("");
+            setNewDueDate("");
+            setNewDuration("");
+            setNewPriority("");
+        } catch {
+            alert("Failed to create task");
         }
     }
 
@@ -95,9 +124,26 @@ export default function App() {
                     {/* ── Left: Task panel ── */}
                     <div className="task-panel" style={{ width: `${leftPct}%` }}>
                         <div className="panel-heading">
-                            <h1 className="panel-title">Tasks</h1>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <h1 className="panel-title">Tasks</h1>
+                                <button className="add-task-btn" onClick={() => setShowCreateForm(true)}>+</button>
+                            </div>
                             <p className="panel-subtitle">things you need to get done...</p>
                         </div>
+
+                        {showCreateForm && (
+                            <div className="create-form">
+                                <input className="form-input" placeholder="Title *" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+                                <input className="form-input" placeholder="Description" value={newDescription} onChange={e => setNewDescription(e.target.value)} />
+                                <input className="form-input" type="text" placeholder="Due date (MM/DD/YYYY)" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} />
+                                <input className="form-input" type="number" placeholder="Duration (minutes)" value={newDuration} onChange={e => setNewDuration(e.target.value)} />
+                                <input className="form-input" type="number" placeholder="Priority (1-5)" min="1" max="5" value={newPriority} onChange={e => setNewPriority(e.target.value)} />
+                                <div className="form-buttons">
+                                    <button className="form-btn confirm" onClick={handleCreate}>Add</button>
+                                    <button className="form-btn cancel" onClick={() => setShowCreateForm(false)}>Cancel</button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="task-list">
                             {loading && <p className="status-msg">Loading...</p>}
@@ -109,7 +155,7 @@ export default function App() {
                                     key={task.id}
                                     task={task}
                                     color={colorMap.get(task.id) ?? TASK_COLORS[0]}
-                                    onComplete={handleComplete}
+                                    onDelete={handleDelete}
                                 />
                             ))}
                         </div>

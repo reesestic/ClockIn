@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware #whitelists what frontends are allowed
 from supabase_client import supabase
 from controllers.calendar_controller import router as calendar_router
 
@@ -9,25 +9,17 @@ app.include_router(calendar_router)
 # ✅ ADD THIS
 origins = [
     "http://localhost:5173",
-    "https://clock-in-orcin.vercel.app"
+    "https://clock-in-orcin.vercel.app" #the whitelisted frontends
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins, # only these frontends can talk to us
+    allow_credentials=True, # allow cookies/auth headers 
+    allow_methods=["*"], # allow GET, POST, DELETE, etc. 
+    allow_headers=["*"], # allow any HTTP headers 
 )
 
 @app.get("/")
-def root():
-    return {"message": "Backend is running"}
-
-@app.get("/bertha")
-def get_bertha():
-    response = supabase.table("Bertha") \
-        .select("id, Task, Importance") \
-        .execute()
-
-    return response.data
+def root(): 
+    return {"message": "backend running"}
