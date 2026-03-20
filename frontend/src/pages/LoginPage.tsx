@@ -91,10 +91,18 @@ export default function LoginPage() {
                             </div>
                         </div>
 
+                        <button
+                            className="lp-enter-btn"
+                            onClick={handleLogin}
+                            disabled={!email || !password || loading}
+                        >
+                            {loading ? "Signing in..." : "Log In"}
+                        </button>
+
                         <hr className="lp-divider" />
 
                         <div className="lp-signup-section" onClick={() => switchMode("signup")}>
-                            <h2 className="lp-signup-title">{loading ? "Signing in..." : "Sign up"}</h2>
+                            <h2 className="lp-signup-title">Sign up</h2>
                             <p className="lp-section-subtitle">to create an account</p>
                         </div>
                     </>
