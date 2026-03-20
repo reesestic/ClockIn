@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import TwoColumnLayout from "../components/layout/TwoColumnLayout";
-import RightPanel from "../components/layout/RightPanel.tsx";
-import LeftPanel from "../components/layout/LeftPanel.tsx";
 import type {Task} from "../types/Task";
-import type {ScheduleBlock} from "../types/ScheduleBlock";
-
+import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
+// import type {ScheduleBlock} from "../types/ScheduleBlock";
+import {getTasks} from "../api/TaskApi.ts";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -13,10 +12,10 @@ export default function PlannerPage() {
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
     // ✅ right panel mode
-    const [rightMode, setRightMode] = useState<"manual" | "schedule">("schedule");
+    //  const [rightMode, setRightMode] = useState<"manual" | "schedule">("schedule");
 
     // ✅ backend-generated schedule
-    const [schedule, setSchedule] = useState<ScheduleBlock[]>([]);
+    // const [schedule, setSchedule] = useState<ScheduleBlock[]>([]);
 
     // ---------------------------
     // SELECTION
@@ -28,6 +27,10 @@ export default function PlannerPage() {
                 : [...prev, taskId]
         );
     }
+
+    useEffect(() => {
+        getTasks().then(fetchedTasks => setTasks(fetchedTasks));
+    }, [tasks]);
 
     // ---------------------------
     // TASK CRUD
@@ -45,39 +48,48 @@ export default function PlannerPage() {
     // ---------------------------
     // 🔥 BACKEND SCHEDULING
     // ---------------------------
-    async function handleGenerateSchedule() {
-        const res = await fetch("/api/schedule", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ taskIds: selectedTaskIds }),
-        });
-
-        const data = await res.json();
-
-        setSchedule(data);
-        setRightMode("schedule");
-    }
-
+    // async function handleGenerateSchedule() {
+    //     const res = await fetch("/api/schedule", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ taskIds: selectedTaskIds }),
+    //     });
+    //
+    //     const data = await res.json();
+    //
+    //     setSchedule(data);
+    //     setRightMode("schedule");
+    // }
     return (
         <TwoColumnLayout
             left={
-                <LeftPanel
-                    setRightMode={setRightMode}
-                    onGenerateSchedule={handleGenerateSchedule}
-                    tasks={tasks}
-                    selectedTaskIds={selectedTaskIds}
-                    onToggleSelect={toggleTaskSelection}
-                    onUpdateTask={handleUpdateTask}
+                <TaskSidebar
+                    props={{
+                        tasks,
+                        mode: "planner",
+                        selectedTaskIds,
+                        onToggleSelect: toggleTaskSelection,
+                        onUpdateTask: handleUpdateTask,
+                    }}
+                    onAddTask={async (newTask) => {
+                        // TODO: POST to FastAPI, then add returned task (with id) to state
+                        handleCreateTask({ ...newTask, can_schedule: false });
+                    }}
+                    onGenerateSchedule={() => {
+                        // TODO: wire to handleGenerateSchedule when backend is ready
+                        console.log("Generate schedule for:", selectedTaskIds);
+                    }}
+                    onDeleteTask={(taskId) => {
+                        // TODO: DELETE to FastAPI
+                        setTasks(prev => prev.filter(t => t.id !== taskId));
+                    }}
+                    onAddToSchedule={(taskId) => {
+                        // stub
+                        console.log("Add to schedule:", taskId);
+                    }}
                 />
             }
-            right={
-                <RightPanel
-                    mode={rightMode}
-                    setMode={setRightMode}
-                    schedule={schedule}
-                    onCreateTask={handleCreateTask}
-                />
-            }
+            right={<p>Hello World</p>}
         />
     );
 }

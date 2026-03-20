@@ -3,7 +3,7 @@ import type { Task } from "../types/Task";
 
 export async function getTasks(): Promise<Task[]> {
     const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.TASKS}`
+        `${import.meta.env.VITE_API_URL}${ROUTES.PLANNER}`
     );
 
     if (!response.ok) {
@@ -12,3 +12,6 @@ export async function getTasks(): Promise<Task[]> {
 
     return await response.json();
 }
+
+
+

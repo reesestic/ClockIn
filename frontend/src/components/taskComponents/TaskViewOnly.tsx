@@ -38,15 +38,13 @@ const StyledAttributes = styled.div`
     flex-direction: row;
     margin: auto
 `
-type Props = {
-    task: Task
-}
 
-export default function TaskViewOnly({task}: Props) {
+
+export default function TaskViewOnly({task, onClick}: {task: Task, onClick: () => void}) {
     const [collapsed, setCollapsed] = useState<boolean>(true)
 
     return (
-        <StyledDiv>
+        <StyledDiv onClick={onClick}>
             <StyledTitleBlock>{task.title}</StyledTitleBlock>
             {!collapsed && (
                 <>
@@ -54,7 +52,7 @@ export default function TaskViewOnly({task}: Props) {
                         Description: {task.description}
                     </StyledDescription>
                     <StyledAttributes>
-                        <StyledField>Priority: {task.priority}
+                        <StyledField>Importance: {task.importance}
                         </StyledField>
                         <StyledField>Task Duration: {task.task_duration}
                         </StyledField>

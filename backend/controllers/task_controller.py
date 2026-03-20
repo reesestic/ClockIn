@@ -15,10 +15,10 @@
 
 from fastapi import APIRouter
 
-from constants.routes import TASKS
+from constants.routes import PLANNER
 from dependencies import task_service
 
-router = APIRouter(prefix=TASKS)
+router = APIRouter(prefix=PLANNER)
 
 @router.get("")
 def get_tasks():

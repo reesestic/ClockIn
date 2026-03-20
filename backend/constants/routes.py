@@ -5,5 +5,6 @@
 # };
 
 STICKY_NOTES = "/sticky-notes"
-TASKS = "/tasks"
+PLANNER = "/planner"
+TIMER = "/timer"
 HOME = "/"

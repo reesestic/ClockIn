@@ -3,7 +3,9 @@ export type Task = {
     title: string,
     description: string,
     task_duration: number,
-    priority: number,
+    importance: number,
+    difficulty: number,
     due_date: string,
     can_schedule: boolean,
+    status: "to do" | "scheduled" | "in progress" | "completed"
 }

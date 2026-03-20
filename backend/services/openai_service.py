@@ -15,15 +15,17 @@ class AIService:
         {{
             "title": "",
             "taskDuration": "",
-            "priority": "",
+            "importance": "",
             "dueDate": "",
             "description": ""
+            "difficulty": ""
         }}
         
         where the types of each field are as follows:
         title: string
         taskDuration: integer (number of seconds)
-        priority: string (one of "low", "medium", "high")
+        importance: integer (one of 1, 2, 3)
+        difficulty: integer (one of 1, 2, 3)
         dueDate: string (Supabase timestamp format including timezone)
         description: string
         """

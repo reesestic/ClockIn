@@ -19,7 +19,7 @@ const StyledLink = styled(Link)`
 
 export default function PlannerObject() {
     return (
-        <StyledLink to={ROUTES.TASKS}>
+        <StyledLink to={ROUTES.PLANNER}>
             <StyledPlanner />
         </StyledLink>
     )

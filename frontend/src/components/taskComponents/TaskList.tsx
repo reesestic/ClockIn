@@ -1,29 +1,30 @@
-import type {Task} from "../../types/Task.ts";
+import type { Task } from "../../types/Task.ts";
 import TaskViewOnly from "./TaskViewOnly.tsx";
-import TaskEditable from "./TaskEditable.ts";
+import TaskEditable from "./TaskEditable.tsx";
+import type { TaskSidebarProps } from "./TaskSidebarProps.ts";
 
-export default function TaskList({ tasks, editable, selectedTaskIds, onTaskSelect }: {
-    tasks: Task[];
-    editable: boolean;
-    selectedTaskIds?: Set<string>;
-    onTaskSelect?: (taskId: string) => void;
-}) {
-    return (
-        <>
-            {tasks.map(task => (
-                editable
-                    ? <TaskEditable
-                        key={task.id}
-                        task={task}
-                        selected={selectedTaskIds?.has(task.id)}
-                        onSelect={onTaskSelect}
-                    />
-                    : <TaskViewOnly
-                        key={task.id}
-                        task={task}
-                        onSelect={onTaskSelect}  // just fires, no selected highlight
-                    />
-            ))}
-        </>
-    );
+export default function TaskList(props: TaskSidebarProps) {
+  return (
+    <>
+      {props.tasks.map((task: Task) =>
+        props.mode === "planner" ? (
+          <TaskEditable
+            key={task.id}
+            task={task}
+            isSelected={props.selectedTaskIds?.includes(task.id!)}
+            onClick={() => props.onToggleSelect?.(task.id!)}
+            onChange={props.onUpdateTask}
+            onDelete={props.onDeleteTask}
+            onAddToSchedule={props.onAddToSchedule}
+          />
+        ) : (
+          <TaskViewOnly
+            key={task.id!}
+            task={task}
+            onClick={() => props.onSelectTask?.(task)}
+          />
+        )
+      )}
+    </>
+  );
 }
