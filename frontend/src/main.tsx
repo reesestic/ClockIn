@@ -12,10 +12,7 @@ function Root() {
 
     if (loading) return null; // wait for session to restore before rendering
 
-    if (user) {
-        window.location.href = "https://clock-in-orcin.vercel.app/";
-        return null;
-    }
+    if (user) return <App />;
 
     return <LoginPage />;
 }

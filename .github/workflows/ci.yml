@@ -2,12 +2,17 @@ name: Basic CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, sticky-note]
   pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
     steps:
       - name: Checkout repository
