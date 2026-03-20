@@ -71,7 +71,7 @@ export const Overlay = styled.div`
   inset: 0;
 
     height: 100vh;
-    width: 50vw;
+    width: 100vw;
 
     background: rgba(0,0,0,0.5);
 
