@@ -15,3 +15,256 @@ body {
 button {
     font-family: inherit;
 }
+
+/* background */
+
+.bg-image {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+}
+
+.bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: -1;
+}
+
+/* page layout */
+
+.page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+}
+
+.back-btn {
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 10;
+}
+
+.back-btn:hover svg path {
+    fill: #fff;
+}
+
+/* main card */
+
+.main-card {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 1200px;
+    height: calc(100vh - 4rem);
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* divider */
+
+.divider {
+    width: 8px;
+    background: #e8e8e8;
+    flex-shrink: 0;
+    cursor: col-resize;
+    transition: background 0.15s;
+}
+
+.divider:hover {
+    background: #d0d0d0;
+}
+
+/* task panel (left) */
+
+.task-panel {
+    flex-shrink: 0;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px 0 0 20px;
+    overflow: hidden;
+}
+
+.panel-heading {
+    padding: 1.5rem 1.25rem 0.75rem;
+}
+
+.panel-title {
+    font-size: 2rem;
+    font-weight: 800;
+    font-style: italic;
+    color: #111;
+}
+
+.panel-subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+.task-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 1rem 1rem;
+}
+
+.task-list::-webkit-scrollbar { width: 4px; }
+.task-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+.status-msg {
+    color: #aaa;
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+/* schedule panel (right) */
+
+.schedule-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.schedule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
+}
+
+.schedule-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.calendar-emoji {
+    font-size: 2rem;
+}
+
+.schedule-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    font-style: italic;
+    color: #111;
+}
+
+.schedule-subtitle {
+    font-size: 0.8rem;
+    color: #aaa;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.date-badge {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #bbb;
+}
+
+.date-small {
+    font-size: 0.85rem;
+}
+
+.date-large {
+    font-size: 3rem;
+    font-weight: 300;
+    line-height: 1;
+    color: #ccc;
+}
+
+/* timeline */
+
+.timeline-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 1rem;
+}
+
+.timeline-scroll::-webkit-scrollbar { width: 4px; }
+.timeline-scroll::-webkit-scrollbar-thumb { background: #eee; border-radius: 4px; }
+
+.timeline {
+    position: relative;
+}
+
+.hour-row {
+    display: flex;
+    align-items: center;
+    height: 44px;
+}
+
+.hour-label {
+    width: 40px;
+    font-size: 0.75rem;
+    color: #aaa;
+    flex-shrink: 0;
+}
+
+.hour-line {
+    flex: 1;
+    height: 1px;
+    background: #ebebeb;
+}
+
+.event-block {
+    position: absolute;
+    left: 48px;
+    right: 8px;
+    border-radius: 6px;
+    padding: 4px 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    z-index: 2;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.event-block-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* sign out button */
+
+.sign-out-btn {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #eee;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+}
+
+.sign-out-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
