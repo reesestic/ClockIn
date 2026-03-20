@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(USER_KEY);
         return stored ? JSON.parse(stored) : null;
     });
-    const [loading, setLoading] = useState(false);
+    const loading = false;
 
     async function signIn(email: string, password: string): Promise<string | null> {
         try {
