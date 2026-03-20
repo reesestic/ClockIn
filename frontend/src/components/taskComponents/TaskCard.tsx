@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type Task from "../../interfaces/task";
+import "./TaskCard.css";
 
 interface Props {
     task: Task;
