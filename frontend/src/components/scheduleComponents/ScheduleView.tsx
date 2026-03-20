@@ -1,21 +1,23 @@
-import type { ScheduleBlock } from "../../types/ScheduleBlock";
-import ScheduleBlockComponent from "./ScheduleBlock";
+import styled from "styled-components";
+import type {ScheduleViewProps} from "./ScheduleViewProps";
+import ScheduleContent from "./ScheduleContent.tsx";
 
-type Props = {
-    schedule: ScheduleBlock[];
-    onClickBlock?: (block: ScheduleBlock) => void;
-};
+const ScheduleHeaderWrapper = styled.div`
+    margin: 1rem;
+`
 
-export default function ScheduleView({ schedule, onClickBlock }: Props) {
+export default function ScheduleView({ schedule, onBlockClick }: ScheduleViewProps) {
+    if (!schedule) {
+        return <div style={{ padding: "1rem" }}>No schedule yet</div>;
+    }
+
     return (
-        <div>
-            {schedule.map(block => (
-                <ScheduleBlockComponent
-                    key={block.id}
-                    block={block}
-                    onClick={() => onClickBlock?.(block)}
-                />
-            ))}
-        </div>
+        <>
+            <ScheduleHeaderWrapper>
+                Wrapper Content
+            {/*title, caldnear componet, menu, refresh, dd/DD/MM    */}
+            </ScheduleHeaderWrapper>
+            <ScheduleContent schedule={schedule} onBlockClick={onBlockClick}/>
+        </>
     );
 }

@@ -1,20 +1,20 @@
 import styled from "styled-components";
 import type { ScheduleBlock } from "../../types/ScheduleBlock";
 
-const BlockWrapper = styled.div`
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 8px;
+const BlockWrapper = styled.div<{ $clickable: boolean }>`
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
 
-  cursor: pointer;
-  background: #f8f8f8;
+    cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
+    background: #f8f8f8;
 
-  transition: 0.2s;
+    transition: 0.2s;
 
-  &:hover {
-    background: #eee;
-  }
+    &:hover {
+        background: ${({ $clickable }) => ($clickable ? "#eee" : "#f8f8f8")};
+    }
 `;
 
 const Title = styled.div`
@@ -33,7 +33,7 @@ type Props = {
 
 export default function ScheduleBlock({ block, onClick }: Props) {
     return (
-        <BlockWrapper onClick={onClick}>
+        <BlockWrapper $clickable={!!onClick} onClick={onClick}>
             <Title>{block.title}</Title>
             <Time>
                 {block.start} - {block.end}
