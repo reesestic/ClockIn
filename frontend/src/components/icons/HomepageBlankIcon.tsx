@@ -24,5 +24,6 @@ export default function HomepageBlankIcon({className} : {className?: string}) {
                 </clipPath>
             </defs>
         </svg>
+
     )
 }
