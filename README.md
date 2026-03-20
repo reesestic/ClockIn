@@ -1,6 +1,6 @@
 # ClockIn Study Hub
 
-## 🛠 Tech Stack
+## 🛠 Tech Stack 
 
 ### Frontend
 - React
