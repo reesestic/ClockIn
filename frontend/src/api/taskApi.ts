@@ -1,25 +1,41 @@
-import { supabase } from "../database/supabaseClient";
 import type Task from "../interfaces/task";
 
-export async function getTasksForUser(userId: string): Promise<Task[]> {
-    const { data, error } = await supabase
-        .from("Tasks")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-    if (error) throw new Error(error.message);
-    return data as Task[];
+function authHeaders(): HeadersInit {
+    const token = localStorage.getItem("clockin_token") ?? "";
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+    };
 }
 
-export async function markTaskComplete(taskId: string): Promise<Task> {
-    const { data, error } = await supabase
-        .from("Tasks")
-        .update({ is_complete: true })
-        .eq("id", taskId)
-        .select()
-        .single();
+export async function getTasksForUser(): Promise<Task[]> {
+    const res = await fetch(`${API_URL}/tasks/user/me`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("Failed to fetch tasks");
+    return res.json();
+}
 
-    if (error) throw new Error(error.message);
-    return data as Task;
+export async function deleteTask(taskId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/tasks/${taskId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to delete task");
+}
+
+export async function createTask(payload: {
+    title: string;
+    description?: string;
+    due_date?: string;
+    task_duration?: number;
+    priority?: number;
+}): Promise<Task> {
+    const res = await fetch(`${API_URL}/tasks`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Failed to create task");
+    return res.json();
 }
