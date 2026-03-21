@@ -1,10 +1,13 @@
 import type { ScheduleViewProps } from "./ScheduleViewProps";
 import ScheduleBlock from "./ScheduleBlock";
 
+
 export default function ScheduleContent({ schedule, onBlockClick }: ScheduleViewProps) {
+    if (schedule == null) return;
+
     return (
         <>
-            {schedule.map(block => (
+            {schedule.blocks.map(block => (
                 <ScheduleBlock
                     key={block.id}
                     block={block}

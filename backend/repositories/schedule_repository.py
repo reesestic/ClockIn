@@ -15,7 +15,7 @@ class ScheduleRepository:
             "is_active": True
         }).execute()
 
-        return result.data[0]  # return created schedule row
+        return result.data[0]
 
 
     # -------------------------

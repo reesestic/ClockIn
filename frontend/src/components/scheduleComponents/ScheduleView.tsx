@@ -7,7 +7,7 @@ const ScheduleHeaderWrapper = styled.div`
 `
 
 export default function ScheduleView({ schedule, onBlockClick }: ScheduleViewProps) {
-    if (!schedule) {
+    if (schedule == null) {
         return <div style={{ padding: "1rem" }}>No schedule yet</div>;
     }
 

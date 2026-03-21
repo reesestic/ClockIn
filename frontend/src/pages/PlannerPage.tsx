@@ -15,14 +15,7 @@ export default function PlannerPage() {
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
     const [showFilters, setShowFilters] = useState(false);
 
-    const [schedules, setSchedules] = useState<Schedule[]>([]);
-
-    // render the active one (dont have a thing to swap the IDs yet
-    const [activeScheduleId, setActiveScheduleId] = useState<string | null>(null);
-
-    const activeSchedule = schedules.find(
-        s => s.id === activeScheduleId
-    );
+    const [schedule, setSchedule] = useState<Schedule | null>(null);
 
     useEffect(() => {
         getTasks().then(setTasks);
@@ -59,8 +52,10 @@ export default function PlannerPage() {
     }
 
     async function handleGenerate(filters?: any) {
-        const data = await generateSchedule(selectedTaskIds, filters);
-        setSchedules(data);
+        const newSchedule = await generateSchedule(selectedTaskIds, filters);
+
+        setSchedule(newSchedule);
+        setShowFilters(false);
     }
 
     return (
@@ -82,6 +77,7 @@ export default function PlannerPage() {
                         onGenerateSchedule={() => {
                             // TODO: wire to handleGenerateSchedule when backend is ready
                             console.log("Generate schedule for:", selectedTaskIds);
+                            setShowFilters(true);
                         }}
                         onDeleteTask={(taskId) => {
                             // TODO: DELETE to FastAPI
@@ -94,7 +90,7 @@ export default function PlannerPage() {
                     />
                 }
                 right={
-                    <ScheduleView schedule={activeSchedule} />}
+                    <ScheduleView schedule={schedule} />}
             />
 
             {showFilters && (

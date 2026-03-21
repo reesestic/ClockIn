@@ -1,5 +1,6 @@
 import { API_ROUTES } from "../constants/apiRoutes";
 import type { ScheduleFilters } from "../types/ScheduleFilters";
+import type { Schedule } from "../types/Schedule";
 import { authFetch } from "./authFetch";
 
 
@@ -9,7 +10,7 @@ export async function getSchedule() {
     return res.json();
 }
 
-export async function generateSchedule(taskIds: string[], filters: ScheduleFilters) {
+export async function generateSchedule(taskIds: string[], filters: ScheduleFilters) : Promise<Schedule> {
     const res = await authFetch(`${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
