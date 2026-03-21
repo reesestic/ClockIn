@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styled from "styled-components";
 import type { Task } from "../../types/Task.ts";
 import { useDebounce } from "../../hooks/useDebounce.ts";
@@ -13,7 +13,6 @@ const Container = styled.div`
     margin: 5%;
     border: 1px solid lightgray;
     box-shadow: -3px 3px 10px 0px #b5b5b5;
-    
 `;
 
 const TitleInput = styled.input`
@@ -34,7 +33,14 @@ const TitleInput = styled.input`
 const TitleRow = styled.div`
   display: flex;
   background-color: #fff59a;
-    width: 100%;
+  width: 100%;
+`;
+
+const Checkbox = styled.input`
+  margin: 0 6px;
+  cursor: pointer;
+  accent-color: #555;
+  flex-shrink: 0;
 `;
 
 const MenuButton = styled.button`
@@ -61,8 +67,8 @@ const ContextMenu = styled.div`
   z-index: 100;
   min-width: 180px;
   overflow: hidden;
-    padding-left: 2%;
-    padding-right: 2%;
+  padding-left: 2%;
+  padding-right: 2%;
 `;
 
 const MenuItem = styled.button<{ danger?: boolean }>`
@@ -133,7 +139,7 @@ const RadioGroup = styled.div`
   display: flex;
   gap: 6px;
   margin-top: 2px;
-    justify-content: flex-start;
+  justify-content: flex-start;
 `;
 
 const RadioOption = styled.button<{ selected: boolean }>`
@@ -168,14 +174,14 @@ const CollapseButton = styled.button`
   }
 `;
 
-const CollapsedFieldContainer= styled.div`
-    padding-left: 2%;
-    padding-right: 2%;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: left;
-`
+const CollapsedFieldContainer = styled.div`
+  padding-left: 2%;
+  padding-right: 2%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+`;
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -190,6 +196,7 @@ type TaskEditableProps = {
 
 export default function TaskEditable({
   task,
+  isSelected,
   onClick,
   onChange,
   onDelete,
@@ -198,32 +205,44 @@ export default function TaskEditable({
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [local, setLocal] = useState<Task>({ ...task });
-useDebounce(local, 800, (updatedTask) => {
-    if (updatedTask.id) {
-        onChange?.(updatedTask);
-    }
-});
 
+  // ── only save after user has actually changed something ──
+  const isDirty = useRef(false);
+
+  useDebounce(local, 800, (updatedTask) => {
+    if (updatedTask.id && isDirty.current) {
+      onChange?.(updatedTask);
+    }
+  });
 
   const handleImportanceSelect = (value: number) => {
-    const updated = { ...local, importance: value };
-    setLocal(updated);
-    onChange?.(updated); // immediate for radio-style click
+    isDirty.current = true;
+    setLocal({ ...local, importance: value });
   };
 
   const handleDifficultySelect = (value: number) => {
-      const updated = { ...local, difficulty: value };
-      setLocal(updated);
-      onChange?.(updated);
-  }
+    isDirty.current = true;
+    setLocal({ ...local, difficulty: value });
+  };
 
   return (
     <Container onClick={onClick}>
       {/* ── Title Row ── */}
       <TitleRow>
+        <Checkbox
+          type="checkbox"
+          checked={isSelected ?? false}
+          onChange={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+        />
         <TitleInput
           value={local.title}
-          onChange={(e) => setLocal({ ...local, title: e.target.value })}
+          onChange={(e) => {
+            isDirty.current = true;
+            setLocal({ ...local, title: e.target.value });
+          }}
           onClick={(e) => e.stopPropagation()}
           placeholder="Task title"
         />
@@ -268,7 +287,10 @@ useDebounce(local, 800, (updatedTask) => {
         <CollapsedFieldContainer>
           <DescriptionTextarea
             value={local.description}
-            onChange={(e) => setLocal({ ...local, description: e.target.value })}
+            onChange={(e) => {
+              isDirty.current = true;
+              setLocal({ ...local, description: e.target.value });
+            }}
             onClick={(e) => e.stopPropagation()}
             placeholder="Description"
           />
@@ -279,7 +301,10 @@ useDebounce(local, 800, (updatedTask) => {
               <FieldInput
                 type="date"
                 value={local.due_date ?? ""}
-                onChange={(e) => setLocal({ ...local, due_date: e.target.value })}
+                onChange={(e) => {
+                  isDirty.current = true;
+                  setLocal({ ...local, due_date: e.target.value });
+                }}
                 onClick={(e) => e.stopPropagation()}
               />
             </FieldLabel>
@@ -290,9 +315,10 @@ useDebounce(local, 800, (updatedTask) => {
                 type="number"
                 min={1}
                 value={local.task_duration ?? ""}
-                onChange={(e) =>
-                  setLocal({ ...local, task_duration: Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  isDirty.current = true;
+                  setLocal({ ...local, task_duration: Number(e.target.value) });
+                }}
                 onClick={(e) => e.stopPropagation()}
                 placeholder="e.g. 30"
               />
@@ -318,24 +344,25 @@ useDebounce(local, 800, (updatedTask) => {
                 ))}
               </RadioGroup>
             </FieldLabel>
-              <FieldLabel style={{ flex: "none" }}>
-                  Difficulty
-                  <RadioGroup>
-                      {[1, 2, 3].map((val) => (
-                          <RadioOption
-                              key={val}
-                              selected={local.difficulty === val}
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDifficultySelect(val);
-                              }}
-                              type="button"
-                          >
-                              {val}
-                          </RadioOption>
-                      ))}
-                  </RadioGroup>
-              </FieldLabel>
+
+            <FieldLabel style={{ flex: "none" }}>
+              Difficulty
+              <RadioGroup>
+                {[1, 2, 3].map((val) => (
+                  <RadioOption
+                    key={val}
+                    selected={local.difficulty === val}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDifficultySelect(val);
+                    }}
+                    type="button"
+                  >
+                    {val}
+                  </RadioOption>
+                ))}
+              </RadioGroup>
+            </FieldLabel>
           </FieldRow>
         </CollapsedFieldContainer>
       )}

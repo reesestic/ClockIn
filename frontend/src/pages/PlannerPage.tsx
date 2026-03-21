@@ -21,6 +21,7 @@ export default function PlannerPage() {
     // SELECTION
     // ---------------------------
     function toggleTaskSelection(taskId: string) {
+        console.log(selectedTaskIds, "-> toggling", taskId);
         setSelectedTaskIds(prev =>
             prev.includes(taskId)
                 ? prev.filter(id => id !== taskId)

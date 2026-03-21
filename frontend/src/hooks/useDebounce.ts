@@ -2,8 +2,14 @@ import { useEffect, useRef } from "react";
 
 export function useDebounce<T>(value: T, delay: number, callback: (val: T) => void) {
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRender = useRef(true);
 
     useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return; // skip on mount
+        }
+
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => {
             callback(value);
