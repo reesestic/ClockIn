@@ -3,7 +3,7 @@ import TwoColumnLayout from "../components/layout/TwoColumnLayout";
 import type {Task} from "../types/Task";
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 // import type {ScheduleBlock} from "../types/ScheduleBlock";
-import {getTasks} from "../api/TaskApi.ts";
+import {deleteTask, getTasks, saveTask, updateTask} from "../api/TaskApi.ts";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -30,21 +30,28 @@ export default function PlannerPage() {
 
     useEffect(() => {
         getTasks().then(fetchedTasks => setTasks(fetchedTasks));
-    }, [tasks]);
+    }, []);
 
     // ---------------------------
     // TASK CRUD
     // ---------------------------
-    function handleUpdateTask(updated: Task) {
+    async function handleUpdateTask(updated: Task) {
+        await updateTask(updated);
         setTasks(prev =>
             prev.map(t => (t.id === updated.id ? updated : t))
         );
     }
 
-    function handleCreateTask(newTask: Task) {
-        setTasks(prev => [...prev, newTask]);
+    async function handleCreateTask(newTask: Task) {
+        const createdTask = await saveTask(newTask);
+        console.log("Created task:", createdTask);
+        setTasks(prev => [...prev, createdTask]);
     }
 
+    async function handleDeleteTask(taskId: string) {
+        const idDeleted = await deleteTask(taskId);
+        setTasks(prev => prev.filter(task => task.id !== idDeleted));
+    }
     // ---------------------------
     // 🔥 BACKEND SCHEDULING
     // ---------------------------
@@ -73,16 +80,13 @@ export default function PlannerPage() {
                     }}
                     onAddTask={async (newTask) => {
                         // TODO: POST to FastAPI, then add returned task (with id) to state
-                        handleCreateTask({ ...newTask, can_schedule: false });
+                        await handleCreateTask({ ...newTask, can_schedule: false });
                     }}
                     onGenerateSchedule={() => {
                         // TODO: wire to handleGenerateSchedule when backend is ready
                         console.log("Generate schedule for:", selectedTaskIds);
                     }}
-                    onDeleteTask={(taskId) => {
-                        // TODO: DELETE to FastAPI
-                        setTasks(prev => prev.filter(t => t.id !== taskId));
-                    }}
+                    onDeleteTask={handleDeleteTask}
                     onAddToSchedule={(taskId) => {
                         // stub
                         console.log("Add to schedule:", taskId);

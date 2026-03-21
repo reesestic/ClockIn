@@ -267,6 +267,22 @@ export default function ManualEntryPanel({
             </RadioGroup>
           </FieldLabel>
 
+          <FieldLabel>
+            Difficulty
+            <RadioGroup>
+              {[1, 2, 3].map((val) => (
+                <RadioOption
+                  key={val}
+                  selected={form.difficulty === val}
+                  onClick={() => setForm({ ...form, difficulty: val })}
+                  type="button"
+                >
+                  {val}
+                </RadioOption>
+              ))}
+            </RadioGroup>
+          </FieldLabel>
+
           <CreateButton
             onClick={handleCreate}
             disabled={loading || !form.title.trim()}

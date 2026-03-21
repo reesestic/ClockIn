@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import type { Task } from "../../types/Task.ts";
+import { useDebounce } from "../../hooks/useDebounce.ts";
 
 // ── Styled Components ────────────────────────────────────────────────────────
 
@@ -197,14 +198,12 @@ export default function TaskEditable({
   const [collapsed, setCollapsed] = useState<boolean>(true);
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [local, setLocal] = useState<Task>({ ...task });
+useDebounce(local, 800, (updatedTask) => {
+    if (updatedTask.id) {
+        onChange?.(updatedTask);
+    }
+});
 
-
-  // Commit a single field change to parent on blur
-  const handleBlur = (field: keyof Task, value: Task[keyof Task]) => {
-    const updated = { ...local, [field]: value };
-    setLocal(updated);
-    onChange?.(updated);
-  };
 
   const handleImportanceSelect = (value: number) => {
     const updated = { ...local, importance: value };
@@ -225,7 +224,6 @@ export default function TaskEditable({
         <TitleInput
           value={local.title}
           onChange={(e) => setLocal({ ...local, title: e.target.value })}
-          onBlur={(e) => handleBlur("title", e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Task title"
         />
@@ -271,7 +269,6 @@ export default function TaskEditable({
           <DescriptionTextarea
             value={local.description}
             onChange={(e) => setLocal({ ...local, description: e.target.value })}
-            onBlur={(e) => handleBlur("description", e.target.value)}
             onClick={(e) => e.stopPropagation()}
             placeholder="Description"
           />
@@ -283,7 +280,6 @@ export default function TaskEditable({
                 type="date"
                 value={local.due_date ?? ""}
                 onChange={(e) => setLocal({ ...local, due_date: e.target.value })}
-                onBlur={(e) => handleBlur("due_date", e.target.value)}
                 onClick={(e) => e.stopPropagation()}
               />
             </FieldLabel>
@@ -297,7 +293,6 @@ export default function TaskEditable({
                 onChange={(e) =>
                   setLocal({ ...local, task_duration: Number(e.target.value) })
                 }
-                onBlur={(e) => handleBlur("task_duration", Number(e.target.value))}
                 onClick={(e) => e.stopPropagation()}
                 placeholder="e.g. 30"
               />

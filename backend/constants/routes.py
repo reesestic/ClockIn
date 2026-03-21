@@ -4,7 +4,9 @@
 #     TASKS: "/tasks"
 # };
 
-STICKY_NOTES = "/sticky-notes"
-PLANNER = "/planner"
-TIMER = "/timer"
-HOME = "/"
+API_PREFIX = "/api"
+
+STICKY_NOTES = f"{API_PREFIX}/sticky-notes"
+TASKS = f"{API_PREFIX}/tasks"
+TIMER = f"{API_PREFIX}/timer"
+HOME = f"{API_PREFIX}/"
