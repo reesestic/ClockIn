@@ -78,3 +78,16 @@ class StickyNoteRepository:
             .eq("user_id", user_id)
             .execute()
             )
+
+    
+    def create_sticky_note(self, title, text, id, user_id, posX, posY, posZ):
+        self.supabase.table("StickyNotes").insert(
+            {"title": title, 
+            "text": text, 
+            "id": id, 
+            "user_id": user_id, 
+            "posX": posX, 
+            "posY": posY, 
+            "posZ": posZ}
+            ).execute()
+        return

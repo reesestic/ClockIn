@@ -16,7 +16,7 @@ class StickyNoteService:
         
         # Extract structured task data from the sticky note
         task_data = await self.AIService.extract_task_fields(title, text)
-        
+        print(task_data)
         # Create a new task using the extracted data
         self.TaskService.create_task(task_data)
         

@@ -16,8 +16,10 @@ from services.schedule_service import ScheduleService
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
+
+task_repository = TaskRepository(supabase)
 sticky_note_repo = StickyNoteRepository(supabase)
-task_service = TaskService(TaskRepository)
+task_service = TaskService(task_repository)
 openai_service = AIService(api_key)
 
 sticky_note_service = StickyNoteService(
