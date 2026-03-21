@@ -2,15 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controllers.sticky_note_controller import router as sticky_note_router
 from controllers.auth_controller import router as auth_router
+from controllers.calendar_controller import router as calendar_router
 
 app = FastAPI()
-
-# Only allows FASTAPI to take requests from these frontends (security)
-# If new domains are deployed, update this list
-# origins = [
-#     "http://localhost:5173",
-#     "https://clock-in-orcin.vercel.app"
-# ]
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,3 +16,8 @@ app.add_middleware(
 
 app.include_router(sticky_note_router)
 app.include_router(auth_router)
+app.include_router(calendar_router)
+
+@app.get("/")
+def root():
+    return {"message": "backend running"}
