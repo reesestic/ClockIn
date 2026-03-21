@@ -7,7 +7,7 @@ import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
-import { getTasks, createTask, deleteTask } from "../api/TaskApi";
+import { getTasks, saveTask, deleteTask } from "../api/TaskApi";
 import { generateSchedule } from "../api/ScheduleApi";
 
 export default function PlannerPage() {
@@ -48,8 +48,8 @@ export default function PlannerPage() {
         );
     }
 
-    async function handleCreateTask(task: Task) {
-        const newTask = await createTask(task);
+    async function handleSaveTask(task: Task) {
+        const newTask = await saveTask(task);
         setTasks(prev => [...prev, newTask]);
     }
 
@@ -77,7 +77,7 @@ export default function PlannerPage() {
                         }}
                         onAddTask={async (newTask) => {
                             // TODO: POST to FastAPI, then add returned task (with id) to state
-                            handleCreateTask({ ...newTask, can_schedule: false });
+                            handleSaveTask({ ...newTask, can_schedule: false });
                         }}
                         onGenerateSchedule={() => {
                             // TODO: wire to handleGenerateSchedule when backend is ready

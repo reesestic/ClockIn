@@ -10,13 +10,13 @@ router = APIRouter(prefix=STICKY_NOTES)
 
 @router.post("/send/{note_id}")
 def send_to_planner(note_id: str, user=Depends(get_current_user)):
-    user_id = user["sub"]
+    user_id = user["id"]
     sticky_note_service.note_to_task(note_id, user_id)
 
 @router.post("/save")
 def save_note_controller(note: StickyNoteSave, user=Depends(get_current_user)):
 
-    user_id = user["sub"]
+    user_id = user["id"]
 
     if note.id is not None:
             sticky = sticky_note_service.update_note(note.id, note.title, note.content, user_id)
@@ -30,12 +30,12 @@ def save_note_controller(note: StickyNoteSave, user=Depends(get_current_user)):
 # Endpoint to load your sticky notes
 @router.get("")
 def get_notes(user=Depends(get_current_user)):
-    user_id = user["sub"]
+    user_id = user["id"]
     return sticky_note_service.get_notes(user_id)
 
 @router.delete("/delete/{note_id}")
 def delete_note(note_id: str, user=Depends(get_current_user)):
-    user_id = user["sub"]
+    user_id = user["id"]
     deleted_id = sticky_note_service.delete_note(note_id, user_id)
     return {"deleted_id": deleted_id}
 
@@ -46,5 +46,5 @@ def update_note_color(
         update: StickyNoteColorUpdate,
         user=Depends(get_current_user)
 ):
-    user_id = user["sub"]
+    user_id = user["id"]
     sticky_note_service.update_color(note_id, update.color, user_id)

@@ -1,10 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
-const TOKEN_KEY = "clockin_token";
-const USER_KEY = "clockin_user";
-
+// -----------------------------
+// TYPES
+// -----------------------------
 interface AuthUser {
     id: string;
     email: string;
@@ -14,10 +14,13 @@ interface AuthContextValue {
     user: AuthUser | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<string | null>;
-    signUp: (email: string, password: string, username: string) => Promise<string | null>;
-    signOut: () => void;
+    signUp: (email: string, password: string) => Promise<string | null>;
+    signOut: () => Promise<void>;
 }
 
+// -----------------------------
+// CONTEXT
+// -----------------------------
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function useAuth() {
@@ -26,55 +29,96 @@ export function useAuth() {
     return ctx;
 }
 
+// -----------------------------
+// PROVIDER
+// -----------------------------
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<AuthUser | null>(() => {
-        const stored = localStorage.getItem(USER_KEY);
-        return stored ? JSON.parse(stored) : null;
-    });
-    const loading = false;
+    const [user, setUser] = useState<AuthUser | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    async function signIn(email: string, password: string): Promise<string | null> {
-        try {
-            const res = await fetch(`${API_URL}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            });
-            if (!res.ok) return "Invalid email or password";
-            const data = await res.json();
-            const authUser = { id: data.user_id, email: data.email };
-            localStorage.setItem(TOKEN_KEY, data.access_token);
-            localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-            setUser(authUser);
-            return null;
-        } catch {
-            return "Something went wrong. Try again.";
-        }
-    }
+    // -----------------------------
+    // SESSION RESTORE
+    // -----------------------------
+    useEffect(() => {
+        const init = async () => {
+            const { data } = await supabase.auth.getSession();
+            const sessionUser = data.session?.user;
 
-    async function signUp(email: string, password: string, username: string): Promise<string | null> {
-        try {
-            const res = await fetch(`${API_URL}/auth/signup`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password, username }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                return err.detail ?? "Failed to create account";
+            if (sessionUser) {
+                setUser({
+                    id: sessionUser.id,
+                    email: sessionUser.email!,
+                });
             }
-            return null;
-        } catch {
-            return "Something went wrong. Try again.";
+
+            setLoading(false);
+        };
+
+        init();
+
+        // 🔥 optional: listen to auth changes (recommended)
+        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setUser({
+                    id: session.user.id,
+                    email: session.user.email!,
+                });
+            } else {
+                setUser(null);
+            }
+        });
+
+        return () => {
+            listener.subscription.unsubscribe();
+        };
+    }, []);
+
+    // -----------------------------
+    // SIGN IN
+    // -----------------------------
+    async function signIn(email: string, password: string): Promise<string | null> {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (error) return error.message;
+
+        if (data.user) {
+            setUser({
+                id: data.user.id,
+                email: data.user.email!,
+            });
         }
+
+        return null;
     }
 
-    function signOut() {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+    // -----------------------------
+    // SIGN UP
+    // -----------------------------
+    async function signUp(email: string, password: string): Promise<string | null> {
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+        });
+
+        if (error) return error.message;
+
+        return null;
+    }
+
+    // -----------------------------
+    // SIGN OUT
+    // -----------------------------
+    async function signOut() {
+        await supabase.auth.signOut();
         setUser(null);
     }
 
+    // -----------------------------
+    // PROVIDER
+    // -----------------------------
     return (
         <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
             {children}

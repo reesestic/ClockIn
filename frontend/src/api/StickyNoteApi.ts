@@ -53,10 +53,10 @@ export async function getNotes() {
         `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}`
     );
 
+
     if (!response.ok) {
         throw new Error("Failed to fetch notes");
     }
-
     return response.json();
 }
 
