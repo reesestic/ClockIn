@@ -30,7 +30,6 @@ export async function saveNote (activeNote : Note) {
                 "Content-Type": "application/json"
             },
 
-            // Only sends fields that the frontend modifies, not IDs
             body: JSON.stringify({
                 id: activeNote.id,
                 title: activeNote.title,

@@ -4,15 +4,16 @@ import styled from "styled-components";
 const Container = styled.div`
     display: flex;
     height: 100%;
+    position: relative;
 `;
 
 const Left = styled.div`
-  flex: 1;
-  border-right: 1px solid black;
+    flex: 1;
+    border-right: 1px solid black;
 `;
 
 const Right = styled.div`
-  flex: 1;
+    flex: 1;
 `;
 
 export default function TwoColumnLayout(

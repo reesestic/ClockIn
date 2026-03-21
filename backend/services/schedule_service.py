@@ -1,82 +1,115 @@
 from datetime import datetime, timedelta
 
+
 class ScheduleService:
     def __init__(self, schedule_repo, task_repo):
         self.schedule_repo = schedule_repo
         self.task_repo = task_repo
 
-    def build_schedule(self, task_ids, filters):
-        # 🔥 GET REAL TASKS
+    def build_schedule(self, user_id, task_ids, filters):
+        # -------------------------
+        # 1. GET TASKS
+        # -------------------------
         tasks = self.task_repo.get_tasks_by_ids(task_ids)
 
         if not tasks:
             return []
 
-        # 🔥 helper: convert asc/desc/none → weight
-        def get_weight(pref):
-            if pref == "none" or pref is None:
-                return 0
-            return 1 if pref == "desc" else -1
+        now = datetime.now()
+        end_window = now + timedelta(hours=24)
 
-        # 🔥 SCORING
-        def score(task):
-            s = 0
+        # -------------------------
+        # 2. GENERATE TIME SLOTS
+        # -------------------------
 
-            # IMPORTANCE
-            w = get_weight(filters.get("importance"))
-            s += w * task.get("priority", 0)
+        def generate_time_slots(start, end, gap_hours=1):
+            slots = []
+            current = start
 
-            # DEADLINE (sooner = higher score)
-            w = get_weight(filters.get("deadline"))
-            if task.get("deadline"):
-                hours = (task["deadline"] - datetime.now()).total_seconds() / 3600
-                urgency = 1 / max(hours, 1)
-                s += w * urgency
+            while current < end:
+                slots.append(current)
+                current += timedelta(hours=gap_hours)
 
-            # VALUE (priority per time)
-            w = get_weight(filters.get("value"))
-            duration = max(task.get("task_duration", 1), 1)
-            value_score = task.get("priority", 0) / duration
-            s += w * value_score
+            return slots
 
-            # TIME (short vs long)
-            w = get_weight(filters.get("time"))
-            time_score = 1 / duration
-            s += w * time_score
+        # Optional: nicer human times (can later come from filters)
+        # preferred_hours = filters.get("preferred_hours") if filters else None
+        #
+        # if preferred_hours:
+        #     slots = []
+        #     for h in preferred_hours:
+        #         slot = now.replace(hour=h, minute=0, second=0, microsecond=0)
+        #
+        #         # only future times
+        #         if slot > now:
+        #             slots.append(slot)
+        #
+        #     # fallback if none valid
+        #     if not slots:
+        #         slots = generate_time_slots(now, end_window)
+        # else:
+        #     slots = generate_time_slots(now, end_window)
 
-            # CLASS / SUBJECT BOOST
-            subject = filters.get("subject")
-            if subject and task.get("subject") == subject:
-                s += 2  # simple boost
+        # -------------------------
+        # 3. BUILD BLOCKS (SPACED)
+        # -------------------------
+        slots = generate_time_slots(now, end_window)
+        schedule_blocks = []
 
-            return s
+        for i, task in enumerate(tasks):
+            if i >= len(slots):
+                break  # no more room in 24h window
 
-        # 🔥 SORT
-        sorted_tasks = sorted(tasks, key=score, reverse=True)
-
-        # 🔥 BUILD BLOCKS
-        schedule = []
-        current_time = datetime.now().replace(hour=10, minute=0, second=0, microsecond=0)
-
-        for task in sorted_tasks:
+            start_time = slots[i]
             duration_minutes = task.get("task_duration", 60)
+            end_time = start_time + timedelta(minutes=duration_minutes)
 
-            start_time = current_time
-            end_time = current_time + timedelta(minutes=duration_minutes)
+            # prevent overflow past 24hr window
+            if end_time > end_window:
+                break
 
             block = {
-                "type": "task",
                 "task_id": task["id"],
                 "title": task["title"],
                 "start_time": start_time.isoformat(),
                 "end_time": end_time.isoformat(),
+                "type": "task",
+                "color": task.get("color")
             }
 
-            schedule.append(block)
-            current_time = end_time
+            schedule_blocks.append(block)
 
-        # 🔥 SAVE
-        return self.schedule_repo.save_schedule(schedule)
+        # -------------------------
+        # 4. CREATE SCHEDULE
+        # -------------------------
+        schedule_row = self.schedule_repo.create_schedule(user_id)
+        schedule_id = schedule_row["id"]
 
-    def fetch_schedule(self):
-        return self.schedule_repo.get_schedule()
+        # -------------------------
+        # 5. ATTACH schedule_id
+        # -------------------------
+        for block in schedule_blocks:
+            block["schedule_id"] = schedule_id
+
+        # -------------------------
+        # 6. BULK INSERT
+        # -------------------------
+        saved_blocks = self.schedule_repo.insert_blocks(schedule_blocks)
+
+        # -------------------------
+        # 7. RETURN FRONTEND SHAPE
+        # -------------------------
+        return {
+            "id": schedule_id,
+            "blocks": [
+                {
+                    "id": block["id"],
+                    "taskId": block["task_id"],
+                    "title": block["title"],
+                    "start": block["start_time"],
+                    "end": block["end_time"],
+                    "color": block.get("color")
+                }
+                for block in saved_blocks
+            ]
+        }

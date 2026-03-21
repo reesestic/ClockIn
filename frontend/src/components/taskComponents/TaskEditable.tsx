@@ -5,57 +5,63 @@ import type { Task } from "../../types/Task.ts";
 // ── Styled Components ────────────────────────────────────────────────────────
 
 const Container = styled.div`
-  max-width: 80%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
+    max-width: 80%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin: 5%;
+    border: 1px solid lightgray;
+    box-shadow: -3px 3px 10px 0px #b5b5b5;
+
 `;
 
 const TitleInput = styled.input`
-  background-color: #fff59a;
-  color: black;
-  font-weight: bold;
-  font-size: 1rem;
-  border: none;
-  outline: none;
-  padding: 4px 6px;
-  width: 100%;
-  box-sizing: border-box;
-  &:focus {
-    outline: 2px solid #f0d800;
-  }
+    background-color: #fff59a;
+    color: black;
+    font-weight: bold;
+    font-size: 1rem;
+    border: none;
+    outline: none;
+    padding: 4px 6px;
+    width: 100%;
+    box-sizing: border-box;
+    &:focus {
+        outline: 2px solid #f0d800;
+    }
 `;
 
 const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  background-color: #fff59a;
+    display: flex;
+    background-color: #fff59a;
+    width: 100%;
 `;
 
 const MenuButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #636363;
-  font-size: 1.1rem;
-  padding: 0 6px;
-  flex-shrink: 0;
-  &:hover {
-    color: black;
-  }
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #636363;
+    font-size: 1.1rem;
+    padding: 0 6px;
+    flex-shrink: 0;
+    &:hover {
+        color: black;
+    }
 `;
 
 const ContextMenu = styled.div`
-  position: absolute;
-  top: 32px;
-  right: 0;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  min-width: 180px;
-  overflow: hidden;
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 180px;
+    overflow: hidden;
+    padding-left: 2%;
+    padding-right: 2%;
 `;
 
 const MenuItem = styled.button<{ danger?: boolean }>`
@@ -126,6 +132,7 @@ const RadioGroup = styled.div`
   display: flex;
   gap: 6px;
   margin-top: 2px;
+    justify-content: flex-start;
 `;
 
 const RadioOption = styled.button<{ selected: boolean }>`
@@ -148,7 +155,7 @@ const RadioOption = styled.button<{ selected: boolean }>`
 `;
 
 const CollapseButton = styled.button`
-  color: #cfcfcf;
+  color: black;
   background: none;
   border: none;
   margin: 0 auto;
@@ -159,6 +166,15 @@ const CollapseButton = styled.button`
     color: #888;
   }
 `;
+
+const CollapsedFieldContainer= styled.div`
+    padding-left: 2%;
+    padding-right: 2%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+`
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -180,21 +196,27 @@ export default function TaskEditable({
                                      }: TaskEditableProps) {
     const [collapsed, setCollapsed] = useState<boolean>(true);
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
-    const [local, setLocal] = useState<Task>({...task});
+    const [local, setLocal] = useState<Task>({ ...task });
 
 
     // Commit a single field change to parent on blur
     const handleBlur = (field: keyof Task, value: Task[keyof Task]) => {
-        const updated = {...local, [field]: value};
+        const updated = { ...local, [field]: value };
         setLocal(updated);
         onChange?.(updated);
     };
 
     const handleImportanceSelect = (value: number) => {
-        const updated = {...local, importance: value};
+        const updated = { ...local, importance: value };
         setLocal(updated);
         onChange?.(updated); // immediate for radio-style click
     };
+
+    const handleDifficultySelect = (value: number) => {
+        const updated = { ...local, difficulty: value };
+        setLocal(updated);
+        onChange?.(updated);
+    }
 
     return (
         <Container onClick={onClick}>
@@ -202,7 +224,7 @@ export default function TaskEditable({
             <TitleRow>
                 <TitleInput
                     value={local.title}
-                    onChange={(e) => setLocal({...local, title: e.target.value})}
+                    onChange={(e) => setLocal({ ...local, title: e.target.value })}
                     onBlur={(e) => handleBlur("title", e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     placeholder="Task title"
@@ -245,10 +267,10 @@ export default function TaskEditable({
 
             {/* ── Expanded Fields ── */}
             {!collapsed && (
-                <>
+                <CollapsedFieldContainer>
                     <DescriptionTextarea
                         value={local.description}
-                        onChange={(e) => setLocal({...local, description: e.target.value})}
+                        onChange={(e) => setLocal({ ...local, description: e.target.value })}
                         onBlur={(e) => handleBlur("description", e.target.value)}
                         onClick={(e) => e.stopPropagation()}
                         placeholder="Description"
@@ -260,7 +282,7 @@ export default function TaskEditable({
                             <FieldInput
                                 type="date"
                                 value={local.due_date ?? ""}
-                                onChange={(e) => setLocal({...local, due_date: e.target.value})}
+                                onChange={(e) => setLocal({ ...local, due_date: e.target.value })}
                                 onBlur={(e) => handleBlur("due_date", e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
                             />
@@ -273,7 +295,7 @@ export default function TaskEditable({
                                 min={1}
                                 value={local.task_duration ?? ""}
                                 onChange={(e) =>
-                                    setLocal({...local, task_duration: Number(e.target.value)})
+                                    setLocal({ ...local, task_duration: Number(e.target.value) })
                                 }
                                 onBlur={(e) => handleBlur("task_duration", Number(e.target.value))}
                                 onClick={(e) => e.stopPropagation()}
@@ -282,8 +304,8 @@ export default function TaskEditable({
                         </FieldLabel>
                     </FieldRow>
 
-                    <FieldRow>
-                        <FieldLabel>
+                    <FieldRow style={{ justifyContent: "flex-start" }}>
+                        <FieldLabel style={{ flex: "none" }}>
                             Importance
                             <RadioGroup>
                                 {[1, 2, 3].map((val) => (
@@ -301,8 +323,26 @@ export default function TaskEditable({
                                 ))}
                             </RadioGroup>
                         </FieldLabel>
+                        <FieldLabel style={{ flex: "none" }}>
+                            Difficulty
+                            <RadioGroup>
+                                {[1, 2, 3].map((val) => (
+                                    <RadioOption
+                                        key={val}
+                                        selected={local.difficulty === val}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDifficultySelect(val);
+                                        }}
+                                        type="button"
+                                    >
+                                        {val}
+                                    </RadioOption>
+                                ))}
+                            </RadioGroup>
+                        </FieldLabel>
                     </FieldRow>
-                </>
+                </CollapsedFieldContainer>
             )}
 
             {/* ── Collapse Toggle ── */}

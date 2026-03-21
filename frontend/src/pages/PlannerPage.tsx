@@ -58,9 +58,6 @@ export default function PlannerPage() {
         setTasks(prev => prev.filter(t => t.id !== taskId));
     }
 
-    // ---------------------------
-    // 🔥 BACKEND SCHEDULING
-    // ---------------------------
     async function handleGenerate(filters?: any) {
         const data = await generateSchedule(selectedTaskIds, filters);
         setSchedules(data);
@@ -71,14 +68,29 @@ export default function PlannerPage() {
             <TwoColumnLayout
                 left={
                     <TaskSidebar
-                        tasks={tasks}
-                        mode="planner"
-                        selectedTaskIds={selectedTaskIds}
-                        onToggleSelect={toggleTaskSelection}
-                        onUpdateTask={handleUpdateTask}
-                        onCreate={handleCreateTask}
-                        onDelete={handleDeleteTask}
-                        onGenerate={() => setShowFilters(true)}
+                        props={{
+                            tasks,
+                            mode: "planner",
+                            selectedTaskIds,
+                            onToggleSelect: toggleTaskSelection,
+                            onUpdateTask: handleUpdateTask,
+                        }}
+                        onAddTask={async (newTask) => {
+                            // TODO: POST to FastAPI, then add returned task (with id) to state
+                            handleCreateTask({ ...newTask, can_schedule: false });
+                        }}
+                        onGenerateSchedule={() => {
+                            // TODO: wire to handleGenerateSchedule when backend is ready
+                            console.log("Generate schedule for:", selectedTaskIds);
+                        }}
+                        onDeleteTask={(taskId) => {
+                            // TODO: DELETE to FastAPI
+                            setTasks(prev => prev.filter(t => t.id !== taskId));
+                        }}
+                        onAddToSchedule={(taskId) => {
+                            // stub
+                            console.log("Add to schedule:", taskId);
+                        }}
                     />
                 }
                 right={
