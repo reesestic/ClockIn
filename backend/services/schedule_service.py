@@ -79,6 +79,7 @@ class ScheduleService:
             if end_time > end_window:
                 break
 
+            print(task)
             block = {
                 "task_id": task["id"],
                 "title": task["title"],
@@ -94,6 +95,7 @@ class ScheduleService:
         # 4. CREATE SCHEDULE
         # -------------------------
         schedule_row = self.schedule_repo.create_schedule(user_id)
+        print("Schedule_row: ", schedule_row)
         schedule_id = schedule_row["id"]
 
         # -------------------------
@@ -101,6 +103,7 @@ class ScheduleService:
         # -------------------------
         for block in schedule_blocks:
             block["schedule_id"] = schedule_id
+            block["user_id"] = user_id
 
         # -------------------------
         # 6. BULK INSERT
