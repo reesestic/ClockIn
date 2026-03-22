@@ -3,7 +3,7 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect } from "react";
-import { sendNote, saveNote, deleteNote, getNotes, changeColor } from "../api/StickyNoteApi.ts";
+import { sendNote, saveNote, deleteNote, getNotes, changeColor } from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
 
 import {

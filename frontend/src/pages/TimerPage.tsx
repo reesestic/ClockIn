@@ -6,8 +6,8 @@ import TaskSidebar from "../components/taskComponents/TaskSidebar";
 import ScheduleView from "../components/scheduleComponents/ScheduleView";
 import TaskActionModal from "../components/modal/TaskActionModal";
 
-import { getTasks } from "../api/TaskApi";
-import { getSchedule } from "../api/ScheduleApi";
+import { getTasks } from "../api/taskApi.ts";
+import { getSchedule } from "../api/scheduleApi.ts";
 
 import type { Task } from "../types/Task";
 import type { ScheduleBlock } from "../types/ScheduleBlock";

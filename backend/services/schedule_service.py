@@ -10,10 +10,21 @@ class ScheduleService:
         # -------------------------
         # 1. GET TASKS
         # -------------------------
-        tasks = self.task_repo.get_tasks_by_ids(task_ids)
+        print(user_id)
+        print(list(t for t in task_ids))
+        print(list(f for f in filters))
+
+        for key, value in filters.items():
+            print(key, value)
+        tasks = self.task_repo.get_tasks_by_ids(user_id, task_ids)
+
+        print("TASKS FROM DB:", tasks)
 
         if not tasks:
-            return []
+            return {
+                "id": None,
+                "blocks": []
+            }
 
         now = datetime.now()
         end_window = now + timedelta(hours=24)

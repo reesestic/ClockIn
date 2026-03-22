@@ -1,10 +1,9 @@
 import { API_ROUTES } from "../constants/apiRoutes.ts";
 import type { Task } from "../types/Task";
-
-
+import { authFetch } from "./authFetch";
 
 export async function getTasks(): Promise<Task[]> {
-    const response = await fetch(
+    const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}`
     );
 
@@ -19,7 +18,7 @@ export async function getTasks(): Promise<Task[]> {
 export async function saveTask (activeTask : Task) {
     if (!activeTask) return;
 
-    const response = await fetch(
+    const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/save`,
         {
             method: "POST",
@@ -49,7 +48,7 @@ export async function saveTask (activeTask : Task) {
 }
 
 export async function deleteTask (taskID : string) {
-    const response = await fetch(
+    const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/delete/${taskID}`,
         {
             method: "DELETE",
@@ -63,7 +62,7 @@ export async function deleteTask (taskID : string) {
 
 
 export async function updateTask(task: Task): Promise<Task> {
-    const response = await fetch(
+    const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/update/${task.id}`,
         {
             method: "PATCH",

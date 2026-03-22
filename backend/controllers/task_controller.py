@@ -1,5 +1,3 @@
-
-
 from fastapi import APIRouter
 from fastapi import Body
 from constants.routes import TASKS

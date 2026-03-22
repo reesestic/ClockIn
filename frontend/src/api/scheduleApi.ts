@@ -12,6 +12,8 @@ export async function getSchedule() {
 
 export async function generateSchedule(taskIds: string[], filters: ScheduleFilters) : Promise<Schedule> {
     console.log("Hit scheduleApi.ts generateSchedule()")
+    console.log("TaskIds: " + taskIds);
+
     const res = await authFetch(`${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

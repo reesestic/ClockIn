@@ -1,4 +1,3 @@
-
 class TaskService:
     def __init__(self, TaskRepo):
         self.TaskRepo = TaskRepo
@@ -14,4 +13,4 @@ class TaskService:
         return self.TaskRepo.delete_task(task_id)
     
     def update_task(self, task_id: str, task_data: dict):
-        return self.TaskRepo.update_task(task_id, task_data) 
+        return self.TaskRepo.update_task(task_id, task_data)

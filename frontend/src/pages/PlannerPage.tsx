@@ -7,8 +7,8 @@ import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
-import { getTasks, saveTask, deleteTask } from "../api/TaskApi";
-import { generateSchedule } from "../api/ScheduleApi";
+import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
+import { generateSchedule } from "../api/scheduleApi.ts";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
