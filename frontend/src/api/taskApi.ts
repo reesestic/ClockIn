@@ -1,6 +1,6 @@
 import { API_ROUTES } from "../constants/apiRoutes.ts";
-import type { Task } from "../types/Task";
-import { authFetch } from "./authFetch";
+import type { Task } from "../types/Task.ts";
+import { authFetch } from "./authFetch.ts";
 
 
 

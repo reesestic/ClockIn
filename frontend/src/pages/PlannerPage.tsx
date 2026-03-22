@@ -7,7 +7,7 @@ import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
-import { getTasks, saveTask, deleteTask } from "../api/taskApi";
+import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
 import { generateSchedule } from "../api/ScheduleApi";
 import { ROUTES } from "../constants/Routes.ts";
 import styled from "styled-components";
