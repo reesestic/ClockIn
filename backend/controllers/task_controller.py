@@ -1,16 +1,31 @@
+
+
 from fastapi import APIRouter
+from fastapi import Body
+from constants.routes import TASKS
+from dependencies.dependencies import task_service
 
-from constants.routes import PLANNER
-from dependencies import task_service
+router = APIRouter(prefix=TASKS)
 
-router = APIRouter(prefix=PLANNER)
-
-@router.get("")
+@router.get("/")
 def get_tasks():
     user_id = "11111111-1111-1111-1111-111111111111"
     return task_service.get_tasks(user_id)
 
-#
+
+@router.delete("/delete/{task_id}")
+def delete_task(task_id):
+    return task_service.delete_task(task_id)
+
+@router.post("/save")
+def save_task(task_data: dict = Body(...)):
+    print('task:' + str(task_data))
+    return task_service.create_task(task_data)
+
+@router.patch("/update/{task_id}")
+def update_task(task_id: str, task_data: dict = Body(...)):
+    return task_service.update_task(task_id, task_data)
+
 # @router.post("/tasks", response_model=TaskResponse, status_code=201)
 # def create_task(payload: TaskCreateRequest):
 #     task = repo.create_task(payload)

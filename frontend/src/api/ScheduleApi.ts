@@ -11,12 +11,18 @@ export async function getSchedule() {
 }
 
 export async function generateSchedule(taskIds: string[], filters: ScheduleFilters) : Promise<Schedule> {
+    console.log("Hit scheduleApi.ts generateSchedule()")
     const res = await authFetch(`${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskIds, filters }),
     });
 
-    if (!res.ok) throw new Error("Failed to generate schedule");
+    if (!res.ok) {
+        const text = await res.text();   // 👈 ADD THIS
+        console.error("❌ BACKEND ERROR:", text);
+        throw new Error("Failed to generate schedule");
+    }
+
     return res.json();
 }

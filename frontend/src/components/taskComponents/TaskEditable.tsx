@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styled from "styled-components";
 import type { Task } from "../../types/Task.ts";
+import { useDebounce } from "../../hooks/useDebounce.ts";
 
 // ── Styled Components ────────────────────────────────────────────────────────
 
@@ -12,56 +13,62 @@ const Container = styled.div`
     margin: 5%;
     border: 1px solid lightgray;
     box-shadow: -3px 3px 10px 0px #b5b5b5;
-
 `;
 
 const TitleInput = styled.input`
-    background-color: #fff59a;
-    color: black;
-    font-weight: bold;
-    font-size: 1rem;
-    border: none;
-    outline: none;
-    padding: 4px 6px;
-    width: 100%;
-    box-sizing: border-box;
-    &:focus {
-        outline: 2px solid #f0d800;
-    }
+  background-color: #fff59a;
+  color: black;
+  font-weight: bold;
+  font-size: 1rem;
+  border: none;
+  outline: none;
+  padding: 4px 6px;
+  width: 100%;
+  box-sizing: border-box;
+  &:focus {
+    outline: 2px solid #f0d800;
+  }
 `;
 
 const TitleRow = styled.div`
-    display: flex;
-    background-color: #fff59a;
-    width: 100%;
+  display: flex;
+  background-color: #fff59a;
+  width: 100%;
+`;
+
+const Checkbox = styled.input`
+  margin: 0 6px;
+  cursor: pointer;
+  accent-color: #555;
+  flex-shrink: 0;
 `;
 
 const MenuButton = styled.button`
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #636363;
-    font-size: 1.1rem;
-    padding: 0 6px;
-    flex-shrink: 0;
-    &:hover {
-        color: black;
-    }
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #636363;
+  font-size: 1.1rem;
+  padding: 0 6px;
+  flex-shrink: 0;
+  &:hover {
+    color: black;
+  }
 `;
 
 const ContextMenu = styled.div`
-    position: absolute;
-    top: 32px;
-    right: 0;
-    background: #ffffff;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    min-width: 180px;
-    overflow: hidden;
-    padding-left: 2%;
-    padding-right: 2%;
+  position: absolute;
+  top: 32px;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 180px;
+  overflow: hidden;
+  padding-left: 2%;
+  padding-right: 2%;
 `;
 
 const MenuItem = styled.button<{ danger?: boolean }>`
@@ -132,7 +139,7 @@ const RadioGroup = styled.div`
   display: flex;
   gap: 6px;
   margin-top: 2px;
-    justify-content: flex-start;
+  justify-content: flex-start;
 `;
 
 const RadioOption = styled.button<{ selected: boolean }>`
@@ -167,193 +174,208 @@ const CollapseButton = styled.button`
   }
 `;
 
-const CollapsedFieldContainer= styled.div`
-    padding-left: 2%;
-    padding-right: 2%;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: left;
-`
+const CollapsedFieldContainer = styled.div`
+  padding-left: 2%;
+  padding-right: 2%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+`;
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 type TaskEditableProps = {
-    task: Task;
-    isSelected?: boolean;
-    onClick?: () => void;
-    onChange?: (task: Task) => void;
-    onDelete?: (taskId: string) => void;
-    onAddToSchedule?: (taskId: string) => void;
+  task: Task;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onChange?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
+  onAddToSchedule?: (taskId: string) => void;
 };
 
 export default function TaskEditable({
-                                         task,
-                                         onClick,
-                                         onChange,
-                                         onDelete,
-                                         onAddToSchedule,
-                                     }: TaskEditableProps) {
-    const [collapsed, setCollapsed] = useState<boolean>(true);
-    const [menuOpen, setMenuOpen] = useState<boolean>(false);
-    const [local, setLocal] = useState<Task>({ ...task });
+  task,
+  isSelected,
+  onClick,
+  onChange,
+  onDelete,
+  onAddToSchedule,
+}: TaskEditableProps) {
+  const [collapsed, setCollapsed] = useState<boolean>(true);
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [local, setLocal] = useState<Task>({ ...task });
 
+  // ── only save after user has actually changed something ──
+  const isDirty = useRef(false);
 
-    // Commit a single field change to parent on blur
-    const handleBlur = (field: keyof Task, value: Task[keyof Task]) => {
-        const updated = { ...local, [field]: value };
-        setLocal(updated);
-        onChange?.(updated);
-    };
-
-    const handleImportanceSelect = (value: number) => {
-        const updated = { ...local, importance: value };
-        setLocal(updated);
-        onChange?.(updated); // immediate for radio-style click
-    };
-
-    const handleDifficultySelect = (value: number) => {
-        const updated = { ...local, difficulty: value };
-        setLocal(updated);
-        onChange?.(updated);
+  useDebounce(local, 800, (updatedTask) => {
+    if (updatedTask.id && isDirty.current) {
+      onChange?.(updatedTask);
     }
+  });
 
-    return (
-        <Container onClick={onClick}>
-            {/* ── Title Row ── */}
-            <TitleRow>
-                <TitleInput
-                    value={local.title}
-                    onChange={(e) => setLocal({ ...local, title: e.target.value })}
-                    onBlur={(e) => handleBlur("title", e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    placeholder="Task title"
-                />
-                <MenuButton
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpen((prev) => !prev);
-                    }}
-                    title="Options"
-                >
-                    ⋮
-                </MenuButton>
-            </TitleRow>
+  const handleImportanceSelect = (value: number) => {
+    isDirty.current = true;
+    setLocal({ ...local, importance: value });
+  };
 
-            {/* ── Context Menu ── */}
-            {menuOpen && (
-                <ContextMenu>
-                    <MenuItem
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            onAddToSchedule?.(task.id!);
-                        }}
-                    >
-                        Add to existing schedule
-                    </MenuItem>
-                    <MenuItem
-                        danger
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            onDelete?.(task.id!);
-                        }}
-                    >
-                        Delete task
-                    </MenuItem>
-                </ContextMenu>
-            )}
+  const handleDifficultySelect = (value: number) => {
+    isDirty.current = true;
+    setLocal({ ...local, difficulty: value });
+  };
 
-            {/* ── Expanded Fields ── */}
-            {!collapsed && (
-                <CollapsedFieldContainer>
-                    <DescriptionTextarea
-                        value={local.description}
-                        onChange={(e) => setLocal({ ...local, description: e.target.value })}
-                        onBlur={(e) => handleBlur("description", e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="Description"
-                    />
+  return (
+    <Container onClick={onClick}>
+      {/* ── Title Row ── */}
+      <TitleRow>
+        <Checkbox
+          type="checkbox"
+          checked={isSelected ?? false}
+          onChange={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+        />
+        <TitleInput
+          value={local.title}
+          onChange={(e) => {
+            isDirty.current = true;
+            setLocal({ ...local, title: e.target.value });
+          }}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Task title"
+        />
+        <MenuButton
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((prev) => !prev);
+          }}
+          title="Options"
+        >
+          ⋮
+        </MenuButton>
+      </TitleRow>
 
-                    <FieldRow>
-                        <FieldLabel>
-                            Due Date
-                            <FieldInput
-                                type="date"
-                                value={local.due_date ?? ""}
-                                onChange={(e) => setLocal({ ...local, due_date: e.target.value })}
-                                onBlur={(e) => handleBlur("due_date", e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </FieldLabel>
+      {/* ── Context Menu ── */}
+      {menuOpen && (
+        <ContextMenu>
+          <MenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
+              onAddToSchedule?.(task.id!);
+            }}
+          >
+            Add to existing schedule
+          </MenuItem>
+          <MenuItem
+            danger
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
+              onDelete?.(task.id!);
+            }}
+          >
+            Delete task
+          </MenuItem>
+        </ContextMenu>
+      )}
 
-                        <FieldLabel>
-                            Duration (min)
-                            <FieldInput
-                                type="number"
-                                min={1}
-                                value={local.task_duration ?? ""}
-                                onChange={(e) =>
-                                    setLocal({ ...local, task_duration: Number(e.target.value) })
-                                }
-                                onBlur={(e) => handleBlur("task_duration", Number(e.target.value))}
-                                onClick={(e) => e.stopPropagation()}
-                                placeholder="e.g. 30"
-                            />
-                        </FieldLabel>
-                    </FieldRow>
+      {/* ── Expanded Fields ── */}
+      {!collapsed && (
+        <CollapsedFieldContainer>
+          <DescriptionTextarea
+            value={local.description}
+            onChange={(e) => {
+              isDirty.current = true;
+              setLocal({ ...local, description: e.target.value });
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Description"
+          />
 
-                    <FieldRow style={{ justifyContent: "flex-start" }}>
-                        <FieldLabel style={{ flex: "none" }}>
-                            Importance
-                            <RadioGroup>
-                                {[1, 2, 3].map((val) => (
-                                    <RadioOption
-                                        key={val}
-                                        selected={local.importance === val}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleImportanceSelect(val);
-                                        }}
-                                        type="button"
-                                    >
-                                        {val}
-                                    </RadioOption>
-                                ))}
-                            </RadioGroup>
-                        </FieldLabel>
-                        <FieldLabel style={{ flex: "none" }}>
-                            Difficulty
-                            <RadioGroup>
-                                {[1, 2, 3].map((val) => (
-                                    <RadioOption
-                                        key={val}
-                                        selected={local.difficulty === val}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDifficultySelect(val);
-                                        }}
-                                        type="button"
-                                    >
-                                        {val}
-                                    </RadioOption>
-                                ))}
-                            </RadioGroup>
-                        </FieldLabel>
-                    </FieldRow>
-                </CollapsedFieldContainer>
-            )}
-
-            {/* ── Collapse Toggle ── */}
-            <CollapseButton
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setCollapsed((prev) => !prev);
+          <FieldRow>
+            <FieldLabel>
+              Due Date
+              <FieldInput
+                type="date"
+                value={local.due_date ?? ""}
+                onChange={(e) => {
+                  isDirty.current = true;
+                  setLocal({ ...local, due_date: e.target.value });
                 }}
-            >
-                {collapsed ? "∨" : "∧"}
-            </CollapseButton>
-        </Container>
-    );
+                onClick={(e) => e.stopPropagation()}
+              />
+            </FieldLabel>
+
+            <FieldLabel>
+              Duration (min)
+              <FieldInput
+                type="number"
+                min={1}
+                value={local.task_duration ?? ""}
+                onChange={(e) => {
+                  isDirty.current = true;
+                  setLocal({ ...local, task_duration: Number(e.target.value) });
+                }}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="e.g. 30"
+              />
+            </FieldLabel>
+          </FieldRow>
+
+          <FieldRow style={{ justifyContent: "flex-start" }}>
+            <FieldLabel style={{ flex: "none" }}>
+              Importance
+              <RadioGroup>
+                {[1, 2, 3].map((val) => (
+                  <RadioOption
+                    key={val}
+                    selected={local.importance === val}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleImportanceSelect(val);
+                    }}
+                    type="button"
+                  >
+                    {val}
+                  </RadioOption>
+                ))}
+              </RadioGroup>
+            </FieldLabel>
+
+            <FieldLabel style={{ flex: "none" }}>
+              Difficulty
+              <RadioGroup>
+                {[1, 2, 3].map((val) => (
+                  <RadioOption
+                    key={val}
+                    selected={local.difficulty === val}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDifficultySelect(val);
+                    }}
+                    type="button"
+                  >
+                    {val}
+                  </RadioOption>
+                ))}
+              </RadioGroup>
+            </FieldLabel>
+          </FieldRow>
+        </CollapsedFieldContainer>
+      )}
+
+      {/* ── Collapse Toggle ── */}
+      <CollapseButton
+        onClick={(e) => {
+          e.stopPropagation();
+          setCollapsed((prev) => !prev);
+        }}
+      >
+        {collapsed ? "∨" : "∧"}
+      </CollapseButton>
+    </Container>
+  );
 }

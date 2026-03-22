@@ -32,7 +32,7 @@ export default function TimerPage() {
                         tasks={tasks}
                         mode="timer"
                         onSelectTask={setActiveItem}
-                       />
+                    />
                 }
                 right={
                     <ScheduleView

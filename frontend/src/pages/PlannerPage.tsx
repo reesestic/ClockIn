@@ -41,9 +41,9 @@ export default function PlannerPage() {
         );
     }
 
-    async function handleSaveTask(task: Task) {
-        const newTask = await saveTask(task);
-        setTasks(prev => [...prev, newTask]);
+    async function handleCreateTask(newTask: Task) {
+        const createdTask = await saveTask(newTask);
+        setTasks(prev => [...prev, createdTask]);
     }
 
     async function handleDeleteTask(taskId: string) {
@@ -72,17 +72,14 @@ export default function PlannerPage() {
                         }}
                         onAddTask={async (newTask) => {
                             // TODO: POST to FastAPI, then add returned task (with id) to state
-                            handleSaveTask({ ...newTask, can_schedule: false });
+                            await handleCreateTask({ ...newTask, can_schedule: false });
                         }}
                         onGenerateSchedule={() => {
                             // TODO: wire to handleGenerateSchedule when backend is ready
-                            console.log("Generate schedule for:", selectedTaskIds);
+                            // console.log("Generate schedule for:", selectedTaskIds);
                             setShowFilters(true);
                         }}
-                        onDeleteTask={(taskId) => {
-                            // TODO: DELETE to FastAPI
-                            setTasks(prev => prev.filter(t => t.id !== taskId));
-                        }}
+                        onDeleteTask={handleDeleteTask}
                         onAddToSchedule={(taskId) => {
                             // stub
                             console.log("Add to schedule:", taskId);
