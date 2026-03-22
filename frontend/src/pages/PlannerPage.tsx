@@ -7,7 +7,7 @@ import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
-import { getTasks, saveTask, deleteTask } from "../api/TaskApi";
+import { getTasks, saveTask, deleteTask } from "../api/taskApi";
 import { generateSchedule } from "../api/ScheduleApi";
 
 export default function PlannerPage() {
