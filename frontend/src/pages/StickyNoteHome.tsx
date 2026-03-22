@@ -3,7 +3,7 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect } from "react";
-import { sendNote, saveNote, deleteNote, getNotes, changeColor } from "../api/StickyNoteApi";
+import { sendNote, saveNote, deleteNote, getNotes, changeColor } from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
 
 import {
@@ -30,6 +30,7 @@ export function StickyNoteHome() {
             try {
                 // check normalization in StickyNoteServices to find syntax
                 const normalizedNotesFromDB = await getNotes();
+                console.log(normalizedNotesFromDB);
                 setNotes(normalizedNotesFromDB);
 
             } catch (error) {
@@ -103,6 +104,11 @@ export function StickyNoteHome() {
                 ? { ...prev, color }
                 : prev
         );
+
+        if (!noteId) {
+            console.warn("No noteId — skipping backend call");
+            return;
+        }
 
         try {
             await changeColor(noteId, color);

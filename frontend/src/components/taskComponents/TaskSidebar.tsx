@@ -1,0 +1,97 @@
+import { useState } from "react";
+import styled from "styled-components";
+import TaskList from "./TaskList";
+import ManualEntryPanel from "./ManualEntryPanel";
+import type { TaskSidebarProps } from "./TaskSidebarProps.ts";
+import type { Task } from "../../types/Task.ts";
+
+
+// ── Styled Components ────────────────────────────────────────────────────────
+
+const SidebarContainer = styled.div`
+  position: relative; /* anchor for the panel overlay */
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+`;
+
+const Heading = styled.h4`
+  margin: 0 auto;
+`;
+
+const ScrollableTaskList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+  width: 100%;
+`;
+
+// ── Component ────────────────────────────────────────────────────────────────
+
+type TaskSidebarFullProps = {
+  props: TaskSidebarProps;
+  onAddTask: (task: Omit<Task, "id" | "can_schedule">) => Promise<void>;
+  onDeleteTask?: (taskId: string) => void;
+  onAddToSchedule?: (taskId: string) => void;
+};
+
+export default function TaskSidebar({
+  props,
+  onAddTask,
+  onDeleteTask,
+  onAddToSchedule,
+}: TaskSidebarFullProps) {
+  // Panel is always mounted (state preserved), isOpen controls visibility
+  const [panelOpen, setPanelOpen] = useState(false);
+  return (
+    <SidebarContainer>
+      {/* ── Header ── */}
+      <Header>
+        <Heading>Tasks</Heading>
+        {/*{props.mode === "planner" && (*/}
+        {/*  <AddButton*/}
+        {/*    onClick={() => setPanelOpen((prev) => !prev)}*/}
+        {/*    title="Add task"*/}
+        {/*  >*/}
+        {/*    +*/}
+        {/*  </AddButton>*/}
+        {/*)}*/}
+      </Header>
+
+      {/* ── Task List ── */}
+      <ScrollableTaskList>
+        <TaskList
+          tasks={props.tasks ?? []}
+          selectedTaskIds={props.selectedTaskIds}
+          onToggleSelect={props.onToggleSelect}
+          onUpdateTask={props.onUpdateTask}
+          onSelectTask={props.onSelectTask}
+          onDeleteTask={onDeleteTask}
+          onAddToSchedule={onAddToSchedule}
+          mode={props.mode}
+        />
+      </ScrollableTaskList>
+
+      {/* ── ManualEntryPanel overlay — always mounted so form state persists ── */}
+      {props.mode === "planner" && (
+        <ManualEntryPanel
+          isOpen={panelOpen}
+          onMinimize={() => setPanelOpen((prev) => !prev)}
+          onCreateTask={async (task) => {
+            await onAddTask(task);
+            // Panel stays open after create (form was reset inside panel)
+          }}
+        />
+      )}
+    </SidebarContainer>
+  );
+}

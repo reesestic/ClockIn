@@ -1,12 +1,12 @@
-import {ROUTES} from "../constants/Routes.ts";
+import { API_ROUTES } from "../constants/apiRoutes.ts";
 import type { Note } from "../types/Note";
 import type { StickyNoteColor } from "../types/StickyNoteThemes";
-
+import { authFetch } from "./authFetch";
 
 export async function sendNote (noteId : string) {
 
-    const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/send/${noteId}`,
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/send/${noteId}`,
         {
             method: "POST",
         }
@@ -22,15 +22,14 @@ export async function sendNote (noteId : string) {
 export async function saveNote (activeNote : Note) {
     if (!activeNote) return;
 
-    const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/save`,
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/save`,
         {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
 
-            // Only sends fields that the frontend modifies, not IDs
             body: JSON.stringify({
                 id: activeNote.id,
                 title: activeNote.title,
@@ -50,20 +49,20 @@ export async function saveNote (activeNote : Note) {
 
 export async function getNotes() {
 
-    const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}`
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}`
     );
+
 
     if (!response.ok) {
         throw new Error("Failed to fetch notes");
     }
-
     return response.json();
 }
 
 export async function deleteNote(noteId: string) {
-    const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/delete/${noteId}`,
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/delete/${noteId}`,
         {
             method: "DELETE",
         }
@@ -78,8 +77,8 @@ export async function deleteNote(noteId: string) {
 
 export async function changeColor(noteId : string, color: StickyNoteColor) {
     // stuff to change color
-    const response = await fetch(
-        `${import.meta.env.VITE_API_URL}${ROUTES.STICKY_NOTES}/${noteId}/color`,
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/${noteId}/color`,
         {
             method: "PATCH",
             headers: {
