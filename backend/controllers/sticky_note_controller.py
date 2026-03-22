@@ -8,10 +8,11 @@ from dependencies.dependencies import sticky_note_service
 
 router = APIRouter(prefix=STICKY_NOTES)
 
+
 @router.post("/send/{note_id}")
-def send_to_planner(note_id: str, user=Depends(get_current_user)):
+async def send_to_planner(note_id: str, user=Depends(get_current_user)):
     user_id = user["id"]
-    sticky_note_service.note_to_task(note_id, user_id)
+    await sticky_note_service.note_to_task(note_id, user_id)
 
 @router.post("/save")
 def save_note_controller(note: StickyNoteSave, user=Depends(get_current_user)):
