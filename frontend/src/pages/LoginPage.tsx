@@ -21,7 +21,7 @@ export default function LoginPage() {
         if (!email || !password) return;
         setLoading(true);
         setError(null);
-        const err = await signIn(email, password, username);
+        const err = await signIn(email, password);
         if (err) setError(err);
         setLoading(false);
     }
@@ -30,7 +30,7 @@ export default function LoginPage() {
         if (!username || !email || !password) return;
         setLoading(true);
         setError(null);
-        const err = await signUp(email, password);
+        const err = await signUp(email, password, username);
         if (err) {
             setError(err);
         } else {
