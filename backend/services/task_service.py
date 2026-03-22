@@ -4,7 +4,6 @@ class TaskService:
         self.TaskRepo = TaskRepo
 
     def create_task(self, task_data, user_id):
-        self.TaskRepo.create(task_data, user_id)
         return self.TaskRepo.create(task_data, user_id)
 
     def get_tasks(self, user_id):
