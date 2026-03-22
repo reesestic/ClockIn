@@ -8,17 +8,18 @@ class StickyNoteService:
         self.AIService = AIService
         self.TaskService = TaskService
     
-    async def note_to_task(self, sticky_id):
+    async def note_to_task(self, sticky_id, user_id):
         
         #get sticky note fields to feed to OpenAI
         title = self.SNRepo.get_title(sticky_id)
         text = self.SNRepo.get_text(sticky_id)
         
         # Extract structured task data from the sticky note
-        task_data = await self.AIService.extract_task_fields(title, text)
-        print(task_data)
+        print(user_id)
+        task_data = await self.AIService.extract_task_fields(title, text, user_id)
+        print("Extracted task data:", task_data)
         # Create a new task using the extracted data
-        self.TaskService.create_task(task_data)
+        self.TaskService.create_task(task_data, user_id)
         
         
         # Include delete method of database from SNRepo here 

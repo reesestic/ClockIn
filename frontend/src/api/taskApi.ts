@@ -1,6 +1,6 @@
 import { API_ROUTES } from "../constants/apiRoutes.ts";
-import type { Task } from "../types/Task";
-import { authFetch } from "./authFetch";
+import type { Task } from "../types/Task.ts";
+import { authFetch } from "./authFetch.ts";
 
 export async function getTasks(): Promise<Task[]> {
     const response = await authFetch(
@@ -15,7 +15,7 @@ export async function getTasks(): Promise<Task[]> {
 }
 
 
-export async function saveTask (activeTask : Task) {
+export async function saveTask(activeTask: Omit<Task, "id" | "can_schedule">) {
     if (!activeTask) return;
 
     const response = await authFetch(
@@ -27,7 +27,6 @@ export async function saveTask (activeTask : Task) {
             },
 
             body: JSON.stringify({
-                id: activeTask.id,
                 title: activeTask.title,
                 description: activeTask.description,
                 importance: activeTask.importance,
@@ -35,7 +34,6 @@ export async function saveTask (activeTask : Task) {
                 task_duration: activeTask.task_duration,
                 due_date: activeTask.due_date,
                 status: "to do",
-                can_schedule: activeTask.can_schedule
             })
         }
     );

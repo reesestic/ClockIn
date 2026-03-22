@@ -5,11 +5,15 @@ class TaskRepository:
         self.supabase = supabase
 
     def create(self, task_data, user_id):
-        # Here you would typically interact with your database to save the task
-        # For example, using Supabase client to insert a new record
-        task_data["user_id"] = user_id  # Ensure the task is associated with the user
+    # Handle case where task_data comes in as a JSON string
+        if isinstance(task_data, str):
+            import json
+            task_data = json.loads(task_data)
+        
+        task_data["user_id"] = user_id
         result = self.supabase.table('Tasks').insert(task_data).execute()
-        return result.data[0]
+        print("Supabase insert result:", result)
+        return result.data[0] if result.data else None
 
     def get_tasks(self, user_id):
         response = self.supabase.table('Tasks').select('*').eq('user_id', user_id).execute()
