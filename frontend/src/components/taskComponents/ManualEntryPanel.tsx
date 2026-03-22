@@ -7,7 +7,7 @@ import type { Task } from "../../types/Task.ts";
 const PanelOverlay = styled.div`
   position: absolute;
   top: 0;
-  left: 70%;/* sits just outside the sidebar to the right */
+  left: 60%;/* sits just outside the sidebar to the right */
   width: 240px;
   background: #ffffff;
   border: 1px solid #d0d0d0;

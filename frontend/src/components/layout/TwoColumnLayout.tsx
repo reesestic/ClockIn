@@ -8,12 +8,12 @@ const Container = styled.div`
 `;
 
 const Left = styled.div`
-    flex: 1;
+    flex: 4;
     border-right: 1px solid black;
 `;
 
 const Right = styled.div`
-    flex: 1;
+    flex: 6;
 `;
 
 export default function TwoColumnLayout(

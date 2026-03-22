@@ -4,7 +4,7 @@ import styled from "styled-components";
 import TwoColumnLayout from "../components/layout/TwoColumnLayout";
 import ScheduleView from "../components/scheduleComponents/ScheduleView.tsx";
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
-import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
+import type {ScheduleFilters} from "../types/ScheduleFilters.ts";
 import { BackButton } from "../components/navigation/BackButton";
 
 const PageBackButton = styled(BackButton)`
@@ -18,18 +18,29 @@ import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
 import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
-import { generateSchedule } from "../api/scheduleApi.ts";
+import { generateSchedule, getActiveSchedule } from "../api/scheduleApi.ts";
 import {ROUTES} from "../constants/Routes.ts";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
-    const [showFilters, setShowFilters] = useState(false);
 
     const [schedule, setSchedule] = useState<Schedule | null>(null);
 
+    const [filters, setFilters] = useState<ScheduleFilters>({
+        deadline: "none",
+        importance: "none",
+        value: "none",
+        time: "none",
+        subject: "none",
+    });
+
     useEffect(() => {
         getTasks().then(setTasks);
+
+        getActiveSchedule()
+            .then(setSchedule)
+            .catch(() => setSchedule(null));
     }, []);
 
     // ---------------------------
@@ -62,11 +73,10 @@ export default function PlannerPage() {
         setTasks(prev => prev.filter(t => t.id !== taskId));
     }
 
-    async function handleGenerate(filters?: any) {
+    async function handleGenerate() {
         const newSchedule = await generateSchedule(selectedTaskIds, filters);
-
         setSchedule(newSchedule);
-        setShowFilters(false);
+        // close filters menu?
     }
 
     return (
@@ -87,11 +97,6 @@ export default function PlannerPage() {
                                 // TODO: POST to FastAPI, then add returned task (with id) to state
                                 await handleCreateTask({ ...newTask, can_schedule: false });
                             }}
-                            onGenerateSchedule={() => {
-                                // TODO: wire to handleGenerateSchedule when backend is ready
-                                // console.log("Generate schedule for:", selectedTaskIds);
-                                setShowFilters(true);
-                            }}
                             onDeleteTask={handleDeleteTask}
                             onAddToSchedule={(taskId) => {
                                 // stub
@@ -101,15 +106,14 @@ export default function PlannerPage() {
                     </>
                 }
                 right={
-                    <ScheduleView schedule={schedule} />}
+                    <ScheduleView
+                        schedule={schedule}
+                        onGenerate={handleGenerate}
+                        filters={filters}
+                        setFilters={setFilters}
+                    />
+                }
             />
-
-            {showFilters && (
-                <ScheduleFilterModal
-                    onClose={() => setShowFilters(false)}
-                    onGenerate={handleGenerate}
-                />
-            )}
         </>
     );
 }

@@ -8,6 +8,16 @@ class ScheduleRepository:
     # CREATE SCHEDULE
     # -------------------------
     def create_schedule(self, user_id):
+
+        # Set old to false
+        (self.supabase
+         .table("Schedules")
+         .update({"is_active": False})
+         .eq("user_id", user_id)
+         .eq("is_active", True)
+         .execute()
+        )
+
         result = self.supabase.table("Schedules").insert({
             "user_id": user_id,
             "name": "Generated Schedule",

@@ -25,20 +25,8 @@ const Header = styled.div`
 `;
 
 const Heading = styled.h4`
-  margin: 0;
+  margin: 0 auto;
 `;
-
-// const AddButton = styled.button`
-//   background: none;
-//   border: 1px solid #ccc;
-//   border-radius: 4px;
-//   font-size: 1.1rem;
-//   cursor: pointer;
-//   padding: 2px 10px;
-//   &:hover {
-//     background-color: #f5f5f5;
-//   }
-// `;
 
 const ScrollableTaskList = styled.div`
   flex: 1;
@@ -47,31 +35,11 @@ const ScrollableTaskList = styled.div`
   width: 100%;
 `;
 
-const Footer = styled.div`
-  padding: 12px 16px;
-  border-top: 1px solid #eee;
-`;
-
-const GenerateButton = styled.button`
-  width: 100%;
-  padding: 10px;
-  background-color: #333;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  &:hover {
-    background-color: #555;
-  }
-`;
-
 // ── Component ────────────────────────────────────────────────────────────────
 
 type TaskSidebarFullProps = {
   props: TaskSidebarProps;
   onAddTask: (task: Omit<Task, "id" | "can_schedule">) => Promise<void>;
-  onGenerateSchedule: () => void;
   onDeleteTask?: (taskId: string) => void;
   onAddToSchedule?: (taskId: string) => void;
 };
@@ -79,7 +47,6 @@ type TaskSidebarFullProps = {
 export default function TaskSidebar({
   props,
   onAddTask,
-  onGenerateSchedule,
   onDeleteTask,
   onAddToSchedule,
 }: TaskSidebarFullProps) {
@@ -113,15 +80,6 @@ export default function TaskSidebar({
           mode={props.mode}
         />
       </ScrollableTaskList>
-
-      {/* ── Footer: Generate Schedule ── */}
-      {props.mode === "planner" && (
-        <Footer>
-          <GenerateButton onClick={onGenerateSchedule}>
-            Create Schedule!
-          </GenerateButton>
-        </Footer>
-      )}
 
       {/* ── ManualEntryPanel overlay — always mounted so form state persists ── */}
       {props.mode === "planner" && (

@@ -10,15 +10,15 @@ class ScheduleService:
         # -------------------------
         # 1. GET TASKS
         # -------------------------
-        print(user_id)
-        print(list(t for t in task_ids))
-        print(list(f for f in filters))
+        #print(user_id)
+        #print(list(t for t in task_ids))
+        #print(list(f for f in filters))
 
         for key, value in filters.items():
             print(key, value)
         tasks = self.task_repo.get_tasks_by_ids(user_id, task_ids)
 
-        print("TASKS FROM DB:", tasks)
+        #print("TASKS FROM DB:", tasks)
 
         if not tasks:
             return {
@@ -62,28 +62,24 @@ class ScheduleService:
         #     slots = generate_time_slots(now, end_window)
 
         # -------------------------
-        # 3. BUILD BLOCKS (SPACED)
+        # 3. BUILD BLOCKS (SEQUENTIAL - NO OVERLAP)
         # -------------------------
-        slots = generate_time_slots(now, end_window)
         schedule_blocks = []
 
-        for i, task in enumerate(tasks):
-            if i >= len(slots):
-                break  # no more room in 24h window
+        current_time = now
 
-            start_time = slots[i]
+        for task in tasks:
             duration_minutes = task.get("task_duration", 60)
-            end_time = start_time + timedelta(minutes=duration_minutes)
+            end_time = current_time + timedelta(minutes=duration_minutes)
 
             # prevent overflow past 24hr window
             if end_time > end_window:
                 break
 
-            print(task)
             block = {
                 "task_id": task["id"],
                 "title": task["title"],
-                "start_time": start_time.isoformat(),
+                "start_time": current_time.isoformat(),
                 "end_time": end_time.isoformat(),
                 "type": "task",
                 "color": task.get("color")
@@ -91,11 +87,14 @@ class ScheduleService:
 
             schedule_blocks.append(block)
 
+            # 🔥 move forward (this is the key)
+            current_time = end_time + timedelta(minutes=60)
+
         # -------------------------
         # 4. CREATE SCHEDULE
         # -------------------------
         schedule_row = self.schedule_repo.create_schedule(user_id)
-        print("Schedule_row: ", schedule_row)
+        #print("Schedule_row: ", schedule_row)
         schedule_id = schedule_row["id"]
 
         # -------------------------
@@ -127,3 +126,6 @@ class ScheduleService:
                 for block in saved_blocks
             ]
         }
+
+    def get_active_schedule(self, user_id):
+        return self.schedule_repo.get_active_schedule(user_id)

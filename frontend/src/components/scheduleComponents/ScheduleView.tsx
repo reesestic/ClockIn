@@ -1,23 +1,46 @@
-import styled from "styled-components";
 import type {ScheduleViewProps} from "./ScheduleViewProps";
 import ScheduleContent from "./ScheduleContent.tsx";
+import ScheduleViewHeader from "./ScheduleViewHeader";
+import styled from "styled-components";
 
-const ScheduleHeaderWrapper = styled.div`
-    margin: 1rem;
-`
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+`;
 
-export default function ScheduleView({ schedule, onBlockClick }: ScheduleViewProps) {
-    if (schedule == null) {
-        return <div style={{ padding: "1rem" }}>No schedule yet</div>;
-    }
+const HeaderSection = styled.div`
+  height: 20%;
+  min-height: 80px;
+`;
+
+const ContentSection = styled.div`
+  height: 80%;
+  overflow: hidden; /* important */
+`;
+
+export default function ScheduleView({ schedule, onGenerate, filters, setFilters, onBlockClick }: ScheduleViewProps) {
 
     return (
-        <>
-            <ScheduleHeaderWrapper>
-                Wrapper Content
-            {/*title, caldnear componet, menu, refresh, dd/DD/MM    */}
-            </ScheduleHeaderWrapper>
-            <ScheduleContent schedule={schedule} onBlockClick={onBlockClick}/>
-        </>
+        <Wrapper>
+            <HeaderSection>
+                <ScheduleViewHeader
+                    onGenerate={onGenerate!}
+                    filters={filters!}
+                    setFilters={setFilters!}
+                />
+            </HeaderSection>
+
+            <ContentSection>
+                {schedule ? (
+                    <ScheduleContent
+                        schedule={schedule}
+                        onBlockClick={onBlockClick}
+                    />
+                ) : (
+                    <div style={{ padding: "1rem" }}>No schedule yet</div>
+                )}
+            </ContentSection>
+        </Wrapper>
     );
 }

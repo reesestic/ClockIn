@@ -4,7 +4,7 @@ import type { Schedule } from "../types/Schedule";
 import { authFetch } from "./authFetch";
 
 
-export async function getSchedule() {
+export async function getActiveSchedule() {
     const res = await authFetch(`${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}`);
     if (!res.ok) throw new Error("Failed to fetch schedule");
     return res.json();

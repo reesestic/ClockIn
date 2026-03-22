@@ -8,7 +8,7 @@ from dependencies.auth import get_current_user
 
 router = APIRouter(prefix=TASKS)
 
-@router.get("/")
+@router.get("")
 def get_tasks(user=Depends(get_current_user)):
     user_id = user["id"]
     return task_service.get_tasks(user_id)
