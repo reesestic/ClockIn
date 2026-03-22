@@ -42,15 +42,14 @@ const BlocksLayer = styled.div`
 
 export default function ScheduleContent({ schedule, onBlockClick }: ScheduleViewProps) {
 
-    if (!schedule) {
-        return <div style={{ padding: "1rem" }}>No schedule yet</div>;
-    }
-
-    // 🔥 build dynamic 24h timeline
     const hours = useMemo(() => {
         return Array.from({ length: 24 }, (_, i) => i);
     }, []);
     // array for the next 24 numbers of hours rendered
+
+    if (!schedule) {
+        return <div style={{ padding: "1rem" }}>No schedule yet</div>;
+    }
 
     function formatHour(hour: number) {
         const suffix = hour >= 12 ? "pm" : "am";
