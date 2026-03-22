@@ -1,14 +1,25 @@
 import { useState, useEffect } from "react";
+import styled from "styled-components";
+
 import TwoColumnLayout from "../components/layout/TwoColumnLayout";
 import ScheduleView from "../components/scheduleComponents/ScheduleView.tsx";
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
+import { BackButton } from "../components/navigation/BackButton";
+
+const PageBackButton = styled(BackButton)`
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 10;
+`
 
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
 import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
 import { generateSchedule } from "../api/scheduleApi.ts";
+import {ROUTES} from "../constants/Routes.ts";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -62,29 +73,32 @@ export default function PlannerPage() {
         <>
             <TwoColumnLayout
                 left={
-                    <TaskSidebar
-                        props={{
-                            tasks,
-                            mode: "planner",
-                            selectedTaskIds,
-                            onToggleSelect: toggleTaskSelection,
-                            onUpdateTask: handleUpdateTask,
-                        }}
-                        onAddTask={async (newTask) => {
-                            // TODO: POST to FastAPI, then add returned task (with id) to state
-                            await handleCreateTask({ ...newTask, can_schedule: false });
-                        }}
-                        onGenerateSchedule={() => {
-                            // TODO: wire to handleGenerateSchedule when backend is ready
-                            // console.log("Generate schedule for:", selectedTaskIds);
-                            setShowFilters(true);
-                        }}
-                        onDeleteTask={handleDeleteTask}
-                        onAddToSchedule={(taskId) => {
-                            // stub
-                            console.log("Add to schedule:", taskId);
-                        }}
-                    />
+                    <>
+                        <PageBackButton to={ROUTES.HOME} label="Home"/>
+                        <TaskSidebar
+                            props={{
+                                tasks,
+                                mode: "planner",
+                                selectedTaskIds,
+                                onToggleSelect: toggleTaskSelection,
+                                onUpdateTask: handleUpdateTask,
+                            }}
+                            onAddTask={async (newTask) => {
+                                // TODO: POST to FastAPI, then add returned task (with id) to state
+                                await handleCreateTask({ ...newTask, can_schedule: false });
+                            }}
+                            onGenerateSchedule={() => {
+                                // TODO: wire to handleGenerateSchedule when backend is ready
+                                // console.log("Generate schedule for:", selectedTaskIds);
+                                setShowFilters(true);
+                            }}
+                            onDeleteTask={handleDeleteTask}
+                            onAddToSchedule={(taskId) => {
+                                // stub
+                                console.log("Add to schedule:", taskId);
+                            }}
+                        />
+                    </>
                 }
                 right={
                     <ScheduleView schedule={schedule} />}
