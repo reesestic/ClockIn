@@ -7,7 +7,7 @@ import type { Task } from "../../types/Task.ts";
 const PanelOverlay = styled.div`
   position: absolute;
   top: 0;
-  left: 60%;
+  left: 55%;
   width: 240px;
   background: #ffffff;
   border: 1px solid #d0d0d0;
