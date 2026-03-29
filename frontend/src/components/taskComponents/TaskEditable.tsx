@@ -220,6 +220,7 @@ type TaskEditableProps = {
     task: Task;
     isSelected?: boolean;
     isEditable?: boolean; // false = timer mode: no menu, no editing
+    initialEditing?: boolean; // true = start in edit mode (e.g. newly created task)
     onClick?: () => void;
     onChange?: (task: Task) => void;
     onDelete?: (taskId: string) => void;
@@ -230,14 +231,15 @@ export default function TaskEditable({
                                          task,
                                          isSelected,
                                          isEditable = true,
+                                         initialEditing = false,
                                          onClick,
                                          onChange,
                                          onDelete,
                                          onAddToSchedule,
                                      }: TaskEditableProps) {
-    const [collapsed, setCollapsed] = useState<boolean>(true);
+    const [collapsed, setCollapsed] = useState<boolean>(!initialEditing); // expand if starting in edit mode
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
-    const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [isEditing, setIsEditing] = useState<boolean>(initialEditing);
     const [local, setLocal] = useState<Task>({ ...task });
 
     const containerRef = useRef<HTMLDivElement>(null);

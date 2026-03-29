@@ -54,9 +54,10 @@ export default function PlannerPage() {
         );
     }
 
-    async function handleCreateTask(newTask: Omit<Task, "id" | "can_schedule">) {
+    async function handleCreateTask(newTask: Omit<Task, "id" | "can_schedule">): Promise<Task> {
         const createdTask = await saveTask(newTask);
-        setTasks(prev => [...prev, createdTask]);
+        setTasks(prev => [createdTask, ...prev]);// prepend so it appears at top
+        return createdTask;
     }
 
     async function handleDeleteTask(taskId: string) {
