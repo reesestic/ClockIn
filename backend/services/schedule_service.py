@@ -127,5 +127,5 @@ class ScheduleService:
             ]
         }
 
-    def get_active_schedule(self, user_id):
-        return self.schedule_repo.get_active_schedule(user_id)
+    def get_schedule(self, user_id):
+        return self.schedule_repo.get_schedule(user_id)
