@@ -18,15 +18,28 @@ const SidebarContainer = styled.div`
 `;
 
 const Header = styled.div`
-  display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
 `;
 
 const Heading = styled.h4`
-  margin: 0 auto;
+  margin-left: 20%;
+    font-size: calc(2px + 3.5vh);
+    font-family: "clother", sans-serif;
+    font-weight: 700;
+    font-style: italic;
+
 `;
+
+const SubHeader = styled.h4`
+    margin-left: 20%;
+    font-size: calc(2px + 1vh);
+    font-family: "clother", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+    color: #aaaaaa;
+`
 
 // const AddButton = styled.button`
 //   background: none;
@@ -79,7 +92,9 @@ export default function TaskSidebar({
         {/*    +*/}
         {/*  </AddButton>*/}
         {/*)}*/}
+          <SubHeader>things you need to get done...</SubHeader>
       </Header>
+
 
       {/* ── Task List ── */}
       <ScrollableTaskList>

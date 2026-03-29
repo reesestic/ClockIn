@@ -76,7 +76,7 @@ export default function PlannerPage() {
             <TwoColumnLayout
                 left={
                     <>
-                        <PageBackButton to={ROUTES.HOME} label="Home" />
+                        <PageBackButton to={ROUTES.HOME} label=""/>
                         <TaskSidebar
                             props={{
                                 tasks,
