@@ -18,15 +18,40 @@ const SidebarContainer = styled.div`
 `;
 
 const Header = styled.div`
-  display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
 `;
 
 const Heading = styled.h4`
-  margin: 0 auto;
+  margin-left: 20%;
+    font-size: calc(2px + 3.5vh);
+    font-family: "clother", sans-serif;
+    font-weight: 700;
+    font-style: italic;
+
 `;
+
+const SubHeader = styled.h4`
+    margin-left: 20%;
+    font-size: calc(2px + 1vh);
+    font-family: "clother", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+    color: #aaaaaa;
+`
+
+// const AddButton = styled.button`
+//   background: none;
+//   border: 1px solid #ccc;
+//   border-radius: 4px;
+//   font-size: 1.1rem;
+//   cursor: pointer;
+//   padding: 2px 10px;
+//   &:hover {
+//     background-color: #f5f5f5;
+//   }
+// `;
 
 const ScrollableTaskList = styled.div`
   flex: 1;
@@ -34,6 +59,7 @@ const ScrollableTaskList = styled.div`
   padding: 0 16px;
   width: 100%;
 `;
+
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -65,7 +91,9 @@ export default function TaskSidebar({
         {/*    +*/}
         {/*  </AddButton>*/}
         {/*)}*/}
+          <SubHeader>things you need to get done...</SubHeader>
       </Header>
+
 
       {/* ── Task List ── */}
       <ScrollableTaskList>

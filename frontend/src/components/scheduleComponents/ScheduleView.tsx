@@ -19,15 +19,13 @@ const ContentSection = styled.div`
   overflow: hidden; /* important */
 `;
 
-export default function ScheduleView({ schedule, onGenerate, filters, setFilters, onBlockClick }: ScheduleViewProps) {
+export default function ScheduleView({ schedule, onGenerate, onBlockClick }: ScheduleViewProps) {
 
     return (
         <Wrapper>
             <HeaderSection>
                 <ScheduleViewHeader
                     onGenerate={onGenerate!}
-                    filters={filters!}
-                    setFilters={setFilters!}
                 />
             </HeaderSection>
 

@@ -8,7 +8,7 @@ const PanelOverlay = styled.div`
   position: absolute;
   top: 0;
   left: 60%;
-  width: 240px;
+  width: 40%;
   background: #ffffff;
   border: 1px solid #d0d0d0;
   border-radius: 6px;
