@@ -1,7 +1,5 @@
 import styled from "styled-components";
 import CalendarIcon from "../icons/CalendarIcon";
-import React from "react";
-import type { ScheduleFilters } from "../../types/ScheduleFilters";
 
 type Props = {
     onGenerate: () => void;
