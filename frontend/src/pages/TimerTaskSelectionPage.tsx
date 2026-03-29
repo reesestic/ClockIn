@@ -35,7 +35,7 @@ const TimerScrollableList = styled.div`
   padding: 0 16px;
 `;
 
-export default function TimerPage() {
+export default function TimerTaskSelectionPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [schedule, setSchedule] = useState<Schedule | null>(null);
     const [activeItem, setActiveItem] = useState<Task | ScheduleBlock | null>(null);

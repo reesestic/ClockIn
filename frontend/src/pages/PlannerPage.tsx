@@ -18,7 +18,7 @@ import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
 import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
-import { generateSchedule, getActiveSchedule } from "../api/scheduleApi.ts";
+import { generateSchedule, getSchedule } from "../api/scheduleApi.ts";
 import {ROUTES} from "../constants/Routes.ts";
 
 export default function PlannerPage() {
@@ -38,7 +38,7 @@ export default function PlannerPage() {
     useEffect(() => {
         getTasks().then(setTasks);
 
-        getActiveSchedule()
+        getSchedule()
             .then(setSchedule)
             .catch(() => setSchedule(null));
     }, []);
