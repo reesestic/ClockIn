@@ -3,6 +3,7 @@ import TaskList from "./TaskList";
 import type { TaskSidebarProps } from "./TaskSidebarProps.ts";
 import type { Task } from "../../types/Task.ts";
 
+
 // ── Styled Components ────────────────────────────────────────────────────────
 
 const SidebarContainer = styled.div`
@@ -87,6 +88,7 @@ export default function TaskSidebar({
                                       onDeleteTask,
                                       onAddToSchedule,
                                     }: TaskSidebarFullProps) {
+
 
   const handleAdd = async () => {
     await onAddTask({
