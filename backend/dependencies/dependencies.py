@@ -18,9 +18,12 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 
 task_repository = TaskRepository(supabase)
+schedule_repository = ScheduleRepository(supabase)
+
 sticky_note_repo = StickyNoteRepository(supabase)
 task_service = TaskService(task_repository)
 openai_service = AIService(api_key)
+schedule_service = ScheduleService(schedule_repository, task_repository)
 
 sticky_note_service = StickyNoteService(
     sticky_note_repo,
@@ -28,5 +31,3 @@ sticky_note_service = StickyNoteService(
     task_service
 )
 
-schedule_repository = ScheduleRepository(supabase)
-schedule_service = ScheduleService(ScheduleRepository, TaskRepository)

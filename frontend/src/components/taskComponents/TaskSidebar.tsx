@@ -76,8 +76,7 @@ const ScrollableTaskList = styled.div`
 
 type TaskSidebarFullProps = {
   props: TaskSidebarProps;
-  onAddTask: (task: Omit<Task, "id" | "can_schedule">) => Promise<Task>;
-  onGenerateSchedule: () => void;
+  onAddTask: (task: Omit<Task, "id" | "can_schedule">) => Promise<void>;
   onDeleteTask?: (taskId: string) => void;
   onAddToSchedule?: (taskId: string) => void;
 };

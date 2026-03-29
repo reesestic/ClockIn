@@ -1,3 +1,5 @@
+from typing import List
+
 class TaskRepository:
     def __init__(self, supabase):
         self.supabase = supabase
@@ -41,3 +43,17 @@ class TaskRepository:
                 .execute()
         )
         return result.data[0]
+
+    def get_tasks_by_ids(self, user_id: str, task_ids: List[str]):
+        print("Hit the repo")
+        result = (
+            self.supabase
+            .table("Tasks")
+            .select("*")
+            .eq("user_id", user_id)
+            .in_("id", task_ids)
+            .execute()
+        )
+
+        return result.data or []
+

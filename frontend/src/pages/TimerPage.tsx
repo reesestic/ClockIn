@@ -6,7 +6,7 @@
 // import ScheduleView from "../components/scheduleComponents/ScheduleView";
 // import TaskActionModal from "../components/modal/TaskActionModal";
 //
-// import { getTasks } from "../api/taskApi";
+// import { getTasks } from "../api/TaskApi";
 // import { getSchedule } from "../api/ScheduleApi";
 //
 // import type { Task } from "../types/Task";

@@ -67,14 +67,15 @@ export const ActionColumn = styled.div`
 `
 
 export const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-
+    position: fixed;
+    inset: 0;
+    margin: 0 auto;
+    
     height: 100vh;
     width: 50vw;
-
+    
     background: rgba(0,0,0,0.5);
-
+    
     display: flex;
     justify-content: center;
     align-items: center;

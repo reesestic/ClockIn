@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends
-from services.schedule_service import build_schedule, fetch_schedule
 from constants.routes import SCHEDULE
-from models.schedule_model import GenerateScheduleRequest
 from dependencies.auth import get_current_user
+
+from dependencies.dependencies import schedule_service
+from models.schedule_model import GenerateScheduleRequest
 
 router = APIRouter(prefix=SCHEDULE)
 
 # make types instead of dict
-@router.post("/")
+@router.post("")
 def generate_schedule_controller(req: GenerateScheduleRequest, user=Depends(get_current_user)):
-    print(req)
+    print("Controller: ", req)
     if not req.taskIds:
         return {"error": "No tasks selected"}
 
@@ -21,7 +22,7 @@ def generate_schedule_controller(req: GenerateScheduleRequest, user=Depends(get_
     )
 
 
-@router.get("/")
-def get_schedule_controller():
-    return fetch_schedule()
+@router.get("")
+def get_schedule_controller(user=Depends(get_current_user)):
+    return schedule_service.schedule_repo.get_active_schedule(user["id"])
 

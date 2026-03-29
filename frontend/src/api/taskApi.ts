@@ -2,8 +2,6 @@ import { API_ROUTES } from "../constants/apiRoutes.ts";
 import type { Task } from "../types/Task.ts";
 import { authFetch } from "./authFetch.ts";
 
-
-
 export async function getTasks(): Promise<Task[]> {
     const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}`
