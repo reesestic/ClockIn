@@ -6,7 +6,11 @@ import { ROUTES } from "./constants/Routes";
 
 import { Route, Routes } from "react-router-dom";
 import PlannerPage from "./pages/PlannerPage";
+import TimerEntryPage from "./components/timerComponents/TimerEntryPage.tsx";
+import TimerScreen from "./components/timerComponents/TimerScreen.tsx";
 import TimerTaskSelectionPage from "./pages/TimerTaskSelectionPage.tsx";
+import TimerRouteGuard from "./components/timerComponents/TimerRouteGuard.tsx";
+
 
 export default function Root() {
     return (
@@ -28,10 +32,18 @@ export default function Root() {
                     element={<PlannerPage />}
                 />
 
-                <Route
-                    path="/timer"
-                    element={<TimerTaskSelectionPage />}
-                />
+                {/*Timer routes*/}
+                <Route path={ROUTES.TIMER_ENTRY_PAGE} element={
+                    <TimerRouteGuard>
+                        <TimerEntryPage />
+                    </TimerRouteGuard>
+                } />
+                <Route path={ROUTES.TIMER_TASK_SELECTION_PAGE} element={
+                    <TimerRouteGuard>
+                        <TimerTaskSelectionPage />
+                    </TimerRouteGuard>
+                } />
+                <Route path={ROUTES.TIMER_SCREEN} element={<TimerScreen />} />
 
             </Routes>
         </>

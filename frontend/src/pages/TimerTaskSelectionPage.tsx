@@ -85,7 +85,7 @@ export default function TimerTaskSelectionPage() {
                     onStart={(item) => {
                         console.log("START TASK MODE:", item);
 
-                        navigate("/timer", {
+                        navigate("/timer/run", {
                             state: {
                                 mode: "task",
                                 item: item,
@@ -97,7 +97,7 @@ export default function TimerTaskSelectionPage() {
                     onAutomate={(item) => {
                         console.log("START ATOMIZED MODE:", item);
 
-                        navigate("/timer", {
+                        navigate("/timer/run", {
                             state: {
                                 mode: "task",
                                 item: item,

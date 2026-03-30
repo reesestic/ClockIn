@@ -69,7 +69,11 @@ class ScheduleService:
         current_time = now
 
         for task in tasks:
-            duration_minutes = task.get("task_duration", 60)
+            duration_minutes = task.get("task_duration")
+
+            if not isinstance(duration_minutes, (int, float)) or duration_minutes <= 0:
+                duration_minutes = 60
+
             end_time = current_time + timedelta(minutes=duration_minutes)
 
             # prevent overflow past 24hr window
