@@ -1,4 +1,5 @@
 # removed supabase import
+import json
 from typing import Dict, Any
 from models.sticky_note_model import StickyNoteColor
 
@@ -9,22 +10,19 @@ class StickyNoteService:
         self.TaskService = TaskService
     
     async def note_to_task(self, sticky_id, user_id):
-        
         #get sticky note fields to feed to OpenAI
         title = self.SNRepo.get_title(sticky_id)
         text = self.SNRepo.get_text(sticky_id)
-        
         # Extract structured task data from the sticky note
-        print(user_id)
         task_data = await self.AIService.extract_task_fields(title, text, user_id)
-        print("Extracted task data:", task_data)
-        # Create a new task using the extracted data
-        self.TaskService.create_task(task_data, user_id)
-        
-        
-        # Include delete method of database from SNRepo here 
-        # to delete the sticky note after conversion
-        return
+        # Create and return a new task(s) using the extracted data
+        return task_data
+    
+    async def send_notes_as_tasks(self, task_data, user_id):
+        #create and send the tasks to the task list
+        created_tasks = self.TaskService.create_tasks_bulk(task_data, user_id)
+        #delete sticky note after sending to task list
+        return created_tasks
 
     @staticmethod
     def _normalize_note(row: Dict[str, Any]):

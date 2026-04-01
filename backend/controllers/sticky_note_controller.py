@@ -3,16 +3,29 @@ from models.sticky_note_model import StickyNoteCreate, StickyNoteSave, StickyNot
 from constants.routes import STICKY_NOTES
 from dependencies.auth import get_current_user
 from fastapi import Depends
+from fastapi import Body
 
 from dependencies.dependencies import sticky_note_service
+
 
 router = APIRouter(prefix=STICKY_NOTES)
 
 
-@router.post("/send/{note_id}")
-async def send_to_planner(note_id: str, user=Depends(get_current_user)):
+@router.get("/note_to_task/{note_id}")
+async def note_to_task(note_id: str, user=Depends(get_current_user)):
     user_id = user["id"]
-    await sticky_note_service.note_to_task(note_id, user_id)
+    return await sticky_note_service.note_to_task(note_id, user_id)
+
+@router.post("/send")
+async def send_tasks_to_list(user=Depends(get_current_user), tasks: list[dict] = Body(...)):
+    user_id = user["id"]
+    created_tasks = await sticky_note_service.send_notes_as_tasks(tasks, user_id)
+    return created_tasks
+
+# @router.post("/send/{note_id}")
+# async def send_to_planner(note_id: str, user=Depends(get_current_user)):
+#     user_id = user["id"]
+#     await sticky_note_service.note_to_task(note_id, user_id)
 
 @router.post("/save")
 def save_note_controller(note: StickyNoteSave, user=Depends(get_current_user)):

@@ -17,7 +17,7 @@ const PageBackButton = styled(BackButton)`
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
-import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
+import {getTasks, saveTask, deleteTask, updateTask} from "../api/taskApi.ts";
 import { generateSchedule, getActiveSchedule } from "../api/scheduleApi.ts";
 import {ROUTES} from "../constants/Routes.ts";
 
@@ -57,10 +57,11 @@ export default function PlannerPage() {
     // ---------------------------
     // TASK CRUD
     // ---------------------------
-    function handleUpdateTask(updated: Task) {
+    async function handleUpdateTask(updated: Task) {
         setTasks(prev =>
             prev.map(t => (t.id === updated.id ? updated : t))
         );
+        await updateTask(updated);
     }
 
     async function handleCreateTask(newTask: Omit<Task, "id">): Promise<Task> {

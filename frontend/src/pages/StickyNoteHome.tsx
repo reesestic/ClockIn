@@ -3,8 +3,9 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect } from "react";
-import { sendNote, saveNote, deleteNote, getNotes, changeColor } from "../api/stickyNoteApi.ts";
+import {saveNote, deleteNote, getNotes, changeColor, noteToTask, sendTasksToList} from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
+import type {Task} from "../types/Task";
 
 import {
     PageTitle, StyledStickyNoteContainer, PageWrapper, NotesAndButtonsLayout,
@@ -17,22 +18,432 @@ import { AddButton } from "../components/navigation/AddButton";
 import {CalendarDropZone} from "../components/navigation/CalendarDropZone.tsx";
 import {TrashDropZone} from "../components/navigation/TrashDropZone";
 import type {StickyNoteColor} from "../types/StickyNoteThemes.ts";
+import styled, { keyframes } from "styled-components";
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const fadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+`;
+
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
+
+// ─── Modal Styled Components ───────────────────────────────────────────────────
+
+const ModalBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: ${fadeIn} 0.2s ease;
+`;
+
+const ModalCard = styled.div`
+    background: #fffdf5;
+    border-radius: 16px;
+    padding: 32px;
+    width: min(600px, 90vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow:
+            0 4px 6px rgba(0,0,0,0.05),
+            0 20px 60px rgba(0,0,0,0.18);
+    animation: ${slideUp} 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+`;
+
+const ModalTitle = styled.h2`
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    letter-spacing: -0.02em;
+`;
+
+const ModalSubtitle = styled.p`
+    font-size: 0.875rem;
+    color: #888;
+    margin: 8px 0 0;
+`;
+
+const TaskList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const ModalActions = styled.div`
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 4px;
+`;
+
+const ConfirmButton = styled.button<{ disabled?: boolean }>`
+    background: ${p => p.disabled ? "#ccc" : "#1a1a1a"};
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: ${p => p.disabled ? "not-allowed" : "pointer"};
+    transition: background 0.15s, transform 0.1s;
+
+    &:hover {
+        background: ${p => p.disabled ? "#ccc" : "#333"};
+        transform: ${p => p.disabled ? "none" : "translateY(-1px)"};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+`;
+
+const CancelButton = styled.button`
+    background: transparent;
+    color: #888;
+    border: 1.5px solid #e8e4d8;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+
+    &:hover {
+        border-color: #bbb;
+        color: #555;
+    }
+`;
+
+const Spinner = styled.div`
+    width: 28px;
+    height: 28px;
+    border: 3px solid #f0ece0;
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: ${spin} 0.7s linear infinite;
+    margin: 24px auto;
+`;
+
+// ─── Modal Task Editable Styled Components ─────────────────────────────────────
+// Mirrors TaskEditable but stripped of checkbox, menu, collapse, and edit toggle
+
+const TaskEditableContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    border: 2px solid lightgray;
+    box-shadow: -3px 3px 10px 0px #b5b5b5;
+    background-color: white;
+    border-radius: 4px;
+`;
+
+const TitleRow = styled.div`
+    display: flex;
+    background-color: #fff59a;
+    width: 100%;
+`;
+
+const TitleInput = styled.input`
+    background-color: #fff59a;
+    color: black;
+    font-weight: bold;
+    font-size: 1rem;
+    border: none;
+    outline: none;
+    padding: 4px 6px;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: text;
+
+    &:focus {
+        outline: 2px solid #f0d800;
+    }
+`;
+
+const CollapsedFieldContainer = styled.div`
+    padding: 8px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+`;
+
+const DescriptionTextarea = styled.textarea`
+    min-height: 48px;
+    background-color: #ffffff;
+    color: #636363;
+    border: 1px solid transparent;
+    resize: vertical;
+    font-size: 0.9rem;
+    padding: 4px 6px;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: text;
+    font-family: inherit;
+
+    &:focus {
+        outline: 2px solid #d0d0d0;
+        border-color: #d0d0d0;
+    }
+`;
+
+const FieldRow = styled.div`
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px auto;
+    width: 100%;
+`;
+
+const RatingHints = styled.div`
+    display: flex;
+    justify-content: space-between;
+    width: 90px;
+`;
+
+const RatingHint = styled.span`
+    font-size: 0.6rem;
+    color: #bbb;
+    font-style: italic;
+`;
+
+
+const FieldLabel = styled.label`
+    font-size: 0.8rem;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 80px;
+`;
+
+const FieldInput = styled.input`
+    background-color: #ffffff;
+    color: #636363;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: text;
+
+    &:focus {
+        outline: 2px solid #d0d0d0;
+    }
+`;
+
+const RadioGroup = styled.div`
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    justify-content: flex-start;
+`;
+
+const RadioOption = styled.button<{ selected: boolean }>`
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid ${({ selected }) => (selected ? "#555" : "#ccc")};
+    background-color: ${({ selected }) => (selected ? "#555" : "#fff")};
+    color: ${({ selected }) => (selected ? "#fff" : "#888")};
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+
+    &:hover {
+        border-color: #555;
+    }
+`;
+
+// ─── Modal Task Editable Component ────────────────────────────────────────────
+
+interface ModalTaskEditableProps {
+    task: Task;
+    onChange: (updated: Task) => void;
+}
+
+function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
+    const [local, setLocal] = useState<Task>({ ...task });
+
+    const update = (fields: Partial<Task>) => {
+        const updated = { ...local, ...fields };
+        setLocal(updated);
+        onChange(updated);
+    };
+
+    return (
+        <TaskEditableContainer>
+            <TitleRow>
+                <TitleInput
+                    value={local.title}
+                    onChange={e => update({ title: e.target.value })}
+                    placeholder="Task title"
+                />
+            </TitleRow>
+
+            <CollapsedFieldContainer>
+                <DescriptionTextarea
+                    value={local.description}
+                    onChange={e => update({ description: e.target.value })}
+                    placeholder="Description"
+                />
+
+                <FieldRow>
+                    <FieldLabel>
+                        Due Date
+                        <FieldInput
+                            type="date"
+                            value={local.due_date ?? ""}
+                            onChange={e => update({ due_date: e.target.value || null })}
+                        />
+                    </FieldLabel>
+
+                    <FieldLabel>
+                        Duration (min)
+                        <FieldInput
+                            type="number"
+                            min={1}
+                            value={local.task_duration ?? ""}
+                            onChange={e => update({ task_duration: Number(e.target.value) })}
+                            placeholder="e.g. 30"
+                        />
+                    </FieldLabel>
+                </FieldRow>
+
+                <FieldRow style={{ justifyContent: "flex-start" }}>
+                    <FieldLabel style={{ flex: "none" , margin: "2%"}}>
+                        Importance
+                        <RadioGroup>
+                            {[1, 2, 3].map(val => (
+                                <RadioOption
+                                    key={val}
+                                    selected={local.importance === val}
+                                    onClick={e => { e.stopPropagation(); update({ importance: val }); }}
+                                    type="button"
+                                >
+                                    {val}
+                                </RadioOption>
+                            ))}
+                        </RadioGroup>
+                        <RatingHints>
+                            <RatingHint>low</RatingHint>
+                            <RatingHint>critical</RatingHint>
+                        </RatingHints>
+                    </FieldLabel>
+
+                    <FieldLabel style={{ flex: "none", margin: "2%" }}>
+                        Difficulty
+                        <RadioGroup>
+                            {[1, 2, 3].map(val => (
+                                <RadioOption
+                                    key={val}
+                                    selected={local.difficulty === val}
+                                    onClick={e => { e.stopPropagation(); update({ difficulty: val }); }}
+                                    type="button"
+                                >
+                                    {val}
+                                </RadioOption>
+                            ))}
+                        </RadioGroup>
+                        <RatingHints>
+                            <RatingHint>easy</RatingHint>
+                            <RatingHint>hard</RatingHint>
+                        </RatingHints>
+                    </FieldLabel>
+                </FieldRow>
+            </CollapsedFieldContainer>
+        </TaskEditableContainer>
+    );
+}
+
+// ─── Task Confirmation Modal ───────────────────────────────────────────────────
+
+interface TaskConfirmModalProps {
+    tasks: Task[];
+    isLoading: boolean;
+    onUpdateTask: (index: number, updated: Task) => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel }: TaskConfirmModalProps) {
+    return (
+        <ModalBackdrop onClick={onCancel}>
+            <ModalCard onClick={e => e.stopPropagation()}>
+                <div>
+                    <ModalTitle>Confirm Tasks</ModalTitle>
+                    <ModalSubtitle>
+                        {isLoading
+                            ? "Extracting tasks from your note..."
+                            : `${tasks.length} task${tasks.length !== 1 ? "s" : ""} — edit before confirming`}
+                    </ModalSubtitle>
+                </div>
+
+                {isLoading ? (
+                    <Spinner />
+                ) : (
+                    <TaskList>
+                        {tasks.map((task, i) => (
+                            <ModalTaskEditable
+                                key={i}
+                                task={task}
+                                onChange={updated => onUpdateTask(i, updated)}
+                            />
+                        ))}
+                    </TaskList>
+                )}
+
+                <ModalActions>
+                    <CancelButton onClick={onCancel}>Cancel</CancelButton>
+                    <ConfirmButton onClick={onConfirm} disabled={isLoading}>
+                        {isLoading ? "Loading..." : "Add to List"}
+                    </ConfirmButton>
+                </ModalActions>
+            </ModalCard>
+        </ModalBackdrop>
+    );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export function StickyNoteHome() {
 
     const [notes, setNotes] = useState<Note[]>([]);
-
-    // Function to determine the note that is editable & overlayed
     const [activeNote, setActiveNote] = useState<Note | null>(null);
+    const [proposedTasks, setProposedTasks] = useState<Task[]>([]);
+    const [showTaskModal, setShowTaskModal] = useState(false);
+    const [isLoadingTasks, setIsLoadingTasks] = useState(false);
 
     useEffect(() => {
         async function loadNotes() {
             try {
-                // check normalization in StickyNoteServices to find syntax
                 const normalizedNotesFromDB = await getNotes();
                 console.log(normalizedNotesFromDB);
                 setNotes(normalizedNotesFromDB);
-
             } catch (error) {
                 console.error("Failed to load notes", error);
             }
@@ -41,7 +452,6 @@ export function StickyNoteHome() {
         loadNotes();
     }, []);
 
-    // Prop method passed down to Editable sticky note to edit title and content (StickyNoteEditable.tsx)
     const updateNote = (title: string, content: string) => {
         setActiveNote(prev =>
             prev ? {...prev, title, content} : prev
@@ -50,8 +460,30 @@ export function StickyNoteHome() {
 
     const handleSendNote = async () => {
         if (!activeNote?.id) return;
+        setShowTaskModal(true);
+        setIsLoadingTasks(true);
+        const tasks = await noteToTask(activeNote.id);
+        setProposedTasks(tasks);
+        setIsLoadingTasks(false);
+    };
 
-        await sendNote(activeNote.id);
+    const handleUpdateTask = (index: number, updated: Task) => {
+        setProposedTasks(prev =>
+            prev.map((task, i) => i === index ? updated : task)
+        );
+    };
+
+    const handleConfirmTasks = async () => {
+        await sendTasksToList(proposedTasks);
+        setShowTaskModal(false);
+        setProposedTasks([]);
+        setActiveNote(null);
+    };
+
+    const handleCancelTasks = () => {
+        setShowTaskModal(false);
+        setProposedTasks([]);
+        setIsLoadingTasks(false);
     };
 
     const handleDeleteNote = async () => {
@@ -98,7 +530,6 @@ export function StickyNoteHome() {
             )
         );
 
-        // update the open editable note
         setActiveNote(prev =>
             prev && prev.id === noteId
                 ? { ...prev, color }
@@ -115,7 +546,6 @@ export function StickyNoteHome() {
         } catch (error) {
             console.error("Failed to update color", error);
         }
-
     };
 
     return (
@@ -140,8 +570,6 @@ export function StickyNoteHome() {
                                 position: { x: 0, y: 0, z: 0 }
                             })}
                     />
-                    {/*Commenting out select until later*/}
-                    {/*<button>Select</button>*/}
                 </AddAndSelectWrapper>
 
                 <NotesAndButtonsLayout>
@@ -169,6 +597,16 @@ export function StickyNoteHome() {
                         onCancel={handleCancelNote}
                         onDelete={handleDeleteNote}
                         onColorChange={handleColorChange}
+                    />
+                )}
+
+                {showTaskModal && (
+                    <TaskConfirmModal
+                        tasks={proposedTasks}
+                        isLoading={isLoadingTasks}
+                        onUpdateTask={handleUpdateTask}
+                        onConfirm={handleConfirmTasks}
+                        onCancel={handleCancelTasks}
                     />
                 )}
 
