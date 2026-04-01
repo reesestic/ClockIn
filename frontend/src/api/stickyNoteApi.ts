@@ -93,3 +93,19 @@ export async function changeColor(noteId : string, color: StickyNoteColor) {
     }
     console.log("Succcess, no return to frontend")
 }
+
+export async function updateNotePosition(noteId: string, x: number, y: number, z: number) {
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/${noteId}/position`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ x, y, z }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to update note position");
+    }
+    // No return value needed — backend returns nothing on position update
+}

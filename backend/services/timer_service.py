@@ -20,5 +20,6 @@ class TimerService:
             "started_at": row.get("started_at"),
             "ended_at": row.get("ended_at"),
             "elapsed_seconds": row.get("elapsed_seconds"),
+            "active_seconds": row.get("active_seconds"),
             "task_completed": row.get("task_completed"),
         }

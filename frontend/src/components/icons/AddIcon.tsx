@@ -1,4 +1,4 @@
-export function AddIcon() {
+export default function AddIcon() {
     return (
         // modified color fill to be #eeeeee to be white
         <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">

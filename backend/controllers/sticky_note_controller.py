@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models.sticky_note_model import StickyNoteCreate, StickyNoteSave, StickyNoteColorUpdate
+from models.sticky_note_model import StickyNoteCreate, StickyNoteSave, StickyNoteColorUpdate, StickyNotePositionUpdate
 from constants.routes import STICKY_NOTES
 from dependencies.auth import get_current_user
 from fastapi import Depends
@@ -7,7 +7,6 @@ from fastapi import Depends
 from dependencies.dependencies import sticky_note_service
 
 router = APIRouter(prefix=STICKY_NOTES)
-
 
 @router.post("/send/{note_id}")
 async def send_to_planner(note_id: str, user=Depends(get_current_user)):
@@ -49,3 +48,9 @@ def update_note_color(
 ):
     user_id = user["id"]
     sticky_note_service.update_color(note_id, update.color, user_id)
+
+
+@router.patch("/{note_id}/position")
+def update_note_position(note_id: str, update: StickyNotePositionUpdate,user=Depends(get_current_user)):
+    user_id = user["id"]
+    sticky_note_service.update_position(note_id, update.x, update.y, update.z, user_id)

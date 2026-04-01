@@ -1,37 +1,63 @@
 import StickyNoteFrame from "./StickyNoteFrame";
 import type { Note } from "../../types/Note";
-import styled from "styled-components"
+import styled from "styled-components";
 import { StickyNoteThemes } from "../../types/StickyNoteThemes";
-import React from "react";
-import type {StickyNoteColor} from "../../types/StickyNoteThemes";
+import React, { useRef, useEffect } from "react";
+import type { StickyNoteColor } from "../../types/StickyNoteThemes";
 
 const TitleInput = styled.input`
-    font-size: 1.35rem;
-    font-weight: bold;
-    margin: 1rem 0 0.6rem;
-    
+    font-size: 1.5rem;
+    font-weight: 600;
+
+    margin: 0;
+    padding: 0;
+
     border: none;
     background: transparent;
-    
+
     &:focus {
-    outline: none;
+        outline: none;
     }
 `;
 
+
+// 🔥 SCROLL CONTAINER (this replaces textarea scroll)
+const ContentWrapper = styled.div`
+    flex: 1;
+    min-height: 0;
+
+    overflow-y: auto;
+
+    padding-right: 2.3rem;
+
+    /* hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+`;
+
+
 const ContentTextarea = styled.textarea`
-    font-size: 1rem;
-    line-height: 1.5;
-    
+    font-size: 1.05rem;
+    line-height: 1.6;
+
+    width: 100%;
     border: none;
     resize: none;
     background: transparent;
 
-    padding-left: 1rem;
+    overflow: hidden;
+
+    word-break: break-word;
 
     &:focus {
-    outline: none;
+        outline: none;
     }
 `;
+
 
 const EditMenu = ({
                       noteId,
@@ -45,53 +71,76 @@ const EditMenu = ({
             <button>B</button>
             <button>I</button>
 
-            <button onClick={() => onColorChange(noteId, "yellow")}>
-                🟨
-            </button>
-
-            <button onClick={() => onColorChange(noteId, "pink")}>
-                🩷
-            </button>
-
-            <button onClick={() => onColorChange(noteId, "blue")}>
-                🟦
-            </button>
+            <button onClick={() => onColorChange(noteId, "yellow")}>🟨</button>
+            <button onClick={() => onColorChange(noteId, "pink")}>🩷</button>
+            <button onClick={() => onColorChange(noteId, "blue")}>🟦</button>
         </div>
     );
 };
 
-type Props = {
+
+type NoteProps = {
     note: Note;
     onChange: (title: string, content: string) => void;
     onColorChange: (noteId: string, color: StickyNoteColor) => void;
+    size?: "small" | "large";
 };
 
-export default function StickyNoteEditable({ note, onChange, onColorChange }: Props) {
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+
+export default function StickyNoteEditable({
+                                               note,
+                                               onChange,
+                                               onColorChange,
+                                               size = "small"
+                                           }: NoteProps) {
+
+    const titleRef = useRef<HTMLInputElement>(null);
+    const contentRef = useRef<HTMLTextAreaElement>(null);
+
+    // autofocus title
+    useEffect(() => {
+        titleRef.current?.focus();
+    }, []);
+
+    // enter → jump to body
+    const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             e.preventDefault();
-
-            const newContent = note.content + "\n• ";
-            onChange(note.title, newContent);
+            contentRef.current?.focus();
         }
     };
 
+    // 🔥 auto-grow textarea
+    useEffect(() => {
+        if (contentRef.current) {
+            contentRef.current.style.height = "auto";
+            contentRef.current.style.height = contentRef.current.scrollHeight + "px";
+        }
+    }, [note.content]);
+
     return (
-        <StickyNoteFrame theme={StickyNoteThemes[note.color]}
-             menu={<EditMenu noteId={note.id!} onColorChange={onColorChange}/>}
+        <StickyNoteFrame
+            size={size}
+            theme={StickyNoteThemes[note.color]}
+            menu={<EditMenu noteId={note.id!} onColorChange={onColorChange} />}
         >
             <TitleInput
+                ref={titleRef}
                 value={note.title}
                 onChange={(e) => onChange(e.target.value, note.content)}
-                placeholder=" Add a title..."
+                onKeyDown={handleTitleKeyDown}
+                placeholder="Add a title..."
             />
 
-            <ContentTextarea
-                value={note.content}
-                onChange={(e) => onChange(note.title, e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="• Write a note..."
-            />
+            <ContentWrapper>
+                <ContentTextarea
+                    ref={contentRef}
+                    value={note.content}
+                    onChange={(e) => onChange(note.title, e.target.value)}
+                    placeholder="Start writing..."
+                />
+            </ContentWrapper>
+
         </StickyNoteFrame>
     );
 }

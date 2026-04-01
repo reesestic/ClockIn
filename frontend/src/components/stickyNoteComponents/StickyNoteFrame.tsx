@@ -3,15 +3,21 @@ import StickyNoteBackground from "./StickyNoteBackground";
 import React from "react";
 import type { StickyNoteTheme } from "../../types/StickyNoteThemes";
 
-const NoteWrapper = styled.div`
+const NoteWrapper = styled.div<{ size?: "small" | "large" }>`
     position: relative;
-    width: clamp(200px, 15vw, 300px);
+    opacity: 1;
+
+    width: ${({ size }) =>
+            size === "large"
+                    ? "min(400px, 60vw)"   // 🔥 bigger edit mode
+                    : "clamp(200px, 14vw, 300px)"};
+
     aspect-ratio: 1;
 `;
 
 const NoteContent = styled.div<{textColor: string}>`
     position: absolute;
-    inset: 9% 9% 9% 13%;
+    inset: 8% 8% 10% 8%;
     
     display: flex;
     flex-direction: column;
@@ -30,11 +36,12 @@ type Props = {
     theme: StickyNoteTheme;
     menu?: React.ReactNode;
     children: React.ReactNode;
+    size?: "small" | "large";
 };
 
-export default function StickyNoteFrame({onClick, theme, menu, children }: Props) {
+export default function StickyNoteFrame({onClick, theme, menu, children, size }: Props) {
     return (
-        <NoteWrapper onClick={onClick}>
+        <NoteWrapper size={size} onClick={onClick}>
             <StickyNoteBackground theme={theme}/>
 
             { menu && (

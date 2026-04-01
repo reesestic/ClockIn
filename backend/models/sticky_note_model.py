@@ -29,3 +29,9 @@ class StickyNoteSave(BaseModel):
 
 class StickyNoteColorUpdate(BaseModel):
     color: StickyNoteColor
+
+
+class StickyNotePositionUpdate(BaseModel):
+    x: int
+    y: int
+    z: int

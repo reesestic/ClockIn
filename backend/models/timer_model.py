@@ -7,4 +7,5 @@ class TimerRequest(BaseModel):
     started_at: str
     ended_at: str
     elapsed_seconds: int
+    active_seconds: int
     task_completed: bool

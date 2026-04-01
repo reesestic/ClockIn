@@ -17,3 +17,4 @@ def create_timer_session(req: TimerRequest, user=Depends(get_current_user)):
             "user_id": user["id"],
             "data": session
         }
+

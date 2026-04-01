@@ -91,3 +91,14 @@ class StickyNoteRepository:
             "posZ": posZ}
             ).execute()
         return
+
+    def update_position(self, note_id: str, x: int, y: int, z: int, user_id: str):
+        result = (
+            self.supabase.table("StickyNotes")
+            .update({"posX": x, "posY": y, "posZ": z})
+            .eq("id", note_id)
+            .eq("user_id", user_id)   # security check
+            .execute()
+        )
+        print(result.data[0])
+        return result.data[0] if result.data else None
