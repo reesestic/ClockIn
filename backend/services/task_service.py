@@ -14,3 +14,10 @@ class TaskService:
 
     def update_task(self, task_id: str, task_data: dict, user_id: str):
         return self.TaskRepo.update_task(task_id, task_data, user_id) 
+    
+    def create_tasks_bulk(self, tasks_data: list, user_id: str):
+        created_tasks = []
+        for task_data in tasks_data:
+            created_task = self.create_task(task_data, user_id)
+            created_tasks.append(created_task)
+        return created_tasks

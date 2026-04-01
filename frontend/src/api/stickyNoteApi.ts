@@ -2,22 +2,58 @@ import { API_ROUTES } from "../constants/apiRoutes.ts";
 import type { Note } from "../types/Note";
 import type { StickyNoteColor } from "../types/StickyNoteThemes";
 import { authFetch } from "./authFetch";
+import type { Task } from "../types/Task";
 
-export async function sendNote (noteId : string) {
-
+export async function noteToTask(noteId: string) {
     const response = await authFetch(
-        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/send/${noteId}`,
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/note_to_task/${noteId}`
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to convert note to tasks");
+    }
+
+    return await response.json(); // returns proposed task list, nothing saved yet
+}
+
+export async function sendTasksToList(tasks: Task[]) {
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/send`,
         {
             method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(tasks)
         }
     );
 
     if (!response.ok) {
-        throw new Error("Failed to create note");
+        throw new Error("Failed to send tasks");
     }
 
     return await response.json();
 }
+
+
+
+
+
+// export async function sendNote (noteId : string) {
+//
+//     const response = await authFetch(
+//         `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/send/${noteId}`,
+//         {
+//             method: "POST",
+//         }
+//     );
+//
+//     if (!response.ok) {
+//         throw new Error("Failed to create note");
+//     }
+//
+//     return await response.json();
+// }
 
 export async function saveNote (activeNote : Note) {
     if (!activeNote) return;
