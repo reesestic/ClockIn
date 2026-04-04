@@ -32,18 +32,20 @@ class StickyNoteRepository:
         }).execute()
         return result.data[0]
 
-    def update_note(self, id: str, title: str, content: str, user_id: str):
+    def update_note(self, id: str, title: str, content: str, user_id: str, x: int, y: int, z: int):
         result = (
             self.supabase.table("StickyNotes")
             .update({
                 "title": title,
-                "text": content
+                "text": content,
+                "posX": x,   # ← add
+                "posY": y,   # ← add
+                "posZ": z,   # ← add
             })
             .eq("id", id)
-            .eq("user_id", user_id)  # 🔐 CRITICAL
+            .eq("user_id", user_id)
             .execute()
         )
-
         return result.data[0]
 
     def get_notes(self, user_id: str):

@@ -35,26 +35,6 @@ export async function sendTasksToList(tasks: Task[]) {
     return await response.json();
 }
 
-
-
-
-
-// export async function sendNote (noteId : string) {
-//
-//     const response = await authFetch(
-//         `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/send/${noteId}`,
-//         {
-//             method: "POST",
-//         }
-//     );
-//
-//     if (!response.ok) {
-//         throw new Error("Failed to create note");
-//     }
-//
-//     return await response.json();
-// }
-
 export async function saveNote (activeNote : Note) {
     if (!activeNote) return;
 
@@ -131,6 +111,7 @@ export async function changeColor(noteId : string, color: StickyNoteColor) {
 }
 
 export async function updateNotePosition(noteId: string, x: number, y: number, z: number) {
+    console.log("Got here!");
     const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/${noteId}/position`,
         {
@@ -140,6 +121,7 @@ export async function updateNotePosition(noteId: string, x: number, y: number, z
         }
     );
 
+    console.log("Got here again!");
     if (!response.ok) {
         throw new Error("Failed to update note position");
     }

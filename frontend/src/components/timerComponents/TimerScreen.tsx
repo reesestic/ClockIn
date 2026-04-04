@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BackButton } from "../navigation/BackButton.tsx";
+import BackButton from "../navigation/BackButton.tsx";
 import { ROUTES } from "../../constants/Routes.ts";
 import { createTimerSession } from "../../api/timerApi.ts";
-import type { TimerSession } from "../../types/TimerSession.ts"; // adjust path to your type
+import type { TimerSession } from "../../types/TimerSession.ts";
 import digital7 from "../../assets/fonts/digital-7.ttf";
 
 /* ─────────────────────────────────────────
@@ -17,20 +17,18 @@ interface Session {
     startTime: number;
     lastActive: number;
     paused: boolean;
-    activeTabId?: string;        // which tab "owns" this session
+    activeTabId?: string;
     endTime?: number;
     remainingOnPause?: number;
-    activeSeconds?: number;      // accumulated running seconds (not wall-clock)
-    hasStartedWork?: boolean;    // true once timer has actually ticked ≥ 1s
+    totalPausedMs?: number;
+    pausedAt?: number;
+    hasStartedWork?: boolean;
 }
 
 /* ═══════════════════════════════════════════════════════
    SESSION ENGINE
-   Responsible for: lifecycle, activity tracking,
-   localStorage persistence, session gap logic.
 ═══════════════════════════════════════════════════════ */
 
-/** Stable tab ID for this browser tab (survives re-renders, lost on tab close) */
 const TAB_ID = (() => {
     const existing = sessionStorage.getItem("tabId");
     if (existing) return existing;
@@ -53,17 +51,21 @@ function clearSession() {
     localStorage.removeItem("activeSession");
 }
 
-/** Returns true if this tab currently owns the session */
 function isController(session: Session | null): boolean {
-    if (!session) return true; // no session → we'll create one → we own it
+    if (!session) return true;
     return !session.activeTabId || session.activeTabId === TAB_ID;
 }
 
-/** Claim control of the session for this tab */
 function claimControl(session: Session): Session {
     session.activeTabId = TAB_ID;
     saveSession(session);
     return session;
+}
+
+function computeActiveSeconds(session: Session, now: number): number {
+    const totalPausedMs = session.totalPausedMs ?? 0;
+    const currentPauseMs = session.pausedAt ? (now - session.pausedAt) : 0;
+    return Math.max(0, Math.floor((now - session.startTime - totalPausedMs - currentPauseMs) / 1000));
 }
 
 type ResumeAction = "fresh" | "continue" | "reuse_prompt" | "force_end";
@@ -81,7 +83,6 @@ function resolveSessionOnMount(): MountResolution {
     const existing = loadSession();
     const now = Date.now();
 
-    // No existing session → don't create one yet (created on timer start)
     if (!existing) {
         return {
             session: null,
@@ -96,7 +97,6 @@ function resolveSessionOnMount(): MountResolution {
     const gapMs = now - (existing.lastActive ?? existing.startTime);
     const gapHours = gapMs / (1000 * 60 * 60);
 
-    // ── Restore timer state ──
     let timerStatus: Status = "idle";
     let timerSeconds = 0;
     let timerDigits = "000000";
@@ -106,7 +106,7 @@ function resolveSessionOnMount(): MountResolution {
         timerSeconds = existing.remainingOnPause;
         timerDigits = secondsToDigits(timerSeconds);
     } else if (!existing.paused && existing.endTime != null) {
-        const remaining = Math.floor((existing.endTime - now) / 1000);
+        const remaining = Math.ceil((existing.endTime - now) / 1000);
         if (remaining > 0) {
             timerStatus = "running";
             timerSeconds = remaining;
@@ -117,14 +117,12 @@ function resolveSessionOnMount(): MountResolution {
         }
     }
 
-    // ── Tab ownership check ──
     const owner = isController(existing);
 
-    // ── Gap → action ──
     let resumeAction: ResumeAction = "continue";
     if (gapHours <= 2) {
         existing.lastActive = now;
-        if (owner) existing.activeTabId = TAB_ID; // re-assert ownership
+        if (owner) existing.activeTabId = TAB_ID;
         saveSession(existing);
         resumeAction = "continue";
     } else if (gapHours <= 8) {
@@ -133,20 +131,11 @@ function resolveSessionOnMount(): MountResolution {
         resumeAction = "force_end";
     }
 
-    return {
-        session: existing,
-        resumeAction,
-        timerStatus,
-        timerSeconds,
-        timerDigits,
-        isOwner: owner,
-    };
+    return { session: existing, resumeAction, timerStatus, timerSeconds, timerDigits, isOwner: owner };
 }
 
 /* ═══════════════════════════════════════════════════════
    TIMER ENGINE
-   Responsible for: countdown logic, pause/resume,
-   duration tracking, digit formatting.
 ═══════════════════════════════════════════════════════ */
 
 const DIGIT_COUNT = 6;
@@ -190,31 +179,35 @@ function formatSeconds(total: number): string {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+function formatHMS(total: number) {
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+
+    return {
+        h: h.toString().padStart(2, "0"),
+        m: m.toString().padStart(2, "0"),
+        s: s.toString().padStart(2, "0"),
+    };
+}
+
 /* ═══════════════════════════════════════════════════════
    SYNC ENGINE
-   Responsible for: saving to backend, unload safety
-   (sendBeacon), tab control via BroadcastChannel.
 ═══════════════════════════════════════════════════════ */
 
-const SESSION_BEACON_URL = "/api/timer-sessions/beacon"; // adjust to your endpoint
+const SESSION_BEACON_URL = "/api/timer-sessions/beacon";
 
-/**
- * Save session to DB via sendBeacon (fire-and-forget, survives tab close).
- * Falls back to fetch if beacon unavailable.
- */
 function beaconSession(payload: object) {
     const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
     if (navigator.sendBeacon) {
         navigator.sendBeacon(SESSION_BEACON_URL, blob);
     }
-    // fetch fallback handled in saveSessionToDB
 }
 
 /* ─────────────────────────────────────────
    STYLES
 ───────────────────────────────────────── */
 
-/* Digital 7 font for the timer display */
 const GlobalFont = createGlobalStyle`
     @font-face {
         font-family: 'Digital7';
@@ -224,7 +217,6 @@ const GlobalFont = createGlobalStyle`
     }
 `;
 
-/* ── Page shell: blue background fills viewport ── */
 const Outer = styled.div`
     width: 100vw;
     height: 100vh;
@@ -235,13 +227,11 @@ const Outer = styled.div`
     position: relative;
 `;
 
-/* ── Scrolling sky behind everything ── */
 const SkyBackground = styled.div`
     position: absolute;
     inset: 0;
     overflow: hidden;
     z-index: 0;
-    background: red;
     margin: 0;
 `;
 
@@ -262,17 +252,16 @@ const SkyTile = styled.div`
     width: 100%;
     height: 100%;
     background-image: url('/timer_sky.svg');
-    background-size: cover;   // 🔥 fills perfectly
+    background-size: cover;
     background-repeat: no-repeat;
     flex-shrink: 0;
 `;
 
-/* ── White frame: sits centered, provides the window border ── */
 const Frame = styled.div`
     position: relative;
     width: 90%;
     height: 100%;
-    border: 40px solid #F1F1F1;  // 🔥 THIS IS THE FRAME
+    border: 40px solid #F1F1F1;
     border-top: none;
     border-bottom: none;
     display: flex;
@@ -280,24 +269,20 @@ const Frame = styled.div`
     justify-content: center;
 `;
 
-/* ── Window pane: inset from frame, contains the sky + timer ── */
 const Window = styled.div`
     width: 100%;
     height: 100%;
     position: relative;
     overflow: hidden;
-    background: transparent; /* 🔥 IMPORTANT */
+    background: transparent;
 `;
 
-/* ── Windowsill: flat rectangle bottom, rounded rectangle on top ── */
 const Sill = styled.div`
     position: absolute;
     bottom: 0;
     width: 95%;
     z-index: 10;
-    
 
-    /* Top rounded bar */
     &::before {
         content: "";
         display: block;
@@ -305,10 +290,8 @@ const Sill = styled.div`
         height: 28px;
         border-radius: 8px 8px 0 0;
         background: #F1F1F1;
-
     }
 
-    /* Bottom flat base */
     &::after {
         content: "";
         display: block;
@@ -340,26 +323,21 @@ const TaskLabel = styled.div`
     text-shadow: 0 1px 4px rgba(0,0,0,0.15);
 `;
 
-/* ── Digital timer: large, white, Digital 7 font ── */
 const TimerInputRow = styled.div`
     display: flex;
     align-items: center;
     gap: 0;
     outline: none;
-
     font-family: 'Digital7', monospace;
     font-size: clamp(5rem, 14vw, 10rem);
-
-    color: rgba(255,255,255,0.62);   // 🔥 FIXED
-    text-shadow: 0 0 10px rgba(255,255,255,0.2); // 🔥 REDUCED
-
+    color: rgba(255,255,255,0.62);
+    text-shadow: 0 0 10px rgba(255,255,255,0.2);
     margin-bottom: 2.5rem;
     letter-spacing: 0.02em;
 `;
 
-/* No underline — just plain spans */
 const DigitGroup = styled.span<{ $active?: boolean }>`
-    color: inherit;   // 🔥 IMPORTANT
+    color: inherit;
     opacity: 1;
 `;
 
@@ -372,10 +350,8 @@ const Colon = styled.span`
 const TimeDisplay = styled.div`
     font-family: 'Digital7', monospace;
     font-size: clamp(5rem, 14vw, 10rem);
-
-    color: rgba(255,255,255,0.62);  // 🔥 FIXED
+    color: rgba(255,255,255,0.62);
     text-shadow: 0 0 10px rgba(255,255,255,0.2);
-
     margin-bottom: 2.5rem;
     letter-spacing: 0.02em;
 `;
@@ -398,7 +374,6 @@ const Btn = styled.button`
     color: white;
     letter-spacing: 0.04em;
     transition: background 0.15s, transform 0.1s;
-
     &:active { transform: scale(0.95); }
     &:hover { background: rgba(255,255,255,0.3); }
 `;
@@ -419,7 +394,6 @@ const EndSessionButton = styled.button`
     letter-spacing: 0.04em;
     z-index: 10;
     transition: background 0.15s;
-
     &:hover { background: rgba(255,80,80,0.15); }
 `;
 
@@ -438,34 +412,71 @@ const HintText = styled.div`
     letter-spacing: 0.05em;
 `;
 
-/* ── Overlays ── */
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+
+    /* Glass + blur effect */
+    background: rgba(20, 40, 80, 0.35);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
     display: flex;
     justify-content: center;
     align-items: center;
+
     z-index: 100;
 `;
 
-const OverlayCard = styled.div`
-    background: white;
-    padding: 2rem;
-    border-radius: 16px;
+const OverlayContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
     text-align: center;
-    min-width: 260px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    gap: 1.5rem;
 
-    h3 { margin-top: 0; color: #1a1a2e; }
-    p { font-size: 0.9rem; color: #555; }
+    color: white;
+`;
 
-    .actions {
-        display: flex;
-        gap: 0.75rem;
-        justify-content: center;
-        margin-top: 1.25rem;
-    }
+const PrimaryBtn = styled.button`
+    padding: 0.96rem 2.4rem;   /* ~20% bigger */
+
+    border-radius: 999px;
+    border: none;
+
+    background: #FFF59A;
+    color: #14406C;
+
+    font-weight: 600;
+    font-size: 1.14rem;        /* ~20% bigger */
+
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+
+    &:hover { opacity: 0.9; }
+    &:active { transform: scale(0.96); }
+`;
+
+const SecondaryBtn = styled.button`
+    padding: 0.6rem 1.6rem;
+
+    border-radius: 999px;
+    border: 3px solid #AFDBFF;
+
+    background: white;
+    color: #0E4F87;
+
+    font-size: 0.9rem;
+    cursor: pointer;
+`;
+
+const OverlayTitle = styled.h2`
+    font-size: clamp(1.4rem, 2rem, 3rem);   /* ~20% bigger from ~1.2rem baseline */
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin: 0;
 `;
 
 const OverlayBtn = styled.button`
@@ -478,23 +489,72 @@ const OverlayBtn = styled.button`
     font-size: 0.9rem;
     color: #1a1a2e;
     transition: background 0.15s, transform 0.1s;
-
     &:active { transform: scale(0.95); }
     &:hover { background: #f0f4ff; }
 `;
 
-const DangerBtn = styled(OverlayBtn)`
-    border-color: #e53935;
-    color: #e53935;
-    &:hover { background: #fff0f0; }
+// Stuff for Summary
+const SummaryCard = styled.div`
+    background: #F5F5F5;
+    border-radius: 20px;
+    padding: 2.8rem 2.2rem;
+
+    width: 460px;   /* ⬅️ was 420px */
+    max-width: 92vw;
+
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 `;
 
-/* ── Tab control banner ── */
+const SummaryTitle = styled.h2`
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+`;
+
+const SummarySubtitle = styled.p`
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.4rem;
+    margin-bottom: 1.5rem;
+`;
+
+const PlantDisplay = styled.div`
+    font-size: 3rem;
+    margin: 1.5rem 0;
+`;
+
+const TimeBox = styled.div`
+    background: #EAEAEA;
+    border-radius: 16px;
+
+    padding: 1.8rem 1.4rem;   /* ⬅️ more vertical space */
+
+    margin: 1.8rem 0;
+
+    font-family: 'Digital7', monospace;
+
+    font-size: 3.6rem;        /* ⬅️ BIG increase (was ~2.5rem) */
+    letter-spacing: 0.08em;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+`;
+
+const ButtonStack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1.5rem;
+`;
+
+// End of summary stuff
+
 const BlockedBanner = styled.div`
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     background: rgba(0,0,0,0.7);
     color: white;
     text-align: center;
@@ -506,7 +566,6 @@ const BlockedBanner = styled.div`
     justify-content: center;
     gap: 0.75rem;
     backdrop-filter: blur(4px);
-
     button {
         background: white;
         color: black;
@@ -519,11 +578,9 @@ const BlockedBanner = styled.div`
     }
 `;
 
-/* ── Sidebar ── */
 const Sidebar = styled.div<{ $open: boolean }>`
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 0; right: 0;
     height: 100%;
     width: 280px;
     background: rgba(15,15,35,0.92);
@@ -555,12 +612,10 @@ const SidebarHandle = styled.button<{ $open: boolean }>`
     align-items: center;
     justify-content: center;
     padding: 0;
-
     &::after {
         content: "";
         display: block;
-        width: 6px;
-        height: 6px;
+        width: 6px; height: 6px;
         border-left: 2px solid white;
         border-bottom: 2px solid white;
         transform: ${({ $open }) => ($open ? "rotate(-45deg)" : "rotate(135deg)")};
@@ -592,38 +647,23 @@ export default function TimerScreen() {
     const location = useLocation();
     const navigate = useNavigate();
     const { mode, item, hasPlan } = (location.state as any) || {};
-
     const currentTask = mode === "task" ? item : null;
 
-    // ── Digit input (idle mode)
     const [digits, setDigits] = useState("000000");
-
-    // ── Timer countdown
     const [seconds, setSeconds] = useState(0);
     const [status, setStatus] = useState<Status>("idle");
-
-    // ── Tab ownership
     const [isOwner, setIsOwner] = useState(true);
-
-    // ── Overlays
     const [confirmQuit, setConfirmQuit] = useState(false);
     const [showTaskComplete, setShowTaskComplete] = useState(false);
     const [showReusePrompt, setShowReusePrompt] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [summaryData, setSummaryData] = useState<any>(null);
-
-    // ── Sidebar
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // ── Stable refs for callbacks that outlive renders
-    const summaryRef   = useRef<any>(null);
-    const statusRef    = useRef<Status>("idle");
-    const secondsRef   = useRef(0);
-    const lastTickRef  = useRef<number>(0);       // wall-clock timestamp of last tick
-    const channelRef   = useRef<BroadcastChannel | null>(null);
+    // CHANGED: removed summaryRef, statusRef, secondsRef, lastTickRef — all unused
+    const channelRef = useRef<BroadcastChannel | null>(null);
 
-    useEffect(() => { statusRef.current = status; }, [status]);
-    useEffect(() => { secondsRef.current = seconds; }, [seconds]);
+    // CHANGED: removed useEffect syncing for statusRef and secondsRef — deleted those refs
 
     /* ══════════════════════════════════════════
        SESSION ENGINE — MOUNT RESOLUTION
@@ -636,22 +676,31 @@ export default function TimerScreen() {
         setStatus(timerStatus);
         setSeconds(timerSeconds);
         if (timerStatus === "idle") setDigits(timerDigits);
-        if (timerStatus === "running") lastTickRef.current = Date.now();
+
+        // CHANGED: removed lastTickRef.current = Date.now() — lastTickRef deleted
 
         if (resumeAction === "reuse_prompt") {
             setShowReusePrompt(true);
         } else if (resumeAction === "force_end") {
             const session = loadSession();
-            // Save if timer actually ran, then navigate away either way
-            const savePromise = session ? forceEndSession(session) : Promise.resolve();
-            savePromise.then(() => navigate(ROUTES.TIMER_ENTRY_PAGE));
+            // CHANGED: show summary after force_end instead of always navigating away
+            if (session) {
+                forceEndSession(session).then(data => {
+                    if (data) {
+                        setSummaryData(data);
+                        setShowSummary(true);
+                    } else {
+                        navigate(ROUTES.TIMER_ENTRY_PAGE);
+                    }
+                });
+            } else {
+                navigate(ROUTES.TIMER_ENTRY_PAGE);
+            }
         }
     }, []);
 
     /* ══════════════════════════════════════════
-       SYNC ENGINE — TAB CONTROL (BroadcastChannel)
-       Other tabs broadcast their TAB_ID when they
-       become active. We watch for that and yield/reclaim.
+       SYNC ENGINE — TAB CONTROL
     ══════════════════════════════════════════ */
     useEffect(() => {
         const channel = new BroadcastChannel("timer_tab_control");
@@ -659,25 +708,13 @@ export default function TimerScreen() {
 
         channel.onmessage = (event) => {
             const { type, tabId } = event.data ?? {};
-
             if (type === "CLAIM" && tabId !== TAB_ID) {
-                // Another tab claimed control — yield
                 setIsOwner(false);
-                // Update localStorage so the new owner is authoritative
                 const session = loadSession();
-                if (session) {
-                    session.activeTabId = tabId;
-                    saveSession(session);
-                }
-            }
-
-            if (type === "RELEASE" && tabId !== TAB_ID) {
-                // Controlling tab closed/navigated away — we can reclaim if we interact
-                // (don't auto-claim; wait for user interaction in THIS tab)
+                if (session) { session.activeTabId = tabId; saveSession(session); }
             }
         };
 
-        // Announce ourselves if we're the controller on mount
         const session = loadSession();
         if (!session || isController(session)) {
             channel.postMessage({ type: "CLAIM", tabId: TAB_ID });
@@ -689,15 +726,10 @@ export default function TimerScreen() {
         };
     }, []);
 
-    /** Called on any meaningful user interaction. If we're not owner, silently claim. */
     const ensureControl = useCallback(() => {
         if (isOwner) return true;
-
-        // Silently take over
         const session = loadSession();
-        if (session) {
-            claimControl(session);
-        }
+        if (session) claimControl(session);
         channelRef.current?.postMessage({ type: "CLAIM", tabId: TAB_ID });
         setIsOwner(true);
         return true;
@@ -705,7 +737,6 @@ export default function TimerScreen() {
 
     /* ══════════════════════════════════════════
        SESSION ENGINE — ACTIVITY TRACKING
-       Throttled to every 5s; covers all interaction types.
     ══════════════════════════════════════════ */
     useEffect(() => {
         let lastUpdate = 0;
@@ -714,18 +745,14 @@ export default function TimerScreen() {
             const now = Date.now();
             if (now - lastUpdate < 5000) return;
             lastUpdate = now;
-
             const session = loadSession();
             if (!session) return;
             session.lastActive = now;
             saveSession(session);
         }
 
-        // visibilitychange: user switched back to this tab
         function handleVisibility() {
-            if (document.visibilityState === "visible") {
-                updateActivity();
-            }
+            if (document.visibilityState === "visible") updateActivity();
         }
 
         window.addEventListener("click", updateActivity);
@@ -743,11 +770,10 @@ export default function TimerScreen() {
         };
     }, []);
 
-
-
     /* ══════════════════════════════════════════
        TIMER ENGINE — COUNTDOWN LOOP
-       Also accumulates activeSeconds while running.
+       Drives UI countdown only.
+       active_seconds computed at save time via computeActiveSeconds().
     ══════════════════════════════════════════ */
     useEffect(() => {
         if (status !== "running") return;
@@ -757,29 +783,24 @@ export default function TimerScreen() {
             if (!session || session.paused || !session.endTime) return;
 
             const now = Date.now();
-            const remaining = Math.max(0, Math.floor((session.endTime - now) / 1000));
-
-            // ── Accumulate active seconds (delta since last tick) ──
-            if (lastTickRef.current > 0) {
-                const deltaSeconds = Math.round((now - lastTickRef.current) / 1000);
-                if (deltaSeconds > 0 && deltaSeconds < 10) { // ignore huge gaps (tab sleep)
-                    session.activeSeconds = (session.activeSeconds ?? 0) + deltaSeconds;
-                    session.hasStartedWork = true;
-                }
-            }
-            lastTickRef.current = now;
-            saveSession(session);
+            const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
 
             setSeconds(remaining);
-            secondsRef.current = remaining;
 
+            // CHANGED: only save to localStorage when timer hits zero (not every tick)
             if (remaining <= 0) {
+                const now = Date.now();
+
+                // 🔥 mark session as paused
+                session.paused = true;
+                session.pausedAt = now;
+
                 delete session.endTime;
+
                 saveSession(session);
+
                 setStatus("idle");
                 setSeconds(0);
-                setDigits("000000");
-                // Timer finished naturally — session stays open, user can start another
             }
         }, 1000);
 
@@ -787,29 +808,23 @@ export default function TimerScreen() {
     }, [status]);
 
     /* ══════════════════════════════════════════
-       SYNC ENGINE — UNLOAD SAFETY (sendBeacon)
-       Saves session on tab close / navigation.
-       sendBeacon is fire-and-forget and survives tab close.
+       SYNC ENGINE — UNLOAD SAFETY
     ══════════════════════════════════════════ */
     useEffect(() => {
         function handleUnload() {
             const session = loadSession();
-            if (!session || !session.hasStartedWork) {
-                clearSession();
-                return;
-            }
+            if (!session || !session.hasStartedWork) { clearSession(); return; }
             const now = Date.now();
             const elapsed = Math.floor((now - session.startTime) / 1000);
             if (elapsed < 10) { clearSession(); return; }
 
-            // task_completed is always false on tab close — we can't ask the user
             const payload: TimerSession = {
                 ...(currentTask?.id ? { task_id: currentTask.id } : {}),
                 mode: currentTask ? "task" : "free",
                 started_at: new Date(session.startTime).toISOString(),
                 ended_at: new Date(now).toISOString(),
                 elapsed_seconds: elapsed,
-                active_seconds: session.activeSeconds ?? 0,
+                active_seconds: computeActiveSeconds(session, now),
                 task_completed: false,
             };
 
@@ -822,9 +837,8 @@ export default function TimerScreen() {
     }, [currentTask]);
 
     /* ══════════════════════════════════════════
-       TIMER ENGINE — DIGIT INPUT (iOS-style)
+       TIMER ENGINE — DIGIT INPUT
     ══════════════════════════════════════════ */
-
     const inputRef = useRef<HTMLDivElement>(null);
 
     function handleKeyDown(e: React.KeyboardEvent) {
@@ -846,73 +860,93 @@ export default function TimerScreen() {
 
     function start() {
         ensureControl();
-
         const totalSeconds = digitsToSeconds(digits);
         if (!totalSeconds) return;
 
         const now = Date.now();
-
-        // Session is created here (not on mount)
         let session = loadSession();
+
         if (!session) {
             session = {
                 startTime: now,
                 lastActive: now,
                 paused: false,
                 activeTabId: TAB_ID,
-                activeSeconds: 0,
-                hasStartedWork: false,
+                totalPausedMs: 0,
+                hasStartedWork: true,
             };
         }
+
+        // ✅ NEW: finalize paused time BEFORE restarting
+        if (session.pausedAt) {
+            session.totalPausedMs =
+                (session.totalPausedMs ?? 0) + (now - session.pausedAt);
+
+            delete session.pausedAt;
+        }
+
+        // CHANGED: always set hasStartedWork on start (covers reused sessions)
+        session.hasStartedWork = true;
 
         session.endTime = now + totalSeconds * 1000;
         session.paused = false;
         session.activeTabId = TAB_ID;
-        if (session.activeSeconds == null) session.activeSeconds = 0;
+
+        // CHANGED: ensure totalPausedMs exists on reused sessions
+        if (session.totalPausedMs == null) session.totalPausedMs = 0;
 
         saveSession(session);
-        lastTickRef.current = now;
-
         setSeconds(totalSeconds);
         setStatus("running");
     }
 
+    // CHANGED: use single `now` consistently, removed lastTickRef
     function pause() {
         ensureControl();
         const session = loadSession();
         if (!session || !session.endTime) return;
-        const remaining = Math.max(0, Math.floor((session.endTime - Date.now()) / 1000));
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
         session.paused = true;
         session.remainingOnPause = remaining;
+        // CHANGED: record pausedAt for wall-clock pause tracking
+        session.pausedAt = now;
         delete session.endTime;
         saveSession(session);
-        lastTickRef.current = 0;
         setStatus("paused");
     }
 
+    // CHANGED: removed lastTickRef
     function resume() {
         ensureControl();
         const session = loadSession();
         if (!session || session.remainingOnPause == null) return;
         const now = Date.now();
+        // CHANGED: accumulate pause duration before clearing pausedAt
+        if (session.pausedAt) {
+            session.totalPausedMs = (session.totalPausedMs ?? 0) + (now - session.pausedAt);
+            delete session.pausedAt;
+        }
         session.paused = false;
         session.endTime = now + session.remainingOnPause * 1000;
         delete session.remainingOnPause;
         saveSession(session);
-        lastTickRef.current = now;
         setStatus("running");
     }
 
+    // CHANGED: removed lastTickRef, added totalPausedMs reset
     function reset() {
         ensureControl();
         const session = loadSession();
         if (session) {
             delete session.endTime;
             delete session.remainingOnPause;
+            delete session.pausedAt;
+            // CHANGED: reset pause accumulator so next run starts clean
+            session.totalPausedMs = 0;
             session.paused = false;
             saveSession(session);
         }
-        lastTickRef.current = 0;
         setStatus("idle");
         setSeconds(0);
         setDigits("000000");
@@ -933,13 +967,13 @@ export default function TimerScreen() {
             started_at: new Date(session.startTime).toISOString(),
             ended_at: new Date(now).toISOString(),
             elapsed_seconds: elapsed,
-            active_seconds: session.activeSeconds ?? 0,
+            // CHANGED: wall-clock accurate active time
+            active_seconds: computeActiveSeconds(session, now),
             task_completed: taskCompleted,
         };
 
         try {
             const res = await createTimerSession(payload);
-            summaryRef.current = res.data;
             return res.data;
         } catch (e) {
             console.error("Failed to save session", e);
@@ -947,10 +981,12 @@ export default function TimerScreen() {
         }
     }
 
+    // CHANGED: returns data so caller can show summary
     async function forceEndSession(session: Session) {
         const now = Date.now();
-        await saveSessionToDB(session, now);
+        const data = await saveSessionToDB(session, now);
         clearSession();
+        return data;
     }
 
     async function confirmEndSession(taskCompleted?: boolean) {
@@ -969,9 +1005,6 @@ export default function TimerScreen() {
         setStatus("idle");
         setSeconds(0);
         setDigits("000000");
-        setConfirmQuit(false);
-        setShowTaskComplete(false);
-        lastTickRef.current = 0;
 
         if (data) {
             setSummaryData(data);
@@ -979,9 +1012,10 @@ export default function TimerScreen() {
         } else {
             navigate(ROUTES.HOME);
         }
+        setConfirmQuit(false);
+        setShowTaskComplete(false);
     }
 
-    /** Called when user clicks "End Session" — routes to task question or straight to save */
     function handleEndSessionClick() {
         if (currentTask) {
             setConfirmQuit(false);
@@ -1002,7 +1036,6 @@ export default function TimerScreen() {
 
     function handleReuseNo() {
         clearSession();
-        // Don't create session yet — wait for timer start
         setShowReusePrompt(false);
         setIsOwner(true);
         setStatus("idle");
@@ -1017,21 +1050,14 @@ export default function TimerScreen() {
     const { h, mm, ss } = formatDigits(digits);
     const totalTyped = digitsToSeconds(digits);
     const canStart = totalTyped > 0;
-
-    // If not owner, interactions should claim control (handled in ensureControl)
-    // We show a subtle banner so user knows another tab was active
     const showControlBanner = !isOwner;
 
     return (
         <>
             <GlobalFont />
             <Outer>
-
-                {/* ── White frame (window border) ── */}
                 <Frame>
-                    {/* ── Window pane (sky + timer content) ── */}
                     <Window>
-
                         <SkyBackground>
                             <SkyScroller>
                                 <SkyTile/>
@@ -1039,7 +1065,6 @@ export default function TimerScreen() {
                             </SkyScroller>
                         </SkyBackground>
 
-                        {/* ── Tab control banner ── */}
                         {showControlBanner && (
                             <BlockedBanner>
                                 Timer is active in another tab.
@@ -1050,17 +1075,13 @@ export default function TimerScreen() {
                         )}
 
                         <PageBackButton to={ROUTES.HOME} />
-
                         <EndSessionButton onClick={handleEndSessionClick}>
                             End Session
                         </EndSessionButton>
 
                         <Main>
-                            {currentTask && (
-                                <TaskLabel>{currentTask.title}</TaskLabel>
-                            )}
+                            {currentTask && <TaskLabel>{currentTask.title}</TaskLabel>}
 
-                            {/* ── Idle: digit input ── */}
                             {status === "idle" && (
                                 <>
                                     <TimerInputRow
@@ -1080,7 +1101,6 @@ export default function TimerScreen() {
                                 </>
                             )}
 
-                            {/* ── Running / paused: countdown ── */}
                             {status !== "idle" && (
                                 <TimeDisplay>{formatSeconds(seconds)}</TimeDisplay>
                             )}
@@ -1092,9 +1112,7 @@ export default function TimerScreen() {
                                         Start
                                     </Btn>
                                 )}
-                                {status === "running" && (
-                                    <Btn onClick={pause}>Pause</Btn>
-                                )}
+                                {status === "running" && <Btn onClick={pause}>Pause</Btn>}
                                 {status === "paused" && (
                                     <>
                                         <Btn onClick={resume}>Resume</Btn>
@@ -1104,7 +1122,6 @@ export default function TimerScreen() {
                             </Controls>
                         </Main>
 
-                        {/* ── Atomized sidebar ── */}
                         {hasPlan && (
                             <>
                                 <SidebarHandle
@@ -1118,67 +1135,115 @@ export default function TimerScreen() {
                                 </Sidebar>
                             </>
                         )}
-
                     </Window>
                 </Frame>
 
-                {/* ── Windowsill (highest z-index, sits over window bottom) ── */}
                 <Sill />
 
-                {/* ── Reuse session prompt ── */}
-                {showReusePrompt && (
-                    <Overlay>
-                        <OverlayCard>
-                            <h3>Welcome back!</h3>
-                            <p>You have a session from earlier. Continue it?</p>
-                            <div className="actions">
-                                <OverlayBtn onClick={handleReuseYes}>Continue</OverlayBtn>
-                                <OverlayBtn onClick={handleReuseNo}>Start fresh</OverlayBtn>
-                            </div>
-                        </OverlayCard>
-                    </Overlay>
-                )}
+                {/*{showReusePrompt && (*/}
+                {/*    <Overlay>*/}
+                {/*        <OverlayCard>*/}
+                {/*            <h3>Welcome back!</h3>*/}
+                {/*            <p>You have a session from earlier. Continue it?</p>*/}
+                {/*            <div className="actions">*/}
+                {/*                <OverlayBtn onClick={handleReuseYes}>Continue</OverlayBtn>*/}
+                {/*                <OverlayBtn onClick={handleReuseNo}>Start fresh</OverlayBtn>*/}
+                {/*            </div>*/}
+                {/*        </OverlayCard>*/}
+                {/*    </Overlay>*/}
+                {/*)}*/}
 
-                {/* ── Did you finish your task? ── */}
                 {showTaskComplete && (
                     <Overlay>
-                        <OverlayCard>
+                        <OverlayContent>
                             <h3>Did you finish your task?</h3>
                             <p style={{ fontWeight: 600, color: "#333" }}>{currentTask?.title}</p>
                             <div className="actions">
+
+                                {/*edit "Yes" to show the taskj being visually X'ed out / crossed off/ ripped up, schedule renders it as completed visually*/}
                                 <OverlayBtn onClick={() => confirmEndSession(true)}>Yes ✓</OverlayBtn>
+
+                                {/*This does nothing I think? Maybe a visual on the block like a re-do arrow? idk tho girl*/}
                                 <OverlayBtn onClick={() => confirmEndSession(false)}>Not yet</OverlayBtn>
                             </div>
-                        </OverlayCard>
+                        </OverlayContent>
                     </Overlay>
                 )}
 
-                {/* ── Confirm end session (no-task path) ── */}
                 {confirmQuit && (
                     <Overlay>
-                        <OverlayCard>
-                            <h3>End session?</h3>
-                            <p>Your session will be saved and closed.</p>
-                            <div className="actions">
-                                <DangerBtn onClick={() => confirmEndSession()}>Yes, end it</DangerBtn>
-                                <OverlayBtn onClick={() => setConfirmQuit(false)}>Cancel</OverlayBtn>
-                            </div>
-                        </OverlayCard>
+                        <OverlayContent>
+                            <OverlayTitle>
+                                End Timer Session?
+                            </OverlayTitle>
+
+                            <PrimaryBtn onClick={() => setConfirmQuit(false)}>
+                                Continue
+                            </PrimaryBtn>
+
+                            <SecondaryBtn onClick={() => confirmEndSession()}>
+                                End Timer
+                            </SecondaryBtn>
+                        </OverlayContent>
                     </Overlay>
                 )}
 
-                {/* ── Session summary ── */}
                 {showSummary && (
                     <Overlay>
-                        <OverlayCard>
-                            <h3>Session Complete</h3>
-                            <pre style={{ textAlign: "left", fontSize: "0.8rem" }}>
-                            {JSON.stringify(summaryData, null, 2)}
-                        </pre>
-                            <div className="actions">
-                                <OverlayBtn onClick={() => navigate(ROUTES.HOME)}>Close</OverlayBtn>
+                        <SummaryCard>
+
+                            <SummaryTitle>Good Job!</SummaryTitle>
+
+                            {/* Replace with plant growth logic */}
+                            {true && (
+                                <>
+                                    <SummarySubtitle>You grew a plant!</SummarySubtitle>
+                                    <PlantDisplay>
+                                        🌱
+                                    </PlantDisplay>
+                                </>
+                            )}
+
+                            <div style={{ fontSize: "0.85rem", marginTop: "1rem", color: "#333" }}>
+                                You studied for
                             </div>
-                        </OverlayCard>
+
+                            {(() => {
+                                const active = summaryData.active_seconds ?? 0;
+                                const { h, m, s } = formatHMS(active);
+
+                                return (
+                                    <TimeBox>
+                                        {h}:{m}:{s}
+                                    </TimeBox>
+                                );
+                            })()}
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-around",
+                                    fontSize: "0.8rem",
+                                    color: "#666",
+                                    marginTop: "0.5rem"
+                                }}
+                            >
+                                <span>hours</span>
+                                <span>minutes</span>
+                                <span>seconds</span>
+                            </div>
+
+                            <ButtonStack>
+                                <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>
+                                    Study Again
+                                </PrimaryBtn>
+
+                                <SecondaryBtn onClick={() => navigate(ROUTES.HOME)}>
+                                    Leave Timer
+                                </SecondaryBtn>
+                            </ButtonStack>
+
+                        </SummaryCard>
                     </Overlay>
                 )}
             </Outer>

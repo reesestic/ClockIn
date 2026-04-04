@@ -1,38 +1,42 @@
 import styled from "styled-components";
 import TrashIcon from "../icons/TrashIcon.tsx";
-import CalendarIcon from "../icons/CalendarIcon.tsx";
+import OpenTrashIcon from "../icons/OpenTrashIcon.tsx";
 
-
-const Wrapper = styled.div<{ $hovered: boolean }>`
-    width: 64px;
-    height: 64px;
-
+const Wrapper = styled.div`
+    position: relative;
+    width: 90px;
+    height: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
 
-    border-radius: 14px;
-
-    transition: all 0.2s ease;
-
-    background: ${({ $hovered }) =>
-    $hovered ? "rgba(239,68,68,0.15)" : "transparent"};
-
-    box-shadow: ${({ $hovered }) =>
-    $hovered ? "0 0 20px rgba(239,68,68,0.5)" : "none"};
-
-    transform: ${({ $hovered }) =>
-    $hovered ? "scale(1.08)" : "scale(1)"};
+    svg {
+        width: 90px;
+        height: 90px;
+    }
 `;
 
-type Props = {
-    isHovered: boolean;
-};
+const IconSlot = styled.div<{ $visible: boolean }>`
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+    transform: ${({ $visible }) => ($visible ? "scale(1)" : "scale(0.85)")};
+    transition: opacity 0.2s ease, transform 0.2s ease;
+`;
+
+type Props = { isHovered: boolean };
 
 export default function TrashDropZone({ isHovered }: Props) {
     return (
-        <Wrapper $hovered={isHovered}>
-            <TrashIcon/>
+        <Wrapper>
+            <IconSlot $visible={!isHovered}>
+                <TrashIcon />
+            </IconSlot>
+            <IconSlot $visible={isHovered}>
+                <OpenTrashIcon />
+            </IconSlot>
         </Wrapper>
     );
 }

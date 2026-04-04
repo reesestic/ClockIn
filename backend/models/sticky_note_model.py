@@ -3,9 +3,15 @@ from typing import Optional
 from enum import Enum
 
 class StickyNoteColor(str, Enum):
+    red = "red"
+    orange = "orange"
     yellow = "yellow"
-    pink = "pink"
+    green = "green"
     blue = "blue"
+    purple = "purple"
+    pink = "pink"
+
+
 
 class Position(BaseModel):
     x: int

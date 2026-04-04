@@ -3,7 +3,7 @@ import TaskOpenModal from "../modal/TaskOpenModal.tsx"
 import TimerTaskSelectionPage from "../../pages/TimerTaskSelectionPage.tsx"
 import TimerScreen from "./TimerScreen.tsx";
 import styled from "styled-components";
-import {BackButton} from "../navigation/BackButton.tsx";
+import BackButton from "../navigation/BackButton.tsx";
 import { ROUTES } from "../../constants/Routes.ts";
 
 const PageBackButton = styled(BackButton)`

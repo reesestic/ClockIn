@@ -1,14 +1,5 @@
-import StickyNoteContainer from "../components/stickyNoteComponents/StickyNoteContainer";
 import styled from "styled-components";
-import { BackButton } from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
-
-
-export const PageBackButton = styled(BackButton)`
-  position: absolute;
-  top: 1.5rem;
-  left: 1.5rem;
-`;
 
 export const PageTitle = styled.h1`
     text-align: center;
@@ -16,18 +7,10 @@ export const PageTitle = styled.h1`
     margin: 1rem 0 0;
     color: white;
 `
-export const StyledStickyNoteContainer = styled(StickyNoteContainer)`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem;
-    min-height: 60vh;
-`;
-
 
 export const PageWrapper = styled.div`
     min-height: 100vh;
-    
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -48,13 +31,14 @@ export const NotesBoard = styled.div`
     flex: 11;
     //border: 4px solid white;
 
-    position: relative;   // 🚨 REQUIRED
-    overflow: hidden;
+    position: relative;
+    overflow: visible;
 
     padding: 0.5rem 1rem 0.5rem;
     margin-left: 0.5rem;
 
     min-height: 60vh;
+    z-index: 0;
 `;
 
 export const ActionColumn = styled.div`
@@ -62,11 +46,14 @@ export const ActionColumn = styled.div`
     display: flex; 
     flex-direction: column;
     align-items: center; 
-    justify-content: space-between;
+    justify-content: center;
+    gap: 20vh;
 
     min-height: 60vh;
 
     padding: 2rem 0;
+    position: relative;
+    z-index: 10;
 `
 
 export const Overlay = styled.div`
@@ -95,7 +82,7 @@ export const OverlayContent = styled.div`
   gap: 20px;
 
   width: 100%;
-  max-width: 420px;
+  max-width: 500px;
 
   position: relative;
 `;

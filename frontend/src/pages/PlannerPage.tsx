@@ -9,18 +9,7 @@ import type {Schedule} from "../types/Schedule";
 import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
 import { generateSchedule, getSchedule } from "../api/scheduleApi";
 import { ROUTES } from "../constants/Routes.ts";
-import styled from "styled-components";
-import { BackButton } from "../components/navigation/BackButton.tsx";
-
-
-const PageBackButton = styled(BackButton)`
-    position: absolute;
-    top: 1.5rem;
-    left: 1.5rem;
-    z-index: 10;
-`;
-
-
+import BackButton from "../components/navigation/BackButton.tsx";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -78,7 +67,7 @@ export default function PlannerPage() {
             <TwoColumnLayout
                 left={
                     <>
-                        <PageBackButton to={ROUTES.HOME} label=""/>
+                        <BackButton to={ROUTES.HOME} style={{ color: "#000000" }} />
                         <TaskSidebar
                             props={{
                                 tasks,

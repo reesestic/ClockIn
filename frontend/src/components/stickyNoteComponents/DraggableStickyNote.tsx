@@ -9,6 +9,7 @@ const DragWrapper = styled.div<{
     z: number;
     $isDragging: boolean;
     $isSnapping: boolean;
+    $isNearZone: boolean;
 }>`
     position: absolute;
     left: ${({ x }) => x}px;
@@ -22,11 +23,16 @@ const DragWrapper = styled.div<{
                     ? "drop-shadow(0 14px 28px rgba(0,0,0,0.30))"
                     : "drop-shadow(0 2px 6px rgba(0,0,0,0.12))"};
 
-    transform: ${({ $isDragging }) => ($isDragging ? "scale(1.04)" : "scale(1)")};
+    transform: ${({ $isDragging, $isNearZone }) =>
+            $isNearZone
+                    ? "scale(0.45)"
+                    : $isDragging
+                            ? "scale(1.04)"
+                            : "scale(1)"};
 
     transition: ${({ $isDragging, $isSnapping }) =>
             $isDragging
-                    ? "transform 0.15s ease, filter 0.15s ease"
+                    ? "transform 0.2s ease, filter 0.15s ease"
                     : $isSnapping
                             ? "left 0.25s cubic-bezier(0.34,1.56,0.64,1), top 0.25s cubic-bezier(0.34,1.56,0.64,1), transform 0.15s ease, filter 0.15s ease"
                             : "transform 0.15s ease, filter 0.15s ease"};
@@ -59,6 +65,7 @@ export default function DraggableStickyNote({
     });
     const [isDragging, setIsDragging] = useState(false);
     const [isSnapping, setIsSnapping] = useState(false);
+    const [isNearZone, setIsNearZone] = useState(false);
 
     const wrapperRef = useRef<HTMLDivElement>(null);
     const dragOffset = useRef({ x: 0, y: 0 });
@@ -97,7 +104,6 @@ export default function DraggableStickyNote({
             setIsDragging(true);
             setIsSnapping(false);
 
-            // Snapshot board rect at drag start — stable throughout the drag
             const boardRect = boardRef.current?.getBoundingClientRect();
 
             const handleMouseMove = (me: MouseEvent) => {
@@ -107,6 +113,7 @@ export default function DraggableStickyNote({
                 setPos({ x: rawX, y: rawY });
 
                 const zone = getHoveredZone(rawX, rawY);
+                setIsNearZone(!!zone);
                 window.dispatchEvent(
                     new CustomEvent("noteHoverZone", { detail: { zoneId: zone } })
                 );
@@ -114,13 +121,13 @@ export default function DraggableStickyNote({
 
             const handleMouseUp = (me: MouseEvent) => {
                 setIsDragging(false);
+                setIsNearZone(false);
                 window.dispatchEvent(
                     new CustomEvent("noteHoverZone", { detail: { zoneId: null } })
                 );
                 document.removeEventListener("mousemove", handleMouseMove);
                 document.removeEventListener("mouseup", handleMouseUp);
 
-                // No movement = click → open overlay
                 if (!hasMoved.current) {
                     onNoteClick(note);
                     return;
@@ -133,7 +140,6 @@ export default function DraggableStickyNote({
                 const noteW = wrapperRef.current?.offsetWidth ?? 220;
                 const noteH = wrapperRef.current?.offsetHeight ?? 220;
 
-                // Drop zone check first (zones extend outside the board bounds)
                 const droppedZone = getHoveredZone(finalX, finalY);
                 if (droppedZone) {
                     setIsSnapping(true);
@@ -142,7 +148,6 @@ export default function DraggableStickyNote({
                     return;
                 }
 
-                // Check note is fully inside board
                 const insideBoard =
                     finalX >= 0 &&
                     finalY >= 0 &&
@@ -155,7 +160,6 @@ export default function DraggableStickyNote({
                     setIsSnapping(false);
                     onDragEnd(note.id!, finalX, finalY);
                 } else {
-                    // Outside board and not a drop zone → spring back
                     setIsSnapping(true);
                     setPos({ ...lastGoodPos.current });
                 }
@@ -167,7 +171,6 @@ export default function DraggableStickyNote({
         [note, boardRef, dropZones, getHoveredZone, onDragEnd, onNoteClick, onDropZoneRelease]
     );
 
-    // Sync when parent updates position (after save / initial load)
     React.useEffect(() => {
         if (!isDragging) {
             const x = note.position?.x ?? 50;
@@ -186,6 +189,7 @@ export default function DraggableStickyNote({
             z={note.position?.z ?? 1}
             $isDragging={isDragging}
             $isSnapping={isSnapping}
+            $isNearZone={isNearZone}
             onMouseDown={handleMouseDown}
         >
             <StickyNoteViewOnly note={note} />

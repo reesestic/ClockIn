@@ -3,10 +3,9 @@ import type { Note } from "../../types/Note";
 import styled from "styled-components";
 import { StickyNoteThemes } from "../../types/StickyNoteThemes";
 import React, { useRef, useEffect } from "react";
-import type { StickyNoteColor } from "../../types/StickyNoteThemes";
 
 const TitleInput = styled.input`
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 600;
 
     margin: 0;
@@ -28,7 +27,7 @@ const ContentWrapper = styled.div`
 
     overflow-y: auto;
 
-    padding-right: 2.3rem;
+    padding-right: 2.5rem;
 
     /* hide scrollbar */
     scrollbar-width: none;
@@ -41,7 +40,7 @@ const ContentWrapper = styled.div`
 
 
 const ContentTextarea = styled.textarea`
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     line-height: 1.6;
 
     width: 100%;
@@ -58,31 +57,9 @@ const ContentTextarea = styled.textarea`
     }
 `;
 
-
-const EditMenu = ({
-                      noteId,
-                      onColorChange
-                  }: {
-    noteId: string;
-    onColorChange: (noteId: string, color: StickyNoteColor) => void;
-}) => {
-    return (
-        <div>
-            <button>B</button>
-            <button>I</button>
-
-            <button onClick={() => onColorChange(noteId, "yellow")}>🟨</button>
-            <button onClick={() => onColorChange(noteId, "pink")}>🩷</button>
-            <button onClick={() => onColorChange(noteId, "blue")}>🟦</button>
-        </div>
-    );
-};
-
-
 type NoteProps = {
     note: Note;
     onChange: (title: string, content: string) => void;
-    onColorChange: (noteId: string, color: StickyNoteColor) => void;
     size?: "small" | "large";
 };
 
@@ -90,7 +67,6 @@ type NoteProps = {
 export default function StickyNoteEditable({
                                                note,
                                                onChange,
-                                               onColorChange,
                                                size = "small"
                                            }: NoteProps) {
 
@@ -122,7 +98,6 @@ export default function StickyNoteEditable({
         <StickyNoteFrame
             size={size}
             theme={StickyNoteThemes[note.color]}
-            menu={<EditMenu noteId={note.id!} onColorChange={onColorChange} />}
         >
             <TitleInput
                 ref={titleRef}

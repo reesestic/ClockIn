@@ -4,11 +4,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {saveNote, deleteNote, getNotes, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
+import BackButton from "../components/navigation/BackButton.tsx";
 
 
 import {
     PageTitle, PageWrapper, NotesAndButtonsLayout,
-    NotesBoard, ActionColumn, AddAndSelectWrapper, PageBackButton,
+    NotesBoard, ActionColumn, AddAndSelectWrapper,
     Background, BackgroundOverlay
 } from "./StickyNoteHome.styles";
 
@@ -20,6 +21,8 @@ import CalendarDropZone from "../components/dropzones/CalendarDropZone.tsx";
 import TrashDropZone from "../components/dropzones/TrashDropZone.tsx";
 import type {StickyNoteColor} from "../types/StickyNoteThemes.ts";
 import styled, { keyframes } from "styled-components";
+import { useNavigate } from "react-router-dom";
+
 
 // Code for drag/drop
 // ─── Default grid placement for notes with no saved position ─────────────────
@@ -27,7 +30,7 @@ const NOTE_SIZE = 220;
 const GRID_COLS = 3;
 const GRID_PAD = 30;
 const GRID_GAP = 24;
-const DROP_RADIUS = 60;
+const DROP_RADIUS = 120;
 
 function defaultPosition(index: number) {
     const col = index % GRID_COLS;
@@ -302,6 +305,47 @@ const RadioOption = styled.button<{ selected: boolean }>`
     }
 `;
 
+// Toast Styled Components
+const ToastWrapper = styled.div`
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    animation: ${slideUp} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 2000;
+    min-width: 220px;
+    text-align: center;
+`;
+
+const ToastTop = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+`;
+
+const ToastLink = styled.button`
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+
+    &:hover { color: #fff; }
+`;
+
 // ─── Modal Task Editable Component ────────────────────────────────────────────
 
 interface ModalTaskEditableProps {
@@ -465,6 +509,10 @@ export function StickyNoteHome() {
     // ── CHANGE: new state to track which note spawned the task modal ────────
     const [sourceNote, setSourceNote] = useState<Note | null>(null);
 
+    const [toast, setToast] = useState<{ count: number } | null>(null);
+    const navigate = useNavigate();
+
+
 
     // boardRef = the left notes column (drag is constrained to this)
     const boardRef = useRef<HTMLDivElement>(null);
@@ -562,6 +610,8 @@ export function StickyNoteHome() {
         setIsLoadingTasks(true);
         setSourceNote(note); // remember which note to delete on confirm
 
+
+        // follow noteToTask pipeline through abckend
         try {
             const tasks = await noteToTask(note.id);
             setProposedTasks(tasks);
@@ -579,16 +629,23 @@ export function StickyNoteHome() {
     };
 
     const handleConfirmTasks = async () => {
+        const count = proposedTasks.length; // ← capture FIRST before clearing
+
         await sendTasksToList(proposedTasks);
 
         // Delete the original note only after the user confirms tasks
         if (sourceNote?.id) {
+            await deleteNote(sourceNote.id);
             setNotes(prev => prev.filter(n => n.id !== sourceNote.id));
         }
 
         setShowTaskModal(false);
         setProposedTasks([]);
         setActiveNote(null);
+
+        // ── show toast ──
+        setToast({ count });
+        setTimeout(() => setToast(null), 3000);
     };
 
     const handleCancelTasks = () => {
@@ -596,18 +653,6 @@ export function StickyNoteHome() {
         setProposedTasks([]);
         setIsLoadingTasks(false);
         setSourceNote(null); // clear sourceNote
-    };
-
-    const handleDeleteNote = async () => {
-        if (!activeNote?.id) return;
-
-        const result = await deleteNote(activeNote.id);
-
-        setNotes(prev =>
-            prev.filter(n => n.id !== result.deleted_id)
-        );
-
-        setActiveNote(null);
     };
 
     const handleSaveNote = async () => {
@@ -644,7 +689,7 @@ export function StickyNoteHome() {
 
         // update the open editable note
         setActiveNote(prev =>
-            prev && prev.id === noteId
+            prev && (prev.id === noteId || (!prev.id && !noteId))
                 ? { ...prev, color }
                 : prev
         );
@@ -718,7 +763,7 @@ export function StickyNoteHome() {
 
             <PageWrapper>
 
-                <PageBackButton to={ROUTES.HOME} label="Home" />
+                <BackButton to={ROUTES.HOME} style={{ color: "#eeeeee" }} />
 
                 <PageTitle>Your Sticky Notes</PageTitle>
 
@@ -775,7 +820,6 @@ export function StickyNoteHome() {
                         onChange={updateNote}
                         onSave={handleSaveNote}
                         onCancel={handleCancelNote}
-                        onDelete={handleDeleteNote}
                         onColorChange={handleColorChange}
                     />
                 )}
@@ -806,6 +850,17 @@ export function StickyNoteHome() {
                         onConfirm={handleConfirmTasks}
                         onCancel={handleCancelTasks}
                     />
+                )}
+
+                {toast && (
+                    <ToastWrapper>
+                        <ToastTop>
+                            ✓ Sent {toast.count} task{toast.count !== 1 ? "s" : ""} to Task List!
+                        </ToastTop>
+                        <ToastLink onClick={() => navigate(ROUTES.PLANNER)}>
+                            View My Tasks
+                        </ToastLink>
+                    </ToastWrapper>
                 )}
 
             </PageWrapper>
