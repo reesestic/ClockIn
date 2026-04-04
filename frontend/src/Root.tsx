@@ -7,6 +7,7 @@ import { ROUTES } from "./constants/Routes";
 import { Route, Routes } from "react-router-dom";
 // import TimerPage from "./pages/TimerPage.tsx";
 import PlannerPage from "./pages/PlannerPage";
+import TaskPage from "./pages/TaskPage.tsx";
 
 export default function Root() {
     return (
@@ -33,6 +34,10 @@ export default function Root() {
                 {/*    element={<TimerPage />}*/}
                 {/*/>*/}
 
+                <Route
+                    path={ROUTES.TASKS}
+                    element={<TaskPage/>}
+                    />
             </Routes>
         </>
     )

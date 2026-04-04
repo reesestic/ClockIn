@@ -14,13 +14,14 @@ class StickyNoteService:
         title = self.SNRepo.get_title(sticky_id)
         text = self.SNRepo.get_text(sticky_id)
         # Extract structured task data from the sticky note
-        task_data = await self.AIService.extract_task_fields(title, text, user_id)
         # Create and return a new task(s) using the extracted data
+        color = self.SNRepo.get_color(sticky_id)
+        task_data = await self.AIService.extract_task_fields(title, text, user_id, color)
         return task_data
     
     async def send_notes_as_tasks(self, task_data, user_id):
         #create and send the tasks to the task list
-        created_tasks = self.TaskService.create_tasks_bulk(task_data, user_id)
+        created_tasks = await self.TaskService.create_tasks_bulk(task_data, user_id)
         #delete sticky note after sending to task list
         return created_tasks
 

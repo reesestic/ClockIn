@@ -8,6 +8,9 @@ class TaskService:
 
     def get_tasks(self, user_id):
         return self.TaskRepo.get_tasks(user_id)
+    
+    def get_task(self, task_id: str, user_id: str):
+        return self.TaskRepo.get_task(task_id, user_id)
 
     def delete_task(self, task_id, user_id):
         return self.TaskRepo.delete_task(task_id, user_id)
@@ -15,9 +18,27 @@ class TaskService:
     def update_task(self, task_id: str, task_data: dict, user_id: str):
         return self.TaskRepo.update_task(task_id, task_data, user_id) 
     
-    def create_tasks_bulk(self, tasks_data: list, user_id: str):
+    async def create_tasks_bulk(self, tasks_data: list, user_id: str):
+        if len(tasks_data) == 1:
+            return [self.create_task(tasks_data[0], user_id)]
+        return await self.TaskRepo.insert_many(tasks_data, user_id)
+    
+    async def split_task(self, task_data: dict, user_id: str, split: int):
+        if split <= 1:
+            raise ValueError("Split must be greater than 1")
+        original_id = task_data.get("id")
+        original_duration = task_data["task_duration"]
+        new_duration = original_duration // split
         created_tasks = []
-        for task_data in tasks_data:
-            created_task = self.create_task(task_data, user_id)
-            created_tasks.append(created_task)
+        for i in range(split):
+            new_task_data = task_data.copy()
+            new_task_data.pop("id", None)
+            new_task_data["task_duration"] = new_duration
+            new_task_data["title"] += f" (Part {i+1})"
+            created_tasks.append(new_task_data)
+        created_tasks = await self.create_tasks_bulk(created_tasks, user_id)
+        if original_id:
+            self.TaskRepo.delete_task(original_id, user_id)
         return created_tasks
+        
+        

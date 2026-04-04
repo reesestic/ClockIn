@@ -30,6 +30,12 @@ def update_task(task_id: str, task_data: dict = Body(...), user=Depends(get_curr
     user_id = user["id"]
     return task_service.update_task(task_id, task_data, user_id)
 
+@router.post("/split/{task_id}/{split}")
+async def split_task(task_id: str, split: int, user=Depends(get_current_user)):
+    user_id = user["id"]
+    task_data = task_service.get_task(task_id, user_id)  # fetch the full task
+    return await task_service.split_task(task_data, user_id, split)
+
 # @router.post("/tasks", response_model=TaskResponse, status_code=201)
 # def create_task(payload: TaskCreateRequest):
 #     task = repo.create_task(payload)

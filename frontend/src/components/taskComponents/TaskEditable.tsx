@@ -3,27 +3,47 @@ import styled from "styled-components";
 import type { Task } from "../../types/Task.ts";
 import { useDebounce } from "../../hooks/useDebounce.ts";
 
+// ── Color Map ────────────────────────────────────────────────────────────────
+
+const colors: Record<string, string> = {
+    red: "#FFAFB1",
+    orange: "#F6C98A",
+    yellow: "#FFF59A",
+    green: "#C0E8AA",
+    blue: "#AFDBFF",
+    purple: "#C5AFFF",
+    pink: "#FFC7E8",
+};
+
+const getColorHex = (colorName?: string) =>
+    colors[colorName ?? "yellow"] ?? colors["yellow"];
+
 // ── Styled Components ────────────────────────────────────────────────────────
 
-const Container = styled.div<{ isEditing: boolean; isSelected: boolean }>`
-    max-width: 80%;
+const Container = styled.div<{ isEditing: boolean }>`
+    max-width: 60%;
     display: flex;
-    margin: 7% auto;
+    border-radius: 12px;
+    margin: 3% auto;
     flex-direction: column;
     position: relative;
-    border: 2px solid ${({ isSelected }) => (isSelected ? "#3b82f6" : "lightgray")};
-    box-shadow: ${({ isSelected }) =>
-            isSelected ? "0 0 0 3px rgba(59,130,246,0.15), -3px 3px 10px 0px #b5b5b5" : "-3px 3px 10px 0px #b5b5b5"};
     background-color: white;
     cursor: ${({ isEditing }) => (isEditing ? "text" : "pointer")};
     transition: border-color 0.15s, box-shadow 0.15s;
+    border: 2px solid ${({ isEditing }) => (isEditing ? "#3b82f6" : "lightgray")};
+    box-shadow: ${({ isEditing }) =>
+            isEditing
+                    ? "0 0 0 3px rgba(59, 130, 246, 0.2), -3px 3px 10px 0px #b5b5b5"
+                    : "-3px 3px 10px 0px #b5b5b5"};
+    overflow: visible;
 `;
 
-const TitleInput = styled.input<{ isEditing: boolean }>`
-    background-color: #fff59a;
+const TitleInput = styled.input<{ isEditing: boolean; colorHex: string }>`
+    background-color: ${({ colorHex }) => colorHex};
     color: black;
     font-weight: bold;
     font-size: 1rem;
+    margin-left: 1%;
     border: none;
     outline: none;
     padding: 4px 6px;
@@ -31,24 +51,13 @@ const TitleInput = styled.input<{ isEditing: boolean }>`
     box-sizing: border-box;
     cursor: ${({ isEditing }) => (isEditing ? "text" : "pointer")};
     user-select: ${({ isEditing }) => (isEditing ? "auto" : "none")};
-    &:focus {
-        outline: ${({ isEditing }) => (isEditing ? "2px solid #f0d800" : "none")};
-    }
 `;
 
-const TitleRow = styled.div`
+const TitleRow = styled.div<{ colorHex: string }>`
     display: flex;
-    background-color: #fff59a;
+    background-color: ${({ colorHex }) => colorHex};
     width: 100%;
-`;
-
-const Checkbox = styled.input<{ isSelected: boolean }>`
-    margin: 0 6px;
-    cursor: pointer;
-    accent-color: ${({ isSelected }) => (isSelected ? "#3b82f6" : "#555")};
-    flex-shrink: 0;
-    position: relative;
-    z-index: 11;
+    border-radius: 9px 9px 0 0;
 `;
 
 const MenuButton = styled.button`
@@ -76,7 +85,7 @@ const ContextMenu = styled.div`
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 100;
     min-width: 180px;
-    overflow: hidden;
+    overflow: visible;
     padding-left: 2%;
     padding-right: 2%;
 `;
@@ -94,6 +103,49 @@ const MenuItem = styled.button<{ danger?: boolean }>`
     &:hover {
         background-color: #f5f5f5;
     }
+`;
+
+const ColorMenuItem = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #333;
+    position: relative;
+    &:hover {
+        background-color: #f5f5f5;
+    }
+`;
+
+const ColorDot = styled.button<{ hex: string }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: ${({ hex }) => hex};
+    border: 1.5px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: transform 0.1s;
+    &:hover {
+        transform: scale(1.2);
+    }
+`;
+
+const ColorSubmenu = styled.div`
+    position: absolute;
+    left: 100%;
+    top: 0;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 101;
+    padding: 8px;
+    display: flex;
+    gap: 6px;
 `;
 
 const DescriptionTextarea = styled.textarea<{ isEditing: boolean }>`
@@ -121,6 +173,15 @@ const FieldRow = styled.div`
     gap: 8px;
     margin: 4px auto;
     width: 100%;
+`;
+
+const RatingRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin: 4px auto;
+    align-items: start;
 `;
 
 const FieldLabel = styled.label`
@@ -153,7 +214,7 @@ const RadioGroup = styled.div`
     display: flex;
     gap: 6px;
     margin-top: 2px;
-    justify-content: flex-start;
+    justify-content: center;
 `;
 
 const RadioOption = styled.button<{ selected: boolean }>`
@@ -176,17 +237,24 @@ const RadioOption = styled.button<{ selected: boolean }>`
 `;
 
 const CollapseButton = styled.button`
-    color: black;
+    color: #888;
     background: none;
     border: none;
     margin: 0 auto;
-    padding: 2%;
+    padding: 6px 40px;
     cursor: pointer;
     display: block;
     position: relative;
     z-index: 11;
+    font-size: 1.2rem;
+    letter-spacing: 4px;
+    width: 100%;
+    border-top: 1px solid #f0f0f0;
+    border-radius: 12px;
+
     &:hover {
-        color: #888;
+        color: #333;
+        background-color: #fafafa;
     }
 `;
 
@@ -206,7 +274,6 @@ const EditingHint = styled.span`
     align-self: center;
 `;
 
-// ── Absorbs clicks over inputs when not editing so selection always fires ──
 const ClickOverlay = styled.div`
     position: absolute;
     inset: 0;
@@ -214,36 +281,57 @@ const ClickOverlay = styled.div`
     cursor: pointer;
 `;
 
+const RatingHints = styled.div`
+    display: flex;
+    justify-content: space-between;
+    width: 90px;
+    margin: 0 auto;
+`;
+
+const RatingHint = styled.span`
+    font-size: 0.6rem;
+    color: #bbb;
+    font-style: italic;
+`;
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 type TaskEditableProps = {
     task: Task;
+    isEditable?: boolean;
+    initialEditing?: boolean;
     isSelected?: boolean;
-    isEditable?: boolean; // false = timer mode: no menu, no editing
-    initialEditing?: boolean; // true = start in edit mode (e.g. newly created task)
     onClick?: () => void;
     onChange?: (task: Task) => void;
     onDelete?: (taskId: string) => void;
     onAddToSchedule?: (taskId: string) => void;
+    onSplit?: (task: Task) => void;
 };
 
 export default function TaskEditable({
                                          task,
-                                         isSelected,
                                          isEditable = true,
                                          initialEditing = false,
                                          onClick,
                                          onChange,
                                          onDelete,
-                                         onAddToSchedule,
+                                         onSplit,
                                      }: TaskEditableProps) {
-    const [collapsed, setCollapsed] = useState<boolean>(!initialEditing); // expand if starting in edit mode
+    const [collapsed, setCollapsed] = useState<boolean>(!initialEditing);
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
+    const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
     const [isEditing, setIsEditing] = useState<boolean>(initialEditing);
     const [local, setLocal] = useState<Task>({ ...task });
 
+    // ── Refs ──
     const containerRef = useRef<HTMLDivElement>(null);
+    const titleRef = useRef<HTMLInputElement>(null);
+    const descriptionRef = useRef<HTMLTextAreaElement>(null);
+    const dueDateRef = useRef<HTMLInputElement>(null);
+    const durationRef = useRef<HTMLInputElement>(null);
     const isDirty = useRef(false);
+
+    const currentColorHex = getColorHex(local.color);
 
     useDebounce(local, 800, (updatedTask) => {
         if (updatedTask.id && isDirty.current) {
@@ -251,7 +339,6 @@ export default function TaskEditable({
         }
     });
 
-    // ── Exit edit mode when clicking outside ──
     useEffect(() => {
         if (!isEditing) return;
         const handleClickOutside = (e: MouseEvent) => {
@@ -262,6 +349,21 @@ export default function TaskEditable({
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isEditing]);
+
+    useEffect(() => {
+        if (initialEditing) {
+            setTimeout(() => titleRef.current?.focus(), 0);
+        }
+    }, []);
+
+    const handleColorChange = (colorName: string) => {
+        const updated = { ...local, color: colorName };
+        setLocal(updated);
+        isDirty.current = true;
+        onChange?.(updated);
+        setColorSubmenuOpen(false);
+        setMenuOpen(false);
+    };
 
     const handleImportanceSelect = (value: number) => {
         if (!isEditing) return;
@@ -276,32 +378,27 @@ export default function TaskEditable({
     };
 
     return (
-        <Container
-            ref={containerRef}
-            isEditing={isEditing}
-            isSelected={isSelected ?? false}
-        >
-            {/* ── Overlay: absorbs clicks over inputs when not editing ── */}
-            {!isEditing && (
-                <ClickOverlay onClick={onClick} />
-            )}
+        <Container ref={containerRef} isEditing={isEditing}>
+            {!isEditing && <ClickOverlay onClick={onClick} />}
 
             {/* ── Title Row ── */}
-            <TitleRow>
-                <Checkbox
-                    type="checkbox"
-                    checked={isSelected ?? false}
-                    isSelected={isSelected ?? false}
-                    onChange={onClick}
-                    onClick={(e) => e.stopPropagation()}
-                />
+            <TitleRow colorHex={currentColorHex}>
                 <TitleInput
+                    ref={titleRef}
                     isEditing={isEditing}
+                    colorHex={currentColorHex}
                     value={local.title}
                     readOnly={!isEditing}
                     onChange={(e) => {
                         isDirty.current = true;
                         setLocal({ ...local, title: e.target.value });
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            setCollapsed(false);
+                            setTimeout(() => descriptionRef.current?.focus(), 0);
+                        }
                     }}
                     placeholder="Task title"
                 />
@@ -311,6 +408,7 @@ export default function TaskEditable({
                         onClick={(e) => {
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
+                            setColorSubmenuOpen(false);
                         }}
                         title="Options"
                     >
@@ -322,6 +420,38 @@ export default function TaskEditable({
             {/* ── Context Menu ── */}
             {isEditable && menuOpen && (
                 <ContextMenu>
+                    {/* Color */}
+                    <ColorMenuItem
+                        onMouseEnter={() => setColorSubmenuOpen(true)}
+                        onMouseLeave={() => setColorSubmenuOpen(false)}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        Color
+                        <ColorDot
+                            hex={currentColorHex}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setColorSubmenuOpen((prev) => !prev);
+                            }}
+                        />
+                        {colorSubmenuOpen && (
+                            <ColorSubmenu>
+                                {Object.entries(colors).map(([name, hex]) => (
+                                    <ColorDot
+                                        key={name}
+                                        hex={hex}
+                                        title={name}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleColorChange(name);
+                                        }}
+                                    />
+                                ))}
+                            </ColorSubmenu>
+                        )}
+                    </ColorMenuItem>
+
+                    {/* Edit */}
                     <MenuItem
                         onClick={(e) => {
                             e.stopPropagation();
@@ -331,15 +461,21 @@ export default function TaskEditable({
                     >
                         Edit task
                     </MenuItem>
-                    <MenuItem
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            onAddToSchedule?.(task.id!);
-                        }}
-                    >
-                        Add to existing schedule
-                    </MenuItem>
+
+                    {/* Split — only show if task is long enough to split */}
+                    {(task.task_duration ?? 0) >= 120 && (
+                        <MenuItem
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpen(false);
+                                onSplit?.(task);
+                            }}
+                        >
+                            Split task
+                        </MenuItem>
+                    )}
+
+                    {/* Delete */}
                     <MenuItem
                         danger
                         onClick={(e) => {
@@ -357,6 +493,7 @@ export default function TaskEditable({
             {!collapsed && (
                 <CollapsedFieldContainer>
                     <DescriptionTextarea
+                        ref={descriptionRef}
                         isEditing={isEditing}
                         value={local.description}
                         readOnly={!isEditing}
@@ -364,13 +501,21 @@ export default function TaskEditable({
                             isDirty.current = true;
                             setLocal({ ...local, description: e.target.value });
                         }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                dueDateRef.current?.focus();
+                            }
+                        }}
                         placeholder="Description"
                     />
 
+                    {/* ── Due Date + Duration ── */}
                     <FieldRow>
                         <FieldLabel>
                             Due Date
                             <FieldInput
+                                ref={dueDateRef}
                                 isEditing={isEditing}
                                 type="date"
                                 value={local.due_date ?? ""}
@@ -379,12 +524,19 @@ export default function TaskEditable({
                                     isDirty.current = true;
                                     setLocal({ ...local, due_date: e.target.value });
                                 }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        durationRef.current?.focus();
+                                    }
+                                }}
                             />
                         </FieldLabel>
 
                         <FieldLabel>
                             Duration (min)
                             <FieldInput
+                                ref={durationRef}
                                 isEditing={isEditing}
                                 type="number"
                                 min={1}
@@ -399,8 +551,9 @@ export default function TaskEditable({
                         </FieldLabel>
                     </FieldRow>
 
-                    <FieldRow style={{ justifyContent: "flex-start" }}>
-                        <FieldLabel style={{ flex: "none" }}>
+                    {/* ── Importance + Difficulty ── */}
+                    <RatingRow>
+                        <FieldLabel style={{ alignItems: "center" }}>
                             Importance
                             <RadioGroup>
                                 {[1, 2, 3].map((val) => (
@@ -417,9 +570,13 @@ export default function TaskEditable({
                                     </RadioOption>
                                 ))}
                             </RadioGroup>
+                            <RatingHints>
+                                <RatingHint>low</RatingHint>
+                                <RatingHint>critical</RatingHint>
+                            </RatingHints>
                         </FieldLabel>
 
-                        <FieldLabel style={{ flex: "none" }}>
+                        <FieldLabel style={{ alignItems: "center" }}>
                             Difficulty
                             <RadioGroup>
                                 {[1, 2, 3].map((val) => (
@@ -436,8 +593,12 @@ export default function TaskEditable({
                                     </RadioOption>
                                 ))}
                             </RadioGroup>
+                            <RatingHints>
+                                <RatingHint>easy</RatingHint>
+                                <RatingHint>hard</RatingHint>
+                            </RatingHints>
                         </FieldLabel>
-                    </FieldRow>
+                    </RatingRow>
                 </CollapsedFieldContainer>
             )}
 
