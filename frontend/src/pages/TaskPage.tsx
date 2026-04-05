@@ -7,7 +7,7 @@ import type { Task } from "../types/Task";
 import { getTasks, saveTask, deleteTask, updateTask, splitTask } from "../api/taskApi.ts";
 
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
-import { BackButton } from "../components/navigation/BackButton";
+import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
