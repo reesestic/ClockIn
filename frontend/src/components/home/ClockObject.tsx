@@ -17,7 +17,7 @@ const StyledLink = styled(Link)`
 
 export default function ClockObject() {
     return (
-        <StyledLink to={ROUTES.TIMER}>
+        <StyledLink to={ROUTES.TIMER_ENTRY_PAGE}>
             <StyledClock />
         </StyledLink>
     );

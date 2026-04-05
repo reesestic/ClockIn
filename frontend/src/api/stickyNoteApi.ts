@@ -35,26 +35,6 @@ export async function sendTasksToList(tasks: Task[]) {
     return await response.json();
 }
 
-
-
-
-
-// export async function sendNote (noteId : string) {
-//
-//     const response = await authFetch(
-//         `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/send/${noteId}`,
-//         {
-//             method: "POST",
-//         }
-//     );
-//
-//     if (!response.ok) {
-//         throw new Error("Failed to create note");
-//     }
-//
-//     return await response.json();
-// }
-
 export async function saveNote (activeNote : Note) {
     if (!activeNote) return;
 
@@ -128,4 +108,22 @@ export async function changeColor(noteId : string, color: StickyNoteColor) {
         throw new Error("Failed to update color");
     }
     console.log("Succcess, no return to frontend")
+}
+
+export async function updateNotePosition(noteId: string, x: number, y: number, z: number) {
+    console.log("Got here!");
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.STICKY_NOTES}/${noteId}/position`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ x, y, z }),
+        }
+    );
+
+    console.log("Got here again!");
+    if (!response.ok) {
+        throw new Error("Failed to update note position");
+    }
+    // No return value needed — backend returns nothing on position update
 }

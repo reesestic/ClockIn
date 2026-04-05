@@ -1,25 +1,15 @@
 import { useState, useEffect } from "react";
-import styled from "styled-components";
-
 import TwoColumnLayout from "../components/layout/TwoColumnLayout";
 import ScheduleView from "../components/scheduleComponents/ScheduleView.tsx";
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
-import type {ScheduleFilters} from "../types/ScheduleFilters.ts";
-import { BackButton } from "../components/navigation/BackButton";
-
-const PageBackButton = styled(BackButton)`
-    position: absolute;
-    top: 1.5rem;
-    left: 1.5rem;
-    z-index: 10;
-`
 
 import type {Task} from "../types/Task";
 import type {Schedule} from "../types/Schedule";
 
-import {getTasks, saveTask, deleteTask, updateTask} from "../api/taskApi.ts";
-import { generateSchedule, getActiveSchedule } from "../api/scheduleApi.ts";
-import {ROUTES} from "../constants/Routes.ts";
+import { getTasks, saveTask, deleteTask } from "../api/taskApi.ts";
+import { generateSchedule, getSchedule } from "../api/scheduleApi";
+import { ROUTES } from "../constants/Routes.ts";
+import BackButton from "../components/navigation/BackButton.tsx";
 
 export default function PlannerPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -27,18 +17,10 @@ export default function PlannerPage() {
 
     const [schedule, setSchedule] = useState<Schedule | null>(null);
 
-    const [filters, setFilters] = useState<ScheduleFilters>({
-        deadline: "none",
-        importance: "none",
-        value: "none",
-        time: "none",
-        subject: "none",
-    });
-
     useEffect(() => {
         getTasks().then(setTasks);
 
-        getActiveSchedule()
+        getSchedule()
             .then(setSchedule)
             .catch(() => setSchedule(null));
     }, []);
@@ -57,14 +39,13 @@ export default function PlannerPage() {
     // ---------------------------
     // TASK CRUD
     // ---------------------------
-    async function handleUpdateTask(updated: Task) {
+    function handleUpdateTask(updated: Task) {
         setTasks(prev =>
             prev.map(t => (t.id === updated.id ? updated : t))
         );
-        await updateTask(updated);
     }
 
-    async function handleCreateTask(newTask: Omit<Task, "id">): Promise<Task> {
+    async function handleCreateTask(newTask: Omit<Task, "id" | "can_schedule">): Promise<void> {
         const createdTask = await saveTask(newTask);
         setTasks(prev => [createdTask, ...prev]);// prepend so it appears at top
         return createdTask;
@@ -75,10 +56,10 @@ export default function PlannerPage() {
         setTasks(prev => prev.filter(t => t.id !== taskId));
     }
 
-    async function handleGenerate() {
+    async function handleGenerate(filters?: any) {
         const newSchedule = await generateSchedule(selectedTaskIds, filters);
+
         setSchedule(newSchedule);
-        // close filters menu?
     }
 
     return (
@@ -86,7 +67,7 @@ export default function PlannerPage() {
             <TwoColumnLayout
                 left={
                     <>
-                        <PageBackButton to={ROUTES.HOME} label=""/>
+                        <BackButton to={ROUTES.HOME} style={{ color: "#000000" }} />
                         <TaskSidebar
                             props={{
                                 tasks,
@@ -95,10 +76,7 @@ export default function PlannerPage() {
                                 onToggleSelect: toggleTaskSelection,
                                 onUpdateTask: handleUpdateTask,
                             }}
-                            onAddTask={async (newTask) => {
-                                // TODO: POST to FastAPI, then add returned task (with id) to state
-                                await handleCreateTask({ ...newTask, can_schedule: false });
-                            }}
+                            onAddTask={handleCreateTask}
                             onDeleteTask={handleDeleteTask}
                             onAddToSchedule={(taskId) => {
                                 // stub
@@ -111,11 +89,10 @@ export default function PlannerPage() {
                     <ScheduleView
                         schedule={schedule}
                         onGenerate={handleGenerate}
-                        filters={filters}
-                        setFilters={setFilters}
                     />
                 }
             />
+
         </>
     );
 }

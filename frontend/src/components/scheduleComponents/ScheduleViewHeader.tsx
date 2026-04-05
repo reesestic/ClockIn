@@ -1,12 +1,8 @@
 import styled from "styled-components";
 import CalendarIcon from "../icons/CalendarIcon";
-import React from "react";
-import type { ScheduleFilters } from "../../types/ScheduleFilters";
 
 type Props = {
     onGenerate: () => void;
-    filters: ScheduleFilters;
-    setFilters: React.Dispatch<React.SetStateAction<ScheduleFilters>>;
 };
 
 const Wrapper = styled.div`
@@ -87,66 +83,7 @@ const CreateButton = styled.button`
   border-radius: 10px;
 `;
 
-const FilterContainer = styled.div`
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    z-index: 2;
-`;
-
-const FilterHeader = styled.div`
-  background: #e5e7eb;
-  padding: 8px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-style: italic;
-`;
-
-const FilterPanel = styled.div`
-    position: absolute;
-    top: 110%;
-    right: 0;
-    
-    background: #d1d5db;
-    padding: 12px;
-    border-radius: 16px;
-    
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-`;
-
-const FilterChip = styled.button<{ $active: boolean }>`
-  border: none;
-  background: ${({ $active }) => ($active ? "#c7d2fe" : "#f3f4f6")};
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  cursor: pointer;
-
-  &:hover {
-    background: #FFF59A;
-  }
-`;
-
-export default function ScheduleViewHeader({ onGenerate, filters, setFilters }: Props) {
-    const [open, setOpen] = React.useState(false);
-
-    function toggleFilter(key: keyof ScheduleFilters) {
-        setFilters(prev => ({
-            ...prev,
-            [key]:
-                prev[key] === "none"
-                    ? "desc"
-                    : prev[key] === "desc"
-                        ? "asc"
-                        : "none",
-        }));
-    }
+export default function ScheduleViewHeader({ onGenerate }: Props) {
 
     return (
         <Wrapper>
@@ -162,55 +99,9 @@ export default function ScheduleViewHeader({ onGenerate, filters, setFilters }: 
 
             <Right>
                 <Actions>
-                    <CreateButton onClick={onGenerate}>
+                    <CreateButton onClick={() => onGenerate()}>
                         Create Schedule
                     </CreateButton>
-
-                    <FilterContainer>
-                        <FilterHeader onClick={() => setOpen(p => !p)}>
-                            <span>Filter</span>
-                            <span>{open ? "⌃" : "⌄"}</span>
-                        </FilterHeader>
-
-                        {open && (
-                            <FilterPanel>
-                                <FilterChip
-                                    $active={filters.importance !== "none"}
-                                    onClick={() => toggleFilter("importance")}
-                                >
-                                    Importance +
-                                </FilterChip>
-
-                                <FilterChip
-                                    $active={filters.deadline !== "none"}
-                                    onClick={() => toggleFilter("deadline")}
-                                >
-                                    Due Date +
-                                </FilterChip>
-
-                                <FilterChip
-                                    $active={filters.time === "desc"}
-                                    onClick={() => toggleFilter("time")}
-                                >
-                                    Time: high → low +
-                                </FilterChip>
-
-                                <FilterChip
-                                    $active={filters.time === "asc"}
-                                    onClick={() => toggleFilter("time")}
-                                >
-                                    Time: low → high +
-                                </FilterChip>
-
-                                <FilterChip
-                                    $active={filters.value !== "none"}
-                                    onClick={() => toggleFilter("value")}
-                                >
-                                    Value +
-                                </FilterChip>
-                            </FilterPanel>
-                        )}
-                    </FilterContainer>
                 </Actions>
 
                 <DateText>

@@ -45,8 +45,8 @@ class StickyNoteService:
 
     # Returns id, title, text, color, user_id, posX, posY, posZ
 
-    def update_note(self, id: str, title: str, content: str, user_id: str):
-        row = self.SNRepo.update_note(id, title, content, user_id)
+    def update_note(self, id: str, title: str, content: str, user_id: str, x: int, y: int, z: int):
+        row = self.SNRepo.update_note(id, title, content, user_id, x, y, z)
         return self._normalize_note(row)
 
     def get_notes(self, user_id: str):
@@ -60,8 +60,6 @@ class StickyNoteService:
     def update_color(self, note_id: str, color: StickyNoteColor, user_id: str):
         self.SNRepo.update_color(note_id, color, user_id)
 
-#         sticky = sticky_note_service.update_note(note.id, note.title, note.content, user_id)
-#
-#     else:
-#         sticky = sticky_note_service.create_note(user_id, note.title, note.content, note.color,
-#                                                  note.position.x, note.position.y, note.position.z )
+    def update_position(self, note_id: str, x: int, y: int, z: int, user_id: str):
+        row = self.SNRepo.update_position(note_id, x, y, z, user_id)
+        return self._normalize_note(row) if row else None

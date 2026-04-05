@@ -1,19 +1,28 @@
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { BackIcon } from "../icons/BackIcon";
+import React from "react";
 
 type BackButtonProps = {
     to: string;
     label?: string;
     className?: string;
+    style?: React.CSSProperties;
 };
 
 const BackLink = styled(Link)`
-    position: relative;
+    position: fixed;            // 🔥 KEY CHANGE
+    top: 1.5rem;
+    left: 1.5rem;
+
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+
     text-decoration: none;
+    color: white;               // default color
+
+    z-index: 1000;              // always on top
 
     &:hover svg {
         transform: scale(1.08);
@@ -28,8 +37,6 @@ const BackLink = styled(Link)`
 const StyledBackIcon = styled(BackIcon)`
     width: 2.2rem;
     height: 2.2rem;
-    flex-shrink: 0;
-    transition: transform 0.15s ease;
 `;
 
 const HoverText = styled.span`
@@ -43,9 +50,9 @@ const HoverText = styled.span`
     pointer-events: none;
 `;
 
-export function BackButton({ to, label = "Home", className }: BackButtonProps) {
+export default function BackButton({ to, label = "Home", className, style}: BackButtonProps) {
     return (
-        <BackLink to={to} className={className}>
+        <BackLink to={to} className={className} style={style}>
             <StyledBackIcon />
             <HoverText>{label}</HoverText>
         </BackLink>

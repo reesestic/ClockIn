@@ -1,7 +1,9 @@
 export type TimerSession = {
-    id: string;
-    taskId?: string;
-    scheduleBlockId?: string;
-    startTime: string;
-    endTime: string;
+    task_id?: string;
+    mode: "task" | "free";
+    started_at: string;   // ISO string
+    ended_at: string;     // ISO string
+    elapsed_seconds: number;
+    active_seconds: number;
+    task_completed: boolean;
 };

@@ -24,5 +24,6 @@ def generate_schedule_controller(req: GenerateScheduleRequest, user=Depends(get_
 
 @router.get("")
 def get_schedule_controller(user=Depends(get_current_user)):
-    return schedule_service.schedule_repo.get_active_schedule(user["id"])
+    # NOTE: THIS DOES NOT GO TO SCHEDULE SERVICE
+    return schedule_service.schedule_repo.get_schedule(user["id"])
 

@@ -36,18 +36,20 @@ class StickyNoteRepository:
         }).execute()
         return result.data[0]
 
-    def update_note(self, id: str, title: str, content: str, user_id: str):
+    def update_note(self, id: str, title: str, content: str, user_id: str, x: int, y: int, z: int):
         result = (
             self.supabase.table("StickyNotes")
             .update({
                 "title": title,
-                "text": content
+                "text": content,
+                "posX": x,   # ← add
+                "posY": y,   # ← add
+                "posZ": z,   # ← add
             })
             .eq("id", id)
-            .eq("user_id", user_id)  # 🔐 CRITICAL
+            .eq("user_id", user_id)
             .execute()
         )
-
         return result.data[0]
 
     def get_notes(self, user_id: str):
@@ -95,3 +97,14 @@ class StickyNoteRepository:
             "posZ": posZ}
             ).execute()
         return
+
+    def update_position(self, note_id: str, x: int, y: int, z: int, user_id: str):
+        result = (
+            self.supabase.table("StickyNotes")
+            .update({"posX": x, "posY": y, "posZ": z})
+            .eq("id", note_id)
+            .eq("user_id", user_id)   # security check
+            .execute()
+        )
+        print(result.data[0])
+        return result.data[0] if result.data else None
