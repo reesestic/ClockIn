@@ -1,12 +1,14 @@
 import styled from "styled-components";
 import { useAuth } from "../../context/AuthContext.tsx";
 import HomeIcon from "../icons/HomeIcon.tsx";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {ROUTES} from "../../constants/Routes.ts";
 import ProfileLeavesIcon from "../icons/ProfileLeavesIcon";
 import ProfileTimerIcon from "../icons/ProfileTimerIcon";
 import ProfileBeeIcon from "../icons/ProfileBeeIcon";
 import DailyStreakIcon from "../icons/DailyStreakIcon.tsx";
+import {getStats} from "../../api/statsApi.ts";
 
 
 const SIDEBAR_WIDTH = 350;
@@ -232,6 +234,16 @@ interface Props {
 export default function ProfileSidebar({ open, onClose }: Props) {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const [stats, setStats] = useState<any>(null);
+
+    useEffect(() => {
+        if (!open) return;
+
+        getStats()
+            .then(setStats)
+            .catch(console.error);
+
+    }, [open]);
 
     return (
         <Overlay $open={open} onClick={onClose}>
@@ -254,7 +266,7 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                 {/* Box 2 — Plants */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>23</StatValue>
+                        <StatValue>{stats?.plants_grown ?? "--"}</StatValue>
                         <LeavesIcon />
                     </StatRow>
                     <StatLabel>Total Plants Grown</StatLabel>
@@ -263,7 +275,7 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                 {/* Box 3 — Hours */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>25.5</StatValue>
+                        <StatValue>{stats?.total_hours ?? "--"}</StatValue>
                         <TimerIcon />
                     </StatRow>
                     <StatLabel>Total Hours Worked</StatLabel>
@@ -271,8 +283,7 @@ export default function ProfileSidebar({ open, onClose }: Props) {
 
                 <StatBox>
                     <StatRow>
-                        <StatValue>3</StatValue>
-                        <StreakIcon />
+                        <StatValue>{stats?.day_streak ?? "--"}</StatValue>                        <StreakIcon />
                     </StatRow>
                     <StatLabel>Day Study Streak</StatLabel>
                 </StatBox>

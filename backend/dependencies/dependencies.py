@@ -7,12 +7,18 @@ from repositories.sticky_note_repository import StickyNoteRepository
 from repositories.task_repository import TaskRepository
 from repositories.schedule_repository import ScheduleRepository
 from repositories.timer_repository import TimerRepository
+from repositories.busy_times_repository import BusyTimesRepository
+
+
 
 from services.sticky_note_service import StickyNoteService
 from services.openai_service import AIService
 from services.task_service import TaskService
 from services.schedule_service import ScheduleService
 from services.timer_service import TimerService
+from services.busy_times_service import BusyTimesService
+from services.stats_service import StatsService
+
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -33,3 +39,8 @@ sticky_note_service = StickyNoteService(sticky_note_repository, openai_service, 
 
 timer_repository = TimerRepository(supabase)
 timer_service = TimerService(timer_repository)
+
+busy_times_repo    = BusyTimesRepository(supabase)
+busy_times_service = BusyTimesService(busy_times_repo)
+
+stats_service = StatsService(timer_repository)

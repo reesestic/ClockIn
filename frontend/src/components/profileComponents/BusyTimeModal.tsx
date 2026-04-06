@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import BusyTimeCard from "./BusyTimeCard.tsx";
+import BusyTimeCard, { type BusyTimeData } from "./BusyTimeCard.tsx";
 
 const Overlay = styled.div`
     position: fixed;
@@ -8,24 +8,34 @@ const Overlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 100;
 `;
 
 const Modal = styled.div`
     background: white;
     border-radius: 12px;
-    padding: 20px;
-    width: 400px;
+    width: min(480px, 92vw);
 `;
 
 type Props = {
+    initial?: Partial<BusyTimeData>;
+    existingTimes?: BusyTimeData[];
+    onSave: (data: BusyTimeData) => void;
     onClose: () => void;
+    onDuplicate?: () => void;
 }
 
-export default function BusyTimeModal({ onClose } : Props) {
+export default function BusyTimeModal({ initial, existingTimes, onSave, onClose, onDuplicate }: Props) {
     return (
         <Overlay onClick={onClose}>
             <Modal onClick={e => e.stopPropagation()}>
-                <BusyTimeCard />
+                <BusyTimeCard
+                    initial={initial}
+                    existingTimes={existingTimes}
+                    onSave={onSave}
+                    onCancel={onClose}
+                    onDuplicate={onDuplicate}
+                />
             </Modal>
         </Overlay>
     );

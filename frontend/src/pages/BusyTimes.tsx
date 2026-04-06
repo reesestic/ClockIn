@@ -1,47 +1,61 @@
 import styled from "styled-components";
 import BackButton from "../components/navigation/BackButton";
 import { ROUTES } from "../constants/Routes";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BusyTimeItem from "../components/profileComponents/BusyTimeItem";
 import BusyTimeModal from "../components/profileComponents/BusyTimeModal";
+import type { BusyTimeData } from "../components/profileComponents/BusyTimeCard";
+import { formatTime, timeValueToISO, isoToTimeValue } from "../components/profileComponents/BusyTimeCard";
+import { getBusyTimes, createBusyTime, updateBusyTime, deleteBusyTime } from "../api/busyTimesApi";
+import type { BusyTimeRecord } from "../api/busyTimesApi";
 
 /* ── Types ───────────────────────── */
 
-interface BusyTime {
-    id: number;
-    title: string;
-    startTime: string;
-    endTime: string;
-    days: string[];
+interface BusyTime extends BusyTimeData {
+    id: string;
 }
-
-/* ── Sample Data ─────────────────── */
-
-const SAMPLE: BusyTime[] = [
-    { id: 1, title: "Gym",    startTime: "6:00 PM",  endTime: "7:30 PM",  days: ["MON", "WED", "FRI"] },
-    { id: 2, title: "Class",  startTime: "2:00 PM",  endTime: "4:00 PM",  days: ["TUE", "THU"] },
-    { id: 3, title: "Dinner", startTime: "7:00 PM",  endTime: "8:00 PM",  days: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] },
-    { id: 4, title: "Sleep",  startTime: "11:00 PM", endTime: "7:00 AM",  days: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] },
-];
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-
-const BLOCK_COLORS = ["#AFDBFF", "#FFD6A5", "#CAFFBF", "#FFC6FF", "#FDFFB6", "#BDB2FF", "#FFB3C1"];
-const colorMap: Record<number, string> = {};
-SAMPLE.forEach((b, i) => { colorMap[b.id] = BLOCK_COLORS[i % BLOCK_COLORS.length]; });
-
+const BLOCK_COLORS = ["#AFDBFF", "#FFF59A"]; // Iceberg, Soft Canary
 /* ── Helpers ─────────────────────── */
 
-function formatTimeRange(start: string, end: string) {
-    return `${start} → ${end}`;
+// Convert DB record → frontend BusyTime
+function recordToLocal(r: BusyTimeRecord): BusyTime {
+    return {
+        id: r.id,
+        title: r.title,
+        start: r.start_time ? isoToTimeValue(r.start_time) : { hour: "8", minute: "00", ampm: "AM" },
+        end:   r.end_time   ? isoToTimeValue(r.end_time)   : { hour: "9", minute: "00", ampm: "AM" },
+        days:  r.days_of_week ?? [],
+    };
 }
 
-function daysLabel(days: string[]) {
+// Convert frontend BusyTimeData → API payload
+function localToPayload(data: BusyTimeData) {
+    return {
+        title: data.title,
+        start_time: timeValueToISO(data.start),
+        end_time: timeValueToISO(data.end),
+        days_of_week: data.days,
+        source: "manual" as const,
+    };
+}
+
+function getColorIndex(id: string, list: BusyTime[]): number {
+    const idx = list.findIndex(b => b.id === id);
+    return idx === -1 ? 0 : idx;
+}
+
+function formatTimeRange(b: BusyTime): string {
+    return `${formatTime(b.start)} → ${formatTime(b.end)}`;
+}
+
+function daysLabel(days: string[]): string {
     if (days.length === 7) return "DAILY";
     return days.join(" • ");
 }
 
-/* ── Styles — Page ───────────────── */
+/* ── Styles ──────────────────────── */
 
 const Page = styled.div`
     width: 100vw;
@@ -86,9 +100,8 @@ const AddBtn = styled.button`
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    align-self: flex-start;
-    margin-left: calc((100vw - min(960px, 95vw)) / 2);
-
+    width: min(960px, 95vw);
+    text-align: left;
     &:hover { background: #3a7fc1; }
 `;
 
@@ -102,8 +115,6 @@ const SectionLabel = styled.div`
     margin-top: 32px;
     margin-bottom: 10px;
 `;
-
-/* ── Styles — Grid ───────────────── */
 
 const GridWrapper = styled.div`
     width: min(960px, 95vw);
@@ -141,19 +152,18 @@ const DayCol = styled.div`
     flex-direction: column;
     gap: 6px;
     border-right: 1px solid #f0f0f0;
-
     &:last-child { border-right: none; }
 `;
 
-const GridBlock = styled.button`
+const GridBlock = styled.button<{ $color: string }>`
     width: 100%;
     padding: 6px 8px;
     border-radius: 8px;
     border: none;
+    background: ${({ $color }) => $color};
     text-align: left;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.1s;
-
     &:hover { opacity: 0.8; transform: scale(1.02); }
 `;
 
@@ -168,8 +178,6 @@ const BlockTime = styled.div`
     color: #555;
     margin-top: 2px;
 `;
-
-/* ── Styles — List ───────────────── */
 
 const ListWrapper = styled.div`
     width: min(960px, 95vw);
@@ -194,15 +202,81 @@ const DayGroupLabel = styled.div`
     border-bottom: 1.5px solid #AFDBFF;
 `;
 
+const ErrorMsg = styled.div`
+    color: #e53935;
+    font-size: 0.8rem;
+    margin-top: 8px;
+    text-align: center;
+`;
+
+const LoadingMsg = styled.div`
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-top: 40px;
+`;
+
 /* ── Component ───────────────────── */
 
 export default function BusyTimes() {
-    const [busyTimes, setBusyTimes] = useState<BusyTime[]>(SAMPLE);
-    const [editing, setEditing] = useState<null | number>(null);
+    const [busyTimes, setBusyTimes] = useState<BusyTime[]>([]);
+    const [loading, setLoading]     = useState(true);
+    const [error, setError]         = useState<string | null>(null);
+    const [editing, setEditing]     = useState<null | string>(null); // null=closed, "new"=adding, id=editing
 
-    function handleDelete(id: number) {
-        setBusyTimes(prev => prev.filter(b => b.id !== id));
+    // ── Load on mount ──
+    useEffect(() => {
+        getBusyTimes()
+            .then(records => setBusyTimes(records.map(recordToLocal)))
+            .catch(() => setError("Failed to load busy times."))
+            .finally(() => setLoading(false));
+    }, []);
+
+    // ── Save (create or update) ──
+    async function handleSave(data: BusyTimeData) {
+        const payload = localToPayload(data);
+        try {
+            if (editing === "new") {
+                const created = await createBusyTime(payload);
+                setBusyTimes(prev => [...prev, recordToLocal(created)]);
+            } else if (editing) {
+                const updated = await updateBusyTime(editing, payload);
+                setBusyTimes(prev =>
+                    prev.map(b => b.id === editing ? recordToLocal(updated) : b)
+                );
+            }
+            setEditing(null);
+        } catch {
+            setError("Failed to save. Please try again.");
+        }
     }
+
+    // ── Delete ──
+    async function handleDelete(id: string) {
+        try {
+            await deleteBusyTime(id);
+            setBusyTimes(prev => prev.filter(b => b.id !== id));
+        } catch {
+            setError("Failed to delete. Please try again.");
+        }
+    }
+
+    // ── Duplicate ──
+    async function handleDuplicate(id: string) {
+        const original = busyTimes.find(b => b.id === id);
+        if (!original) return;
+        const payload = localToPayload({ ...original, title: `${original.title} (copy)` });
+        try {
+            const created = await createBusyTime(payload);
+            setBusyTimes(prev => [...prev, recordToLocal(created)]);
+            setEditing(null);
+        } catch {
+            setError("Failed to duplicate. Please try again.");
+        }
+    }
+
+    const editingItem = editing && editing !== "new"
+        ? busyTimes.find(b => b.id === editing)
+        : undefined;
 
     return (
         <Page>
@@ -211,70 +285,76 @@ export default function BusyTimes() {
                 <PageTitle>ClockIn</PageTitle>
             </TopBar>
 
-            <AddBtn onClick={() => setEditing(-1)}>+ Add Busy Time</AddBtn>
+            <AddBtn onClick={() => setEditing("new")}>+ Add Busy Time</AddBtn>
 
-            {/* ══════════════════════════════════════
-                SECTION 1 — 7-COLUMN GRID
-            ══════════════════════════════════════ */}
-            <SectionLabel>Weekly Overview</SectionLabel>
+            {error && <ErrorMsg>{error}</ErrorMsg>}
+            {loading && <LoadingMsg>Loading...</LoadingMsg>}
 
-            <GridWrapper>
-                <GridHeader>
-                    {DAYS.map(d => <DayHeader key={d}>{d}</DayHeader>)}
-                </GridHeader>
-
-                <GridBody>
-                    {DAYS.map(day => (
-                        <DayCol key={day}>
-                            {busyTimes
-                                .filter(b => b.days.includes(day))
-                                .map(b => (
-                                    <GridBlock
-                                        key={b.id}
-                                        onClick={() => setEditing(b.id)}
-                                        title={`${b.title} — click to edit`}
-                                    >
-                                        <BlockTitle>{b.title}</BlockTitle>
-                                        <BlockTime>{b.startTime}</BlockTime>
-                                        <BlockTime>{b.endTime}</BlockTime>
-                                    </GridBlock>
-                                ))
-                            }
-                        </DayCol>
-                    ))}
-                </GridBody>
-            </GridWrapper>
-
-            {/* ══════════════════════════════════════
-                SECTION 2 — GROUPED LIST
-            ══════════════════════════════════════ */}
-            <SectionLabel>By Day</SectionLabel>
-
-            <ListWrapper>
-                {DAYS.map(day => {
-                    const items = busyTimes.filter(b => b.days.includes(day));
-                    if (items.length === 0) return null;
-                    return (
-                        <DayGroup key={day}>
-                            <DayGroupLabel>{day}</DayGroupLabel>
-                            {items.map(b => (
-                                <BusyTimeItem
-                                    key={b.id}
-                                    title={b.title}
-                                    time={formatTimeRange(b.startTime, b.endTime)}
-                                    days={daysLabel(b.days)}
-                                    onEdit={() => setEditing(b.id)}
-                                    onDelete={() => handleDelete(b.id)}
-                                />
+            {!loading && (
+                <>
+                    {/* ── Grid ── */}
+                    <SectionLabel>Weekly Overview</SectionLabel>
+                    <GridWrapper>
+                        <GridHeader>
+                            {DAYS.map(d => <DayHeader key={d}>{d}</DayHeader>)}
+                        </GridHeader>
+                        <GridBody>
+                            {DAYS.map(day => (
+                                <DayCol key={day}>
+                                    {busyTimes
+                                        .filter(b => b.days.includes(day))
+                                        .map(b => (
+                                            <GridBlock
+                                                key={b.id}
+                                                $color={BLOCK_COLORS[getColorIndex(b.id, busyTimes) % BLOCK_COLORS.length]}
+                                                onClick={() => setEditing(b.id)}
+                                            >
+                                                <BlockTitle>{b.title}</BlockTitle>
+                                                <BlockTime>{formatTime(b.start)}</BlockTime>
+                                                <BlockTime>{formatTime(b.end)}</BlockTime>
+                                            </GridBlock>
+                                        ))
+                                    }
+                                </DayCol>
                             ))}
-                        </DayGroup>
-                    );
-                })}
-            </ListWrapper>
+                        </GridBody>
+                    </GridWrapper>
 
-            {/* ── Edit / Add Modal ── */}
+                    {/* ── List ── */}
+                    <SectionLabel>By Day</SectionLabel>
+                    <ListWrapper>
+                        {DAYS.map(day => {
+                            const items = busyTimes.filter(b => b.days.includes(day));
+                            if (items.length === 0) return null;
+                            return (
+                                <DayGroup key={day}>
+                                    <DayGroupLabel>{day}</DayGroupLabel>
+                                    {items.map(b => (
+                                        <BusyTimeItem
+                                            key={b.id}
+                                            title={b.title}
+                                            time={formatTimeRange(b)}
+                                            days={daysLabel(b.days)}
+                                            onEdit={() => setEditing(b.id)}
+                                            onDelete={() => handleDelete(b.id)}
+                                        />
+                                    ))}
+                                </DayGroup>
+                            );
+                        })}
+                    </ListWrapper>
+                </>
+            )}
+
             {editing !== null && (
-                <BusyTimeModal onClose={() => setEditing(null)} />
+                <BusyTimeModal
+                    initial={editingItem}
+                    // ← pass all times except the one being edited
+                    existingTimes={busyTimes.filter(b => b.id !== editing)}
+                    onSave={handleSave}
+                    onClose={() => setEditing(null)}
+                    onDuplicate={editingItem ? () => handleDuplicate(editingItem.id) : undefined}
+                />
             )}
         </Page>
     );
