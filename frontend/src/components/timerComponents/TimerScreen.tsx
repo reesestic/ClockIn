@@ -3,9 +3,12 @@ import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { useLocation, useNavigate } from "react-router-dom";
 import BackButton from "../navigation/BackButton.tsx";
 import { ROUTES } from "../../constants/Routes.ts";
-import { createTimerSession } from "../../api/timerApi.ts";
+import { createTimerSession, generateWorkflow } from "../../api/timerApi.ts";
 import type { TimerSession } from "../../types/TimerSession.ts";
 import digital7 from "../../assets/fonts/digital-7.ttf";
+import type { ScheduleBlock } from "../../types/ScheduleBlock.ts";
+import type { Task } from "../../types/Task.ts";
+import { getTask } from "../../api/taskApi.ts";
 
 /* ─────────────────────────────────────────
    TYPES
@@ -23,6 +26,11 @@ interface Session {
     totalPausedMs?: number;
     pausedAt?: number;
     hasStartedWork?: boolean;
+}
+
+interface WorkflowStep {
+    label: string;
+    duration_seconds: number;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -191,6 +199,13 @@ function formatHMS(total: number) {
     };
 }
 
+function formatStepDuration(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (s === 0) return `${m}:00`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 /* ═══════════════════════════════════════════════════════
    SYNC ENGINE
 ═══════════════════════════════════════════════════════ */
@@ -202,6 +217,17 @@ function beaconSession(payload: object) {
     if (navigator.sendBeacon) {
         navigator.sendBeacon(SESSION_BEACON_URL, blob);
     }
+}
+
+/* ─────────────────────────────────────────
+   HELPER
+───────────────────────────────────────── */
+
+function getTaskId(item: Task | ScheduleBlock): string | undefined {
+    if ("task_id" in item) {
+        return (item as ScheduleBlock).task_id;
+    }
+    return (item as Task).id;
 }
 
 /* ─────────────────────────────────────────
@@ -415,16 +441,12 @@ const HintText = styled.div`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-
-    /* Glass + blur effect */
     background: rgba(20, 40, 80, 0.35);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-
     display: flex;
     justify-content: center;
     align-items: center;
-
     z-index: 100;
 `;
 
@@ -433,47 +455,37 @@ const OverlayContent = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-
     text-align: center;
     gap: 1.5rem;
-
     color: white;
 `;
 
 const PrimaryBtn = styled.button`
-    padding: 0.96rem 2.4rem;   /* ~20% bigger */
-
+    padding: 0.96rem 2.4rem;
     border-radius: 999px;
     border: none;
-
     background: #FFF59A;
     color: #14406C;
-
     font-weight: 600;
-    font-size: 1.14rem;        /* ~20% bigger */
-
+    font-size: 1.14rem;
     cursor: pointer;
     transition: transform 0.1s, opacity 0.15s;
-
     &:hover { opacity: 0.9; }
     &:active { transform: scale(0.96); }
 `;
 
 const SecondaryBtn = styled.button`
     padding: 0.6rem 1.6rem;
-
     border-radius: 999px;
     border: 3px solid #AFDBFF;
-
     background: white;
     color: #0E4F87;
-
     font-size: 0.9rem;
     cursor: pointer;
 `;
 
 const OverlayTitle = styled.h2`
-    font-size: clamp(1.4rem, 2rem, 3rem);   /* ~20% bigger from ~1.2rem baseline */
+    font-size: clamp(1.4rem, 2rem, 3rem);
     font-weight: 600;
     letter-spacing: 0.03em;
     margin: 0;
@@ -493,15 +505,12 @@ const OverlayBtn = styled.button`
     &:hover { background: #f0f4ff; }
 `;
 
-// Stuff for Summary
 const SummaryCard = styled.div`
     background: #F5F5F5;
     border-radius: 20px;
     padding: 2.8rem 2.2rem;
-
-    width: 460px;   /* ⬅️ was 420px */
+    width: 460px;
     max-width: 92vw;
-
     text-align: center;
     box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 `;
@@ -527,16 +536,11 @@ const PlantDisplay = styled.div`
 const TimeBox = styled.div`
     background: #EAEAEA;
     border-radius: 16px;
-
-    padding: 1.8rem 1.4rem;   /* ⬅️ more vertical space */
-
+    padding: 1.8rem 1.4rem;
     margin: 1.8rem 0;
-
     font-family: 'Digital7', monospace;
-
-    font-size: 3.6rem;        /* ⬅️ BIG increase (was ~2.5rem) */
+    font-size: 3.6rem;
     letter-spacing: 0.08em;
-
     display: flex;
     justify-content: center;
     align-items: center;
@@ -549,8 +553,6 @@ const ButtonStack = styled.div`
     align-items: center;
     margin-top: 1.5rem;
 `;
-
-// End of summary stuff
 
 const BlockedBanner = styled.div`
     position: absolute;
@@ -593,6 +595,7 @@ const Sidebar = styled.div<{ $open: boolean }>`
     flex-direction: column;
     padding: 1.5rem;
     box-sizing: border-box;
+    overflow-y: auto;
 `;
 
 const SidebarHandle = styled.button<{ $open: boolean }>`
@@ -639,6 +642,53 @@ const SidebarEmpty = styled.div`
     margin-top: 1rem;
 `;
 
+const PomodoroWarning = styled.div`
+    font-size: 0.75rem;
+    color: rgba(255, 200, 100, 0.85);
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+`;
+
+const StepItem = styled.div<{ $active: boolean; $done: boolean }>`
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: ${({ $active, $done }) =>
+            $active ? "rgba(255,240,100,0.2)" : $done ? "rgba(255,255,255,0.05)" : "transparent"};
+    border-left: 3px solid ${({ $active }) => ($active ? "#FFF59A" : "transparent")};
+    opacity: ${({ $done }) => ($done ? 0.4 : 1)};
+    transition: all 0.3s ease;
+`;
+
+const StepLabel = styled.div`
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+`;
+
+const StepDuration = styled.div`
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.5);
+    margin-top: 0.2rem;
+`;
+
+const StepProgressBar = styled.div<{ $pct: number }>`
+    height: 2px;
+    border-radius: 1px;
+    background: rgba(255,255,255,0.1);
+    margin-top: 0.4rem;
+    overflow: hidden;
+
+    &::after {
+        content: "";
+        display: block;
+        height: 100%;
+        width: ${({ $pct }) => $pct}%;
+        background: #FFF59A;
+        transition: width 1s linear;
+    }
+`;
+
 /* ─────────────────────────────────────────
    COMPONENT
 ───────────────────────────────────────── */
@@ -655,15 +705,18 @@ export default function TimerScreen() {
     const [isOwner, setIsOwner] = useState(true);
     const [confirmQuit, setConfirmQuit] = useState(false);
     const [showTaskComplete, setShowTaskComplete] = useState(false);
-    const [showReusePrompt, setShowReusePrompt] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [summaryData, setSummaryData] = useState<any>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // CHANGED: removed summaryRef, statusRef, secondsRef, lastTickRef — all unused
-    const channelRef = useRef<BroadcastChannel | null>(null);
+    // Workflow state
+    const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
+    const [workflowLoading, setWorkflowLoading] = useState(false);
+    const [isPomodoro, setIsPomodoro] = useState(false);
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [stepElapsed, setStepElapsed] = useState(0);
 
-    // CHANGED: removed useEffect syncing for statusRef and secondsRef — deleted those refs
+    const channelRef = useRef<BroadcastChannel | null>(null);
 
     /* ══════════════════════════════════════════
        SESSION ENGINE — MOUNT RESOLUTION
@@ -677,13 +730,8 @@ export default function TimerScreen() {
         setSeconds(timerSeconds);
         if (timerStatus === "idle") setDigits(timerDigits);
 
-        // CHANGED: removed lastTickRef.current = Date.now() — lastTickRef deleted
-
-        if (resumeAction === "reuse_prompt") {
-            setShowReusePrompt(true);
-        } else if (resumeAction === "force_end") {
+        if (resumeAction === "force_end") {
             const session = loadSession();
-            // CHANGED: show summary after force_end instead of always navigating away
             if (session) {
                 forceEndSession(session).then(data => {
                     if (data) {
@@ -698,6 +746,47 @@ export default function TimerScreen() {
             }
         }
     }, []);
+
+    /* ══════════════════════════════════════════
+       WORKFLOW ENGINE — LOAD ON MOUNT
+    ══════════════════════════════════════════ */
+    useEffect(() => {
+        if (!hasPlan || !item) return;
+
+        const taskId = getTaskId(item);
+        if (!taskId) return;
+
+        setWorkflowLoading(true);
+        getTask(taskId)
+            .then((task: Task) => generateWorkflow({ title: task.title, description: task.description }))
+            .then((data: { steps: WorkflowStep[]; is_pomodoro: boolean }) => {
+                setWorkflowSteps(data.steps);
+                setIsPomodoro(data.is_pomodoro);
+            })
+            .catch(() => setWorkflowSteps([]))
+            .finally(() => setWorkflowLoading(false));
+    }, []);
+
+    /* ══════════════════════════════════════════
+       WORKFLOW ENGINE — AUTO-ADVANCE STEPS
+    ══════════════════════════════════════════ */
+    useEffect(() => {
+        if (status !== "running" || workflowSteps.length === 0) return;
+
+        const interval = setInterval(() => {
+            setStepElapsed(prev => {
+                const currentDuration = workflowSteps[currentStepIndex]?.duration_seconds ?? 0;
+                const next = prev + 1;
+                if (next >= currentDuration) {
+                    setCurrentStepIndex(i => Math.min(i + 1, workflowSteps.length - 1));
+                    return 0;
+                }
+                return next;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [status, workflowSteps, currentStepIndex]);
 
     /* ══════════════════════════════════════════
        SYNC ENGINE — TAB CONTROL
@@ -772,8 +861,6 @@ export default function TimerScreen() {
 
     /* ══════════════════════════════════════════
        TIMER ENGINE — COUNTDOWN LOOP
-       Drives UI countdown only.
-       active_seconds computed at save time via computeActiveSeconds().
     ══════════════════════════════════════════ */
     useEffect(() => {
         if (status !== "running") return;
@@ -787,18 +874,12 @@ export default function TimerScreen() {
 
             setSeconds(remaining);
 
-            // CHANGED: only save to localStorage when timer hits zero (not every tick)
             if (remaining <= 0) {
                 const now = Date.now();
-
-                // 🔥 mark session as paused
                 session.paused = true;
                 session.pausedAt = now;
-
                 delete session.endTime;
-
                 saveSession(session);
-
                 setStatus("idle");
                 setSeconds(0);
             }
@@ -877,22 +958,17 @@ export default function TimerScreen() {
             };
         }
 
-        // ✅ NEW: finalize paused time BEFORE restarting
         if (session.pausedAt) {
             session.totalPausedMs =
                 (session.totalPausedMs ?? 0) + (now - session.pausedAt);
-
             delete session.pausedAt;
         }
 
-        // CHANGED: always set hasStartedWork on start (covers reused sessions)
         session.hasStartedWork = true;
-
         session.endTime = now + totalSeconds * 1000;
         session.paused = false;
         session.activeTabId = TAB_ID;
 
-        // CHANGED: ensure totalPausedMs exists on reused sessions
         if (session.totalPausedMs == null) session.totalPausedMs = 0;
 
         saveSession(session);
@@ -900,7 +976,6 @@ export default function TimerScreen() {
         setStatus("running");
     }
 
-    // CHANGED: use single `now` consistently, removed lastTickRef
     function pause() {
         ensureControl();
         const session = loadSession();
@@ -909,20 +984,17 @@ export default function TimerScreen() {
         const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
         session.paused = true;
         session.remainingOnPause = remaining;
-        // CHANGED: record pausedAt for wall-clock pause tracking
         session.pausedAt = now;
         delete session.endTime;
         saveSession(session);
         setStatus("paused");
     }
 
-    // CHANGED: removed lastTickRef
     function resume() {
         ensureControl();
         const session = loadSession();
         if (!session || session.remainingOnPause == null) return;
         const now = Date.now();
-        // CHANGED: accumulate pause duration before clearing pausedAt
         if (session.pausedAt) {
             session.totalPausedMs = (session.totalPausedMs ?? 0) + (now - session.pausedAt);
             delete session.pausedAt;
@@ -934,7 +1006,6 @@ export default function TimerScreen() {
         setStatus("running");
     }
 
-    // CHANGED: removed lastTickRef, added totalPausedMs reset
     function reset() {
         ensureControl();
         const session = loadSession();
@@ -942,7 +1013,6 @@ export default function TimerScreen() {
             delete session.endTime;
             delete session.remainingOnPause;
             delete session.pausedAt;
-            // CHANGED: reset pause accumulator so next run starts clean
             session.totalPausedMs = 0;
             session.paused = false;
             saveSession(session);
@@ -950,6 +1020,8 @@ export default function TimerScreen() {
         setStatus("idle");
         setSeconds(0);
         setDigits("000000");
+        setCurrentStepIndex(0);
+        setStepElapsed(0);
     }
 
     /* ══════════════════════════════════════════
@@ -967,7 +1039,6 @@ export default function TimerScreen() {
             started_at: new Date(session.startTime).toISOString(),
             ended_at: new Date(now).toISOString(),
             elapsed_seconds: elapsed,
-            // CHANGED: wall-clock accurate active time
             active_seconds: computeActiveSeconds(session, now),
             task_completed: taskCompleted,
         };
@@ -981,7 +1052,6 @@ export default function TimerScreen() {
         }
     }
 
-    // CHANGED: returns data so caller can show summary
     async function forceEndSession(session: Session) {
         const now = Date.now();
         const data = await saveSessionToDB(session, now);
@@ -1025,24 +1095,6 @@ export default function TimerScreen() {
         }
     }
 
-    function handleReuseYes() {
-        const session = loadSession()!;
-        session.lastActive = Date.now();
-        claimControl(session);
-        setIsOwner(true);
-        channelRef.current?.postMessage({ type: "CLAIM", tabId: TAB_ID });
-        setShowReusePrompt(false);
-    }
-
-    function handleReuseNo() {
-        clearSession();
-        setShowReusePrompt(false);
-        setIsOwner(true);
-        setStatus("idle");
-        setSeconds(0);
-        setDigits("000000");
-    }
-
     /* ─────────────────────────────────────
        RENDER
     ───────────────────────────────────── */
@@ -1051,6 +1103,9 @@ export default function TimerScreen() {
     const totalTyped = digitsToSeconds(digits);
     const canStart = totalTyped > 0;
     const showControlBanner = !isOwner;
+
+    const currentStepDuration = workflowSteps[currentStepIndex]?.duration_seconds ?? 1;
+    const stepProgressPct = Math.min(100, Math.round((stepElapsed / currentStepDuration) * 100));
 
     return (
         <>
@@ -1130,8 +1185,40 @@ export default function TimerScreen() {
                                     aria-label={sidebarOpen ? "Close plan" : "Open plan"}
                                 />
                                 <Sidebar $open={sidebarOpen}>
-                                    <SidebarTitle>Study Plan</SidebarTitle>
-                                    <SidebarEmpty>Your atomized plan will appear here.</SidebarEmpty>
+                                    <SidebarTitle>
+                                        {isPomodoro ? "Pomodoro Workflow" : "Study Plan"}
+                                    </SidebarTitle>
+
+                                    {workflowLoading && (
+                                        <SidebarEmpty>Generating your plan...</SidebarEmpty>
+                                    )}
+
+                                    {!workflowLoading && isPomodoro && (
+                                        <PomodoroWarning>
+                                            ⚠️ Not enough info for a custom plan — using Pomodoro instead.
+                                            Add more to your task description for a tailored workflow.
+                                        </PomodoroWarning>
+                                    )}
+
+                                    {!workflowLoading && workflowSteps.map((step, i) => (
+                                        <StepItem
+                                            key={i}
+                                            $active={i === currentStepIndex}
+                                            $done={i < currentStepIndex}
+                                        >
+                                            <StepLabel>{step.label}</StepLabel>
+                                            <StepDuration>
+                                                {formatStepDuration(step.duration_seconds)}
+                                            </StepDuration>
+                                            {i === currentStepIndex && (
+                                                <StepProgressBar $pct={stepProgressPct} />
+                                            )}
+                                        </StepItem>
+                                    ))}
+
+                                    {!workflowLoading && workflowSteps.length === 0 && (
+                                        <SidebarEmpty>Could not generate a plan.</SidebarEmpty>
+                                    )}
                                 </Sidebar>
                             </>
                         )}
@@ -1140,30 +1227,13 @@ export default function TimerScreen() {
 
                 <Sill />
 
-                {/*{showReusePrompt && (*/}
-                {/*    <Overlay>*/}
-                {/*        <OverlayCard>*/}
-                {/*            <h3>Welcome back!</h3>*/}
-                {/*            <p>You have a session from earlier. Continue it?</p>*/}
-                {/*            <div className="actions">*/}
-                {/*                <OverlayBtn onClick={handleReuseYes}>Continue</OverlayBtn>*/}
-                {/*                <OverlayBtn onClick={handleReuseNo}>Start fresh</OverlayBtn>*/}
-                {/*            </div>*/}
-                {/*        </OverlayCard>*/}
-                {/*    </Overlay>*/}
-                {/*)}*/}
-
                 {showTaskComplete && (
                     <Overlay>
                         <OverlayContent>
                             <h3>Did you finish your task?</h3>
                             <p style={{ fontWeight: 600, color: "#333" }}>{currentTask?.title}</p>
                             <div className="actions">
-
-                                {/*edit "Yes" to show the taskj being visually X'ed out / crossed off/ ripped up, schedule renders it as completed visually*/}
                                 <OverlayBtn onClick={() => confirmEndSession(true)}>Yes ✓</OverlayBtn>
-
-                                {/*This does nothing I think? Maybe a visual on the block like a re-do arrow? idk tho girl*/}
                                 <OverlayBtn onClick={() => confirmEndSession(false)}>Not yet</OverlayBtn>
                             </div>
                         </OverlayContent>
@@ -1176,11 +1246,9 @@ export default function TimerScreen() {
                             <OverlayTitle>
                                 End Timer Session?
                             </OverlayTitle>
-
                             <PrimaryBtn onClick={() => setConfirmQuit(false)}>
                                 Continue
                             </PrimaryBtn>
-
                             <SecondaryBtn onClick={() => confirmEndSession()}>
                                 End Timer
                             </SecondaryBtn>
@@ -1191,34 +1259,25 @@ export default function TimerScreen() {
                 {showSummary && (
                     <Overlay>
                         <SummaryCard>
-
                             <SummaryTitle>Good Job!</SummaryTitle>
-
-                            {/* Replace with plant growth logic */}
                             {true && (
                                 <>
                                     <SummarySubtitle>You grew a plant!</SummarySubtitle>
-                                    <PlantDisplay>
-                                        🌱
-                                    </PlantDisplay>
+                                    <PlantDisplay>🌱</PlantDisplay>
                                 </>
                             )}
-
                             <div style={{ fontSize: "0.85rem", marginTop: "1rem", color: "#333" }}>
                                 You studied for
                             </div>
-
                             {(() => {
                                 const active = summaryData.active_seconds ?? 0;
                                 const { h, m, s } = formatHMS(active);
-
                                 return (
                                     <TimeBox>
                                         {h}:{m}:{s}
                                     </TimeBox>
                                 );
                             })()}
-
                             <div
                                 style={{
                                     display: "flex",
@@ -1232,17 +1291,14 @@ export default function TimerScreen() {
                                 <span>minutes</span>
                                 <span>seconds</span>
                             </div>
-
                             <ButtonStack>
                                 <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>
                                     Study Again
                                 </PrimaryBtn>
-
                                 <SecondaryBtn onClick={() => navigate(ROUTES.HOME)}>
                                     Leave Timer
                                 </SecondaryBtn>
                             </ButtonStack>
-
                         </SummaryCard>
                     </Overlay>
                 )}

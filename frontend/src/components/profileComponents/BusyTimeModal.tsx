@@ -25,7 +25,10 @@ export default function BusyTimeModal({ onClose } : Props) {
     return (
         <Overlay onClick={onClose}>
             <Modal onClick={e => e.stopPropagation()}>
-                <BusyTimeCard />
+                <BusyTimeCard
+                    onSave={() => {}}
+                    onCancel={() => {}}
+                />
             </Modal>
         </Overlay>
     );

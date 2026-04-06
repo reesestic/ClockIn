@@ -13,6 +13,11 @@ def get_tasks(user=Depends(get_current_user)):
     user_id = user["id"]
     return task_service.get_tasks(user_id)
 
+@router.get("/get_by_id/{id}")
+def get_task_by_id(user=Depends(get_current_user), id: str = ""):
+    user_id = user["id"]
+    return task_service.get_task(id, user_id)
+
 
 @router.delete("/delete/{task_id}")
 def delete_task(task_id, user=Depends(get_current_user)):

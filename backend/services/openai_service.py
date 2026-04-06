@@ -35,3 +35,32 @@ class AIService:
                 task["user_id"] = user_id
 
         return tasks
+    
+    async def generate_workflow(self, title: str, description: str) -> dict:
+        has_enough_info = len(description.strip()) > 30
+
+        if has_enough_info:
+            prompt = f"""
+            You are a study planning assistant. Given this task, generate a focused work session workflow.
+            Task: {title}
+            Description: {description}
+            Return JSON: {{"steps": [{{"label": "", "duration_seconds": 0}}]}}
+            Keep it realistic, focused, and under 10 steps.
+            """
+        else:
+            prompt = f"""
+            Generate a general Pomodoro workflow for a task called "{title}".
+            Return JSON: {{"steps": [{{"label": "", "duration_seconds": 0}}]}}
+            Use the classic Pomodoro pattern: 25 min focus, 5 min break, repeat 4 cycles.
+            """
+        response = await self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        raw = response.choices[0].message.content
+        parsed = json.loads(raw)
+        return {
+            "steps": parsed.get("steps", []),
+            "is_pomodoro": not has_enough_info,
+        }

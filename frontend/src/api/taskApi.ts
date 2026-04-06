@@ -14,6 +14,19 @@ export async function getTasks(): Promise<Task[]> {
     return await response.json();
 }
 
+export async function getTask(id: string): Promise<Task> {
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/get_by_id/${id}`
+    );
+    if (!response.ok) {
+        throw new Error("Failed to fetch task");
+    }
+    return await response.json();
+}
+
+
+
+
 
 export async function saveTask(activeTask: Omit<Task, "id" | "can_schedule">) {
     if (!activeTask) return;
