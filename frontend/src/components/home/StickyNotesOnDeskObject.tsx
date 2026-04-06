@@ -5,10 +5,11 @@ import { ROUTES } from "../../constants/Routes";
 
 const StyledLink = styled(Link)`
     position: absolute;
-    bottom: 5%;
-    left: 10%;
-    width: 20%;
+    top: 10%;
+    left: 35%;
+    width: 28%;
     display: block;
+    transform: scale(0.7);
 `;
 
 const StyledStickyNotes = styled(StickyNotesOnDeskIcon)`

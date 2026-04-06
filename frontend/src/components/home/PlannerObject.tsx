@@ -3,22 +3,33 @@ import PlannerIcon from "../icons/PlannerIcon";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../constants/Routes";
 
-const StyledPlanner = styled(PlannerIcon)`
+const Wrapper = styled.div`
     position: absolute;
-    width: 17%;
+    width: 20%;
     top: 60%;
-    left: 55%;
-    cursor: pointer;
+    left: 60%;
+    transform:scale(2.1);
+    z-index: 10;
+`;
+
+const StyledPlanner = styled(PlannerIcon)`
+    width: 100%;
+    height: auto;
+    display: block;
+    
 `;
 
 const StyledLink = styled(Link)`
-    display: contents;
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
 `;
 
 export default function PlannerObject() {
     return (
-        <StyledLink to={ROUTES.PLANNER}>
+        <Wrapper>
             <StyledPlanner />
-        </StyledLink>
+            <StyledLink to={ROUTES.PLANNER} />
+        </Wrapper>
     );
 }

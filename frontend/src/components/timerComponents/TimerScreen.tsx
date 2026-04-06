@@ -34,7 +34,7 @@ interface WorkflowStep {
 }
 
 /* ═══════════════════════════════════════════════════════
-   SESSION ENGINE
+   SESSION ENGINE — pure functions, no React
 ═══════════════════════════════════════════════════════ */
 
 const TAB_ID = (() => {
@@ -50,61 +50,30 @@ function loadSession(): Session | null {
     if (!raw) return null;
     try { return JSON.parse(raw); } catch { return null; }
 }
-
-function saveSession(session: Session) {
-    localStorage.setItem("activeSession", JSON.stringify(session));
-}
-
-function clearSession() {
-    localStorage.removeItem("activeSession");
-}
-
-function isController(session: Session | null): boolean {
-    if (!session) return true;
-    return !session.activeTabId || session.activeTabId === TAB_ID;
-}
-
-function claimControl(session: Session): Session {
-    session.activeTabId = TAB_ID;
-    saveSession(session);
-    return session;
-}
+function saveSession(s: Session) { localStorage.setItem("activeSession", JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem("activeSession"); }
+function isController(s: Session | null) { return !s || !s.activeTabId || s.activeTabId === TAB_ID; }
+function claimControl(s: Session): Session { s.activeTabId = TAB_ID; saveSession(s); return s; }
 
 function computeActiveSeconds(session: Session, now: number): number {
-    const totalPausedMs = session.totalPausedMs ?? 0;
-    const currentPauseMs = session.pausedAt ? (now - session.pausedAt) : 0;
-    return Math.max(0, Math.floor((now - session.startTime - totalPausedMs - currentPauseMs) / 1000));
+    const paused = session.totalPausedMs ?? 0;
+    const currentPause = session.pausedAt ? (now - session.pausedAt) : 0;
+    return Math.max(0, Math.floor((now - session.startTime - paused - currentPause) / 1000));
 }
 
-type ResumeAction = "fresh" | "continue" | "reuse_prompt" | "force_end";
-
-interface MountResolution {
-    session: Session | null;
-    resumeAction: ResumeAction;
+function resolveSessionOnMount(): {
+    resumeAction: "fresh" | "continue" | "reuse_prompt" | "force_end";
     timerStatus: Status;
     timerSeconds: number;
     timerDigits: string;
     isOwner: boolean;
-}
-
-function resolveSessionOnMount(): MountResolution {
+} {
     const existing = loadSession();
     const now = Date.now();
 
-    if (!existing) {
-        return {
-            session: null,
-            resumeAction: "fresh",
-            timerStatus: "idle",
-            timerSeconds: 0,
-            timerDigits: "000000",
-            isOwner: true,
-        };
-    }
+    if (!existing) return { resumeAction: "fresh", timerStatus: "idle", timerSeconds: 0, timerDigits: "000000", isOwner: true };
 
-    const gapMs = now - (existing.lastActive ?? existing.startTime);
-    const gapHours = gapMs / (1000 * 60 * 60);
-
+    const gapHours = (now - (existing.lastActive ?? existing.startTime)) / 3_600_000;
     let timerStatus: Status = "idle";
     let timerSeconds = 0;
     let timerDigits = "000000";
@@ -115,119 +84,74 @@ function resolveSessionOnMount(): MountResolution {
         timerDigits = secondsToDigits(timerSeconds);
     } else if (!existing.paused && existing.endTime != null) {
         const remaining = Math.ceil((existing.endTime - now) / 1000);
-        if (remaining > 0) {
-            timerStatus = "running";
-            timerSeconds = remaining;
-        } else {
-            delete existing.endTime;
-            saveSession(existing);
-            timerStatus = "idle";
-        }
+        if (remaining > 0) { timerStatus = "running"; timerSeconds = remaining; }
+        else { delete existing.endTime; saveSession(existing); }
     }
 
-    const owner = isController(existing);
-
-    let resumeAction: ResumeAction = "continue";
+    const isOwner = isController(existing);
+    let resumeAction: "fresh" | "continue" | "reuse_prompt" | "force_end" = "continue";
     if (gapHours <= 2) {
         existing.lastActive = now;
-        if (owner) existing.activeTabId = TAB_ID;
+        if (isOwner) existing.activeTabId = TAB_ID;
         saveSession(existing);
-        resumeAction = "continue";
     } else if (gapHours <= 8) {
         resumeAction = "reuse_prompt";
     } else {
         resumeAction = "force_end";
     }
 
-    return { session: existing, resumeAction, timerStatus, timerSeconds, timerDigits, isOwner: owner };
+    return { resumeAction, timerStatus, timerSeconds, timerDigits, isOwner };
 }
 
 /* ═══════════════════════════════════════════════════════
-   TIMER ENGINE
+   TIMER HELPERS
 ═══════════════════════════════════════════════════════ */
 
 const DIGIT_COUNT = 6;
 
-function digitsToSeconds(digits: string): number {
-    const padded = digits.padStart(DIGIT_COUNT, "0");
-    const h = parseInt(padded.slice(0, 2), 10);
-    const m = parseInt(padded.slice(2, 4), 10);
-    const s = parseInt(padded.slice(4, 6), 10);
-    return h * 3600 + m * 60 + s;
+function digitsToSeconds(d: string): number {
+    const p = d.padStart(DIGIT_COUNT, "0");
+    return parseInt(p.slice(0,2),10)*3600 + parseInt(p.slice(2,4),10)*60 + parseInt(p.slice(4,6),10);
 }
-
-function secondsToDigits(total: number): string {
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    return `${h.toString().padStart(2, "0")}${m.toString().padStart(2, "0")}${s.toString().padStart(2, "0")}`;
+function secondsToDigits(t: number): string {
+    const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = t%60;
+    return `${String(h).padStart(2,"0")}${String(m).padStart(2,"0")}${String(s).padStart(2,"0")}`;
 }
-
-function isValidDigits(digits: string): boolean {
-    const padded = digits.padStart(DIGIT_COUNT, "0");
-    const m = parseInt(padded.slice(2, 4), 10);
-    const s = parseInt(padded.slice(4, 6), 10);
-    return m <= 59 && s <= 59;
+function isValidDigits(d: string): boolean {
+    const p = d.padStart(DIGIT_COUNT,"0");
+    return parseInt(p.slice(2,4),10) <= 59 && parseInt(p.slice(4,6),10) <= 59;
 }
-
-function formatDigits(digits: string): { h: string; mm: string; ss: string } {
-    const padded = digits.padStart(DIGIT_COUNT, "0");
+function formatDigits(d: string): { h: string; mm: string; ss: string } {
+    const p = d.padStart(DIGIT_COUNT,"0");
+    return { h: p.slice(0,2).replace(/^0/,"") || "0", mm: p.slice(2,4), ss: p.slice(4,6) };
+}
+function formatSeconds(t: number): string {
+    const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = t%60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+function formatHMS(t: number) {
     return {
-        h:  padded.slice(0, 2).replace(/^0/, "") || "0",
-        mm: padded.slice(2, 4),
-        ss: padded.slice(4, 6),
+        h: String(Math.floor(t/3600)).padStart(2,"0"),
+        m: String(Math.floor((t%3600)/60)).padStart(2,"0"),
+        s: String(t%60).padStart(2,"0"),
     };
 }
-
-function formatSeconds(total: number): string {
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+function formatStepDuration(s: number): string {
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${String(sec).padStart(2,"0")}`;
 }
-
-function formatHMS(total: number) {
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-
-    return {
-        h: h.toString().padStart(2, "0"),
-        m: m.toString().padStart(2, "0"),
-        s: s.toString().padStart(2, "0"),
-    };
-}
-
-function formatStepDuration(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    if (s === 0) return `${m}:00`;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-/* ═══════════════════════════════════════════════════════
-   SYNC ENGINE
-═══════════════════════════════════════════════════════ */
-
-const SESSION_BEACON_URL = "/api/timer-sessions/beacon";
-
-function beaconSession(payload: object) {
-    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
-    if (navigator.sendBeacon) {
-        navigator.sendBeacon(SESSION_BEACON_URL, blob);
-    }
+function getTaskId(item: Task | ScheduleBlock): string | undefined {
+    return "task_id" in item ? (item as ScheduleBlock).task_id : (item as Task).id;
 }
 
 /* ─────────────────────────────────────────
-   HELPER
+   BEACON
 ───────────────────────────────────────── */
 
-function getTaskId(item: Task | ScheduleBlock): string | undefined {
-    if ("task_id" in item) {
-        return (item as ScheduleBlock).task_id;
-    }
-    return (item as Task).id;
+function beaconSession(payload: object) {
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    navigator.sendBeacon?.("/api/timer-sessions/beacon", blob);
 }
 
 /* ─────────────────────────────────────────
@@ -258,7 +182,7 @@ const SkyBackground = styled.div`
     inset: 0;
     overflow: hidden;
     z-index: 0;
-    margin: 0;
+    contain: strict;
 `;
 
 const scrollSky = keyframes`
@@ -308,7 +232,6 @@ const Sill = styled.div`
     bottom: 0;
     width: 95%;
     z-index: 10;
-
     &::before {
         content: "";
         display: block;
@@ -317,14 +240,12 @@ const Sill = styled.div`
         border-radius: 8px 8px 0 0;
         background: #F1F1F1;
     }
-
     &::after {
         content: "";
         display: block;
         width: 100%;
         height: 20px;
         background: #F1F1F1;
-        border-radius: 0;
     }
 `;
 
@@ -352,7 +273,6 @@ const TaskLabel = styled.div`
 const TimerInputRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 0;
     outline: none;
     font-family: 'Digital7', monospace;
     font-size: clamp(5rem, 14vw, 10rem);
@@ -362,10 +282,7 @@ const TimerInputRow = styled.div`
     letter-spacing: 0.02em;
 `;
 
-const DigitGroup = styled.span<{ $active?: boolean }>`
-    color: inherit;
-    opacity: 1;
-`;
+const DigitGroup = styled.span<{ $active?: boolean }>`color: inherit;`;
 
 const Colon = styled.span`
     color: inherit;
@@ -441,7 +358,7 @@ const HintText = styled.div`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(20, 40, 80, 0.35);
+    background: rgba(20,40,80,0.35);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     display: flex;
@@ -515,23 +432,9 @@ const SummaryCard = styled.div`
     box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 `;
 
-const SummaryTitle = styled.h2`
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0;
-`;
-
-const SummarySubtitle = styled.p`
-    font-size: 0.9rem;
-    color: #555;
-    margin-top: 0.4rem;
-    margin-bottom: 1.5rem;
-`;
-
-const PlantDisplay = styled.div`
-    font-size: 3rem;
-    margin: 1.5rem 0;
-`;
+const SummaryTitle = styled.h2`font-size: 1.6rem; font-weight: 700; margin: 0;`;
+const SummarySubtitle = styled.p`font-size: 0.9rem; color: #555; margin-top: 0.4rem; margin-bottom: 1.5rem;`;
+const PlantDisplay = styled.div`font-size: 3rem; margin: 1.5rem 0;`;
 
 const TimeBox = styled.div`
     background: #EAEAEA;
@@ -569,14 +472,9 @@ const BlockedBanner = styled.div`
     gap: 0.75rem;
     backdrop-filter: blur(4px);
     button {
-        background: white;
-        color: black;
-        border: none;
-        border-radius: 6px;
-        padding: 0.2rem 0.7rem;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 0.78rem;
+        background: white; color: black; border: none;
+        border-radius: 6px; padding: 0.2rem 0.7rem;
+        font-weight: 600; cursor: pointer; font-size: 0.78rem;
     }
 `;
 
@@ -605,15 +503,12 @@ const SidebarHandle = styled.button<{ $open: boolean }>`
     transform: translateY(-50%);
     transition: right 0.3s ease;
     z-index: 16;
-    width: 22px;
-    height: 56px;
+    width: 22px; height: 56px;
     background: rgba(15,15,35,0.92);
     border: none;
     border-radius: 8px 0 0 8px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     padding: 0;
     &::after {
         content: "";
@@ -628,23 +523,15 @@ const SidebarHandle = styled.button<{ $open: boolean }>`
 `;
 
 const SidebarTitle = styled.div`
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    opacity: 0.6;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem;
+    opacity: 0.6; letter-spacing: 0.1em; text-transform: uppercase;
 `;
 
-const SidebarEmpty = styled.div`
-    font-size: 0.82rem;
-    opacity: 0.35;
-    margin-top: 1rem;
-`;
+const SidebarEmpty = styled.div`font-size: 0.82rem; opacity: 0.35; margin-top: 1rem;`;
 
 const PomodoroWarning = styled.div`
     font-size: 0.75rem;
-    color: rgba(255, 200, 100, 0.85);
+    color: rgba(255,200,100,0.85);
     margin-bottom: 0.75rem;
     line-height: 1.4;
 `;
@@ -653,24 +540,14 @@ const StepItem = styled.div<{ $active: boolean; $done: boolean }>`
     padding: 0.6rem 0.75rem;
     margin-bottom: 0.5rem;
     border-radius: 8px;
-    background: ${({ $active, $done }) =>
-            $active ? "rgba(255,240,100,0.2)" : $done ? "rgba(255,255,255,0.05)" : "transparent"};
-    border-left: 3px solid ${({ $active }) => ($active ? "#FFF59A" : "transparent")};
-    opacity: ${({ $done }) => ($done ? 0.4 : 1)};
-    transition: all 0.3s ease;
+    background: ${({ $active, $done }) => $active ? "rgba(255,240,100,0.2)" : $done ? "rgba(255,255,255,0.05)" : "transparent"};
+    border-left: 3px solid ${({ $active }) => $active ? "#FFF59A" : "transparent"};
+    opacity: ${({ $done }) => $done ? 0.4 : 1};
+    transition: background 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
 `;
 
-const StepLabel = styled.div`
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: white;
-`;
-
-const StepDuration = styled.div`
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.5);
-    margin-top: 0.2rem;
-`;
+const StepLabel = styled.div`font-size: 0.8rem; font-weight: 600; color: white;`;
+const StepDuration = styled.div`font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 0.2rem;`;
 
 const StepProgressBar = styled.div<{ $pct: number }>`
     height: 2px;
@@ -678,7 +555,6 @@ const StepProgressBar = styled.div<{ $pct: number }>`
     background: rgba(255,255,255,0.1);
     margin-top: 0.4rem;
     overflow: hidden;
-
     &::after {
         content: "";
         display: block;
@@ -699,10 +575,13 @@ export default function TimerScreen() {
     const { mode, item, hasPlan } = (location.state as any) || {};
     const currentTask = mode === "task" ? item : null;
 
+    // Timer state
     const [digits, setDigits] = useState("000000");
     const [seconds, setSeconds] = useState(0);
     const [status, setStatus] = useState<Status>("idle");
     const [isOwner, setIsOwner] = useState(true);
+
+    // UI state
     const [confirmQuit, setConfirmQuit] = useState(false);
     const [showTaskComplete, setShowTaskComplete] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
@@ -714,19 +593,29 @@ export default function TimerScreen() {
     const [workflowLoading, setWorkflowLoading] = useState(false);
     const [isPomodoro, setIsPomodoro] = useState(false);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
-    const [stepElapsed, setStepElapsed] = useState(0);
+    const [stepProgressPct, setStepProgressPct] = useState(0);
 
+    // Refs — mutable values that don't need to trigger renders
     const channelRef = useRef<BroadcastChannel | null>(null);
+    const inputRef = useRef<HTMLDivElement>(null);
+    const statusRef = useRef<Status>("idle");
+    const stepIndexRef = useRef(0);
+    const stepElapsedRef = useRef(0);
+    const workflowStepsRef = useRef<WorkflowStep[]>([]);
+    const lastActivityRef = useRef(0);
+
+    // Keep refs in sync with state
+    useEffect(() => { statusRef.current = status; }, [status]);
+    useEffect(() => { workflowStepsRef.current = workflowSteps; }, [workflowSteps]);
 
     /* ══════════════════════════════════════════
-       SESSION ENGINE — MOUNT RESOLUTION
+       MOUNT — session resolution
     ══════════════════════════════════════════ */
     useEffect(() => {
-        const { resumeAction, timerStatus, timerSeconds, timerDigits, isOwner: owner } =
-            resolveSessionOnMount();
-
+        const { resumeAction, timerStatus, timerSeconds, timerDigits, isOwner: owner } = resolveSessionOnMount();
         setIsOwner(owner);
         setStatus(timerStatus);
+        statusRef.current = timerStatus;
         setSeconds(timerSeconds);
         if (timerStatus === "idle") setDigits(timerDigits);
 
@@ -734,12 +623,8 @@ export default function TimerScreen() {
             const session = loadSession();
             if (session) {
                 forceEndSession(session).then(data => {
-                    if (data) {
-                        setSummaryData(data);
-                        setShowSummary(true);
-                    } else {
-                        navigate(ROUTES.TIMER_ENTRY_PAGE);
-                    }
+                    if (data) { setSummaryData(data); setShowSummary(true); }
+                    else navigate(ROUTES.TIMER_ENTRY_PAGE);
                 });
             } else {
                 navigate(ROUTES.TIMER_ENTRY_PAGE);
@@ -748,11 +633,10 @@ export default function TimerScreen() {
     }, []);
 
     /* ══════════════════════════════════════════
-       WORKFLOW ENGINE — LOAD ON MOUNT
+       MOUNT — workflow generation
     ══════════════════════════════════════════ */
     useEffect(() => {
         if (!hasPlan || !item) return;
-
         const taskId = getTaskId(item);
         if (!taskId) return;
 
@@ -761,6 +645,7 @@ export default function TimerScreen() {
             .then((task: Task) => generateWorkflow({ title: task.title, description: task.description }))
             .then((data: { steps: WorkflowStep[]; is_pomodoro: boolean }) => {
                 setWorkflowSteps(data.steps);
+                workflowStepsRef.current = data.steps;
                 setIsPomodoro(data.is_pomodoro);
             })
             .catch(() => setWorkflowSteps([]))
@@ -768,35 +653,71 @@ export default function TimerScreen() {
     }, []);
 
     /* ══════════════════════════════════════════
-       WORKFLOW ENGINE — AUTO-ADVANCE STEPS
+       SINGLE UNIFIED TICK LOOP
+       One interval handles: countdown + step advance + activity
+       = one re-render per second max
     ══════════════════════════════════════════ */
     useEffect(() => {
-        if (status !== "running" || workflowSteps.length === 0) return;
-
         const interval = setInterval(() => {
-            setStepElapsed(prev => {
-                const currentDuration = workflowSteps[currentStepIndex]?.duration_seconds ?? 0;
-                const next = prev + 1;
-                if (next >= currentDuration) {
-                    setCurrentStepIndex(i => Math.min(i + 1, workflowSteps.length - 1));
-                    return 0;
-                }
-                return next;
-            });
+            const now = Date.now();
+
+            // ── Activity heartbeat (no state update) ──
+            if (now - lastActivityRef.current >= 5000) {
+                lastActivityRef.current = now;
+                const session = loadSession();
+                if (session) { session.lastActive = now; saveSession(session); }
+            }
+
+            if (statusRef.current !== "running") return;
+
+            // ── Countdown ──
+            const session = loadSession();
+            if (!session || session.paused || !session.endTime) return;
+
+            const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
+            setSeconds(remaining);
+
+            if (remaining <= 0) {
+                session.paused = true;
+                session.pausedAt = now;
+                delete session.endTime;
+                saveSession(session);
+                setStatus("idle");
+                statusRef.current = "idle";
+                setSeconds(0);
+                return;
+            }
+
+            // ── Step auto-advance ──
+            const steps = workflowStepsRef.current;
+            if (steps.length === 0) return;
+
+            stepElapsedRef.current += 1;
+            const currentDuration = steps[stepIndexRef.current]?.duration_seconds ?? 0;
+
+            if (stepElapsedRef.current >= currentDuration) {
+                const nextIndex = Math.min(stepIndexRef.current + 1, steps.length - 1);
+                stepIndexRef.current = nextIndex;
+                stepElapsedRef.current = 0;
+                setCurrentStepIndex(nextIndex);
+                setStepProgressPct(0);
+            } else {
+                setStepProgressPct(Math.min(100, Math.round((stepElapsedRef.current / currentDuration) * 100)));
+            }
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [status, workflowSteps, currentStepIndex]);
+    }, []); // runs once, reads live values via refs
 
     /* ══════════════════════════════════════════
-       SYNC ENGINE — TAB CONTROL
+       TAB CONTROL
     ══════════════════════════════════════════ */
     useEffect(() => {
         const channel = new BroadcastChannel("timer_tab_control");
         channelRef.current = channel;
 
-        channel.onmessage = (event) => {
-            const { type, tabId } = event.data ?? {};
+        channel.onmessage = ({ data }) => {
+            const { type, tabId } = data ?? {};
             if (type === "CLAIM" && tabId !== TAB_ID) {
                 setIsOwner(false);
                 const session = loadSession();
@@ -805,9 +726,7 @@ export default function TimerScreen() {
         };
 
         const session = loadSession();
-        if (!session || isController(session)) {
-            channel.postMessage({ type: "CLAIM", tabId: TAB_ID });
-        }
+        if (!session || isController(session)) channel.postMessage({ type: "CLAIM", tabId: TAB_ID });
 
         return () => {
             channel.postMessage({ type: "RELEASE", tabId: TAB_ID });
@@ -815,91 +734,17 @@ export default function TimerScreen() {
         };
     }, []);
 
-    const ensureControl = useCallback(() => {
-        if (isOwner) return true;
-        const session = loadSession();
-        if (session) claimControl(session);
-        channelRef.current?.postMessage({ type: "CLAIM", tabId: TAB_ID });
-        setIsOwner(true);
-        return true;
-    }, [isOwner]);
-
     /* ══════════════════════════════════════════
-       SESSION ENGINE — ACTIVITY TRACKING
-    ══════════════════════════════════════════ */
-    useEffect(() => {
-        let lastUpdate = 0;
-
-        function updateActivity() {
-            const now = Date.now();
-            if (now - lastUpdate < 5000) return;
-            lastUpdate = now;
-            const session = loadSession();
-            if (!session) return;
-            session.lastActive = now;
-            saveSession(session);
-        }
-
-        function handleVisibility() {
-            if (document.visibilityState === "visible") updateActivity();
-        }
-
-        window.addEventListener("click", updateActivity);
-        window.addEventListener("keydown", updateActivity);
-        window.addEventListener("mousemove", updateActivity, { passive: true });
-        window.addEventListener("scroll", updateActivity, { passive: true });
-        document.addEventListener("visibilitychange", handleVisibility);
-
-        return () => {
-            window.removeEventListener("click", updateActivity);
-            window.removeEventListener("keydown", updateActivity);
-            window.removeEventListener("mousemove", updateActivity);
-            window.removeEventListener("scroll", updateActivity);
-            document.removeEventListener("visibilitychange", handleVisibility);
-        };
-    }, []);
-
-    /* ══════════════════════════════════════════
-       TIMER ENGINE — COUNTDOWN LOOP
-    ══════════════════════════════════════════ */
-    useEffect(() => {
-        if (status !== "running") return;
-
-        const interval = setInterval(() => {
-            const session = loadSession();
-            if (!session || session.paused || !session.endTime) return;
-
-            const now = Date.now();
-            const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
-
-            setSeconds(remaining);
-
-            if (remaining <= 0) {
-                const now = Date.now();
-                session.paused = true;
-                session.pausedAt = now;
-                delete session.endTime;
-                saveSession(session);
-                setStatus("idle");
-                setSeconds(0);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [status]);
-
-    /* ══════════════════════════════════════════
-       SYNC ENGINE — UNLOAD SAFETY
+       UNLOAD SAFETY
     ══════════════════════════════════════════ */
     useEffect(() => {
         function handleUnload() {
             const session = loadSession();
-            if (!session || !session.hasStartedWork) { clearSession(); return; }
+            if (!session?.hasStartedWork) { clearSession(); return; }
             const now = Date.now();
             const elapsed = Math.floor((now - session.startTime) / 1000);
             if (elapsed < 10) { clearSession(); return; }
-
-            const payload: TimerSession = {
+            beaconSession({
                 ...(currentTask?.id ? { task_id: currentTask.id } : {}),
                 mode: currentTask ? "task" : "free",
                 started_at: new Date(session.startTime).toISOString(),
@@ -907,37 +752,35 @@ export default function TimerScreen() {
                 elapsed_seconds: elapsed,
                 active_seconds: computeActiveSeconds(session, now),
                 task_completed: false,
-            };
-
-            beaconSession(payload);
+            } as TimerSession);
             clearSession();
         }
-
         window.addEventListener("beforeunload", handleUnload);
         return () => window.removeEventListener("beforeunload", handleUnload);
     }, [currentTask]);
 
     /* ══════════════════════════════════════════
-       TIMER ENGINE — DIGIT INPUT
+       ACTIONS
     ══════════════════════════════════════════ */
-    const inputRef = useRef<HTMLDivElement>(null);
+
+    const ensureControl = useCallback(() => {
+        const session = loadSession();
+        if (session) claimControl(session);
+        channelRef.current?.postMessage({ type: "CLAIM", tabId: TAB_ID });
+        setIsOwner(true);
+    }, []);
 
     function handleKeyDown(e: React.KeyboardEvent) {
-        if (status !== "idle") return;
+        if (statusRef.current !== "idle") return;
         if (e.key >= "0" && e.key <= "9") {
             setDigits(prev => {
                 const next = (prev + e.key).slice(-DIGIT_COUNT);
-                if (!isValidDigits(next)) return prev;
-                return next;
+                return isValidDigits(next) ? next : prev;
             });
         } else if (e.key === "Backspace") {
             setDigits(prev => ("0" + prev).slice(0, DIGIT_COUNT));
         }
     }
-
-    /* ══════════════════════════════════════════
-       TIMER ENGINE — ACTIONS
-    ══════════════════════════════════════════ */
 
     function start() {
         ensureControl();
@@ -945,22 +788,13 @@ export default function TimerScreen() {
         if (!totalSeconds) return;
 
         const now = Date.now();
-        let session = loadSession();
-
-        if (!session) {
-            session = {
-                startTime: now,
-                lastActive: now,
-                paused: false,
-                activeTabId: TAB_ID,
-                totalPausedMs: 0,
-                hasStartedWork: true,
-            };
-        }
+        let session = loadSession() ?? {
+            startTime: now, lastActive: now, paused: false,
+            activeTabId: TAB_ID, totalPausedMs: 0, hasStartedWork: true,
+        };
 
         if (session.pausedAt) {
-            session.totalPausedMs =
-                (session.totalPausedMs ?? 0) + (now - session.pausedAt);
+            session.totalPausedMs = (session.totalPausedMs ?? 0) + (now - session.pausedAt);
             delete session.pausedAt;
         }
 
@@ -968,26 +802,26 @@ export default function TimerScreen() {
         session.endTime = now + totalSeconds * 1000;
         session.paused = false;
         session.activeTabId = TAB_ID;
-
-        if (session.totalPausedMs == null) session.totalPausedMs = 0;
+        session.totalPausedMs ??= 0;
 
         saveSession(session);
         setSeconds(totalSeconds);
         setStatus("running");
+        statusRef.current = "running";
     }
 
     function pause() {
         ensureControl();
         const session = loadSession();
-        if (!session || !session.endTime) return;
+        if (!session?.endTime) return;
         const now = Date.now();
-        const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
         session.paused = true;
-        session.remainingOnPause = remaining;
+        session.remainingOnPause = Math.max(0, Math.ceil((session.endTime - now) / 1000));
         session.pausedAt = now;
         delete session.endTime;
         saveSession(session);
         setStatus("paused");
+        statusRef.current = "paused";
     }
 
     function resume() {
@@ -1004,6 +838,7 @@ export default function TimerScreen() {
         delete session.remainingOnPause;
         saveSession(session);
         setStatus("running");
+        statusRef.current = "running";
     }
 
     function reset() {
@@ -1018,14 +853,17 @@ export default function TimerScreen() {
             saveSession(session);
         }
         setStatus("idle");
+        statusRef.current = "idle";
         setSeconds(0);
         setDigits("000000");
+        stepIndexRef.current = 0;
+        stepElapsedRef.current = 0;
         setCurrentStepIndex(0);
-        setStepElapsed(0);
+        setStepProgressPct(0);
     }
 
     /* ══════════════════════════════════════════
-       SYNC ENGINE — SESSION SAVE / END
+       SESSION SAVE / END
     ══════════════════════════════════════════ */
 
     async function saveSessionToDB(session: Session, now: number, taskCompleted = false) {
@@ -1053,46 +891,32 @@ export default function TimerScreen() {
     }
 
     async function forceEndSession(session: Session) {
-        const now = Date.now();
-        const data = await saveSessionToDB(session, now);
+        const data = await saveSessionToDB(session, Date.now());
         clearSession();
         return data;
     }
 
     async function confirmEndSession(taskCompleted?: boolean) {
         const session = loadSession();
-        if (!session) {
-            setConfirmQuit(false);
-            setShowTaskComplete(false);
-            navigate(ROUTES.HOME);
-            return;
-        }
+        if (!session) { setConfirmQuit(false); setShowTaskComplete(false); navigate(ROUTES.HOME); return; }
 
-        const now = Date.now();
-        const data = await saveSessionToDB(session, now, taskCompleted ?? false);
-
+        const data = await saveSessionToDB(session, Date.now(), taskCompleted ?? false);
         clearSession();
         setStatus("idle");
+        statusRef.current = "idle";
         setSeconds(0);
         setDigits("000000");
 
-        if (data) {
-            setSummaryData(data);
-            setShowSummary(true);
-        } else {
-            navigate(ROUTES.HOME);
-        }
+        if (data) { setSummaryData(data); setShowSummary(true); }
+        else navigate(ROUTES.HOME);
+
         setConfirmQuit(false);
         setShowTaskComplete(false);
     }
 
     function handleEndSessionClick() {
-        if (currentTask) {
-            setConfirmQuit(false);
-            setShowTaskComplete(true);
-        } else {
-            setConfirmQuit(true);
-        }
+        if (currentTask) { setConfirmQuit(false); setShowTaskComplete(true); }
+        else setConfirmQuit(true);
     }
 
     /* ─────────────────────────────────────
@@ -1100,12 +924,7 @@ export default function TimerScreen() {
     ───────────────────────────────────── */
 
     const { h, mm, ss } = formatDigits(digits);
-    const totalTyped = digitsToSeconds(digits);
-    const canStart = totalTyped > 0;
-    const showControlBanner = !isOwner;
-
-    const currentStepDuration = workflowSteps[currentStepIndex]?.duration_seconds ?? 1;
-    const stepProgressPct = Math.min(100, Math.round((stepElapsed / currentStepDuration) * 100));
+    const canStart = digitsToSeconds(digits) > 0;
 
     return (
         <>
@@ -1115,24 +934,20 @@ export default function TimerScreen() {
                     <Window>
                         <SkyBackground>
                             <SkyScroller>
-                                <SkyTile/>
-                                <SkyTile/>
+                                <SkyTile />
+                                <SkyTile />
                             </SkyScroller>
                         </SkyBackground>
 
-                        {showControlBanner && (
+                        {!isOwner && (
                             <BlockedBanner>
                                 Timer is active in another tab.
-                                <button onClick={() => { ensureControl(); setIsOwner(true); }}>
-                                    Take control
-                                </button>
+                                <button onClick={ensureControl}>Take control</button>
                             </BlockedBanner>
                         )}
 
                         <PageBackButton to={ROUTES.HOME} />
-                        <EndSessionButton onClick={handleEndSessionClick}>
-                            End Session
-                        </EndSessionButton>
+                        <EndSessionButton onClick={handleEndSessionClick}>End Session</EndSessionButton>
 
                         <Main>
                             {currentTask && <TaskLabel>{currentTask.title}</TaskLabel>}
@@ -1162,8 +977,7 @@ export default function TimerScreen() {
 
                             <Controls>
                                 {status === "idle" && (
-                                    <Btn onClick={start} disabled={!canStart}
-                                         style={{ opacity: canStart ? 1 : 0.35 }}>
+                                    <Btn onClick={start} disabled={!canStart} style={{ opacity: canStart ? 1 : 0.35 }}>
                                         Start
                                     </Btn>
                                 )}
@@ -1185,13 +999,9 @@ export default function TimerScreen() {
                                     aria-label={sidebarOpen ? "Close plan" : "Open plan"}
                                 />
                                 <Sidebar $open={sidebarOpen}>
-                                    <SidebarTitle>
-                                        {isPomodoro ? "Pomodoro Workflow" : "Study Plan"}
-                                    </SidebarTitle>
+                                    <SidebarTitle>{isPomodoro ? "Pomodoro Workflow" : "Study Plan"}</SidebarTitle>
 
-                                    {workflowLoading && (
-                                        <SidebarEmpty>Generating your plan...</SidebarEmpty>
-                                    )}
+                                    {workflowLoading && <SidebarEmpty>Generating your plan...</SidebarEmpty>}
 
                                     {!workflowLoading && isPomodoro && (
                                         <PomodoroWarning>
@@ -1201,18 +1011,10 @@ export default function TimerScreen() {
                                     )}
 
                                     {!workflowLoading && workflowSteps.map((step, i) => (
-                                        <StepItem
-                                            key={i}
-                                            $active={i === currentStepIndex}
-                                            $done={i < currentStepIndex}
-                                        >
+                                        <StepItem key={i} $active={i === currentStepIndex} $done={i < currentStepIndex}>
                                             <StepLabel>{step.label}</StepLabel>
-                                            <StepDuration>
-                                                {formatStepDuration(step.duration_seconds)}
-                                            </StepDuration>
-                                            {i === currentStepIndex && (
-                                                <StepProgressBar $pct={stepProgressPct} />
-                                            )}
+                                            <StepDuration>{formatStepDuration(step.duration_seconds)}</StepDuration>
+                                            {i === currentStepIndex && <StepProgressBar $pct={stepProgressPct} />}
                                         </StepItem>
                                     ))}
 
@@ -1243,61 +1045,32 @@ export default function TimerScreen() {
                 {confirmQuit && (
                     <Overlay>
                         <OverlayContent>
-                            <OverlayTitle>
-                                End Timer Session?
-                            </OverlayTitle>
-                            <PrimaryBtn onClick={() => setConfirmQuit(false)}>
-                                Continue
-                            </PrimaryBtn>
-                            <SecondaryBtn onClick={() => confirmEndSession()}>
-                                End Timer
-                            </SecondaryBtn>
+                            <OverlayTitle>End Timer Session?</OverlayTitle>
+                            <PrimaryBtn onClick={() => setConfirmQuit(false)}>Continue</PrimaryBtn>
+                            <SecondaryBtn onClick={() => confirmEndSession()}>End Timer</SecondaryBtn>
                         </OverlayContent>
                     </Overlay>
                 )}
 
-                {showSummary && (
+                {showSummary && summaryData && (
                     <Overlay>
                         <SummaryCard>
                             <SummaryTitle>Good Job!</SummaryTitle>
-                            {true && (
-                                <>
-                                    <SummarySubtitle>You grew a plant!</SummarySubtitle>
-                                    <PlantDisplay>🌱</PlantDisplay>
-                                </>
-                            )}
-                            <div style={{ fontSize: "0.85rem", marginTop: "1rem", color: "#333" }}>
-                                You studied for
-                            </div>
+                            <SummarySubtitle>You grew a plant!</SummarySubtitle>
+                            <PlantDisplay>🌱</PlantDisplay>
+                            <div style={{ fontSize: "0.85rem", marginTop: "1rem", color: "#333" }}>You studied for</div>
                             {(() => {
-                                const active = summaryData.active_seconds ?? 0;
-                                const { h, m, s } = formatHMS(active);
-                                return (
-                                    <TimeBox>
-                                        {h}:{m}:{s}
-                                    </TimeBox>
-                                );
+                                const { h, m, s } = formatHMS(summaryData.active_seconds ?? 0);
+                                return <TimeBox>{h}:{m}:{s}</TimeBox>;
                             })()}
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-around",
-                                    fontSize: "0.8rem",
-                                    color: "#666",
-                                    marginTop: "0.5rem"
-                                }}
-                            >
+                            <div style={{ display: "flex", justifyContent: "space-around", fontSize: "0.8rem", color: "#666", marginTop: "0.5rem" }}>
                                 <span>hours</span>
                                 <span>minutes</span>
                                 <span>seconds</span>
                             </div>
                             <ButtonStack>
-                                <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>
-                                    Study Again
-                                </PrimaryBtn>
-                                <SecondaryBtn onClick={() => navigate(ROUTES.HOME)}>
-                                    Leave Timer
-                                </SecondaryBtn>
+                                <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>Study Again</PrimaryBtn>
+                                <SecondaryBtn onClick={() => navigate(ROUTES.HOME)}>Leave Timer</SecondaryBtn>
                             </ButtonStack>
                         </SummaryCard>
                     </Overlay>

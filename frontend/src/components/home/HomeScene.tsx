@@ -7,6 +7,7 @@ import HomepageBlankObject from "./HomepageBlankObject";
 import ProfileSidebar from "./ProfileSidebar";
 import HomeIcon from "../icons/HomeIcon.tsx";
 import styled from "styled-components";
+import TaskBookObject from "./TaskBookObject.tsx";
 
 export const SceneWrapper = styled.div`
     position: relative;
@@ -42,6 +43,7 @@ export default function HomeScene() {
             <PlannerObject />
             <ClockObject />
             <StickyNotesOnDeskObject />
+            <TaskBookObject />
 
             {/* Only show the home button when sidebar is closed */}
             {!sidebarOpen && (
