@@ -5,6 +5,7 @@ import { useState } from "react";
 import BusyTimeItem from "../components/profileComponents/BusyTimeItem";
 import BusyTimeModal from "../components/profileComponents/BusyTimeModal";
 import { useNavigate } from "react-router-dom";
+import type {BusyTimeData} from "../components/profileComponents/BusyTimeCard.tsx";
 
 
 /* ── Layout ───────────────────────── */
@@ -183,6 +184,20 @@ export default function Availability() {
 
     const navigate = useNavigate();
 
+    function handleSaveBusyTime(data: BusyTimeData) {
+        setBusyTimes(prev => [
+            ...prev,
+            {
+                id: Date.now(),
+                title: data.title,
+                time: `${data.start.hour}:${data.start.minute} ${data.start.ampm} → ${data.end.hour}:${data.end.minute} ${data.end.ampm}`,
+                days: data.days.join(" • "),
+            }
+        ]);
+
+        setEditing(null);
+    }
+
     return (
         <Page>
             <PageBackButton to={ROUTES.SETTINGS} label="Account" />
@@ -252,7 +267,10 @@ export default function Availability() {
 
             {/* ── Edit Modal ── */}
             {editing !== null && (
-                <BusyTimeModal onClose={() => setEditing(null)} />
+                <BusyTimeModal
+                    onClose={() => setEditing(null)}
+                    onSave={handleSaveBusyTime}
+                />
             )}
         </Page>
     );
