@@ -1140,18 +1140,18 @@ export default function TimerScreen() {
 
                 <Sill />
 
-                {/*{showReusePrompt && (*/}
-                {/*    <Overlay>*/}
-                {/*        <OverlayCard>*/}
-                {/*            <h3>Welcome back!</h3>*/}
-                {/*            <p>You have a session from earlier. Continue it?</p>*/}
-                {/*            <div className="actions">*/}
-                {/*                <OverlayBtn onClick={handleReuseYes}>Continue</OverlayBtn>*/}
-                {/*                <OverlayBtn onClick={handleReuseNo}>Start fresh</OverlayBtn>*/}
-                {/*            </div>*/}
-                {/*        </OverlayCard>*/}
-                {/*    </Overlay>*/}
-                {/*)}*/}
+                {showReusePrompt && (
+                    <Overlay>
+                        <OverlayContent>
+                            <h3>Welcome back!</h3>
+                            <p>You have a session from earlier. Continue it?</p>
+                            <div className="actions">
+                                <OverlayBtn onClick={handleReuseYes}>Continue</OverlayBtn>
+                                <OverlayBtn onClick={handleReuseNo}>Start fresh</OverlayBtn>
+                            </div>
+                        </OverlayContent>
+                    </Overlay>
+                )}
 
                 {showTaskComplete && (
                     <Overlay>
