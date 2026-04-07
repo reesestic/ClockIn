@@ -34,3 +34,27 @@ class ScheduleResponse(BaseModel):
     scheduled_start: datetime
     scheduled_end: datetime
     created_at: datetime
+
+
+class AutoScheduleRequest(BaseModel):
+    task_id: UUID
+
+
+class AutoScheduleResponse(BaseModel):
+    task_id: UUID
+    best_slot: datetime
+    score: float
+    accepted: bool
+
+
+class GenerateScheduleRequest(BaseModel):
+    task_ids: list[str]
+    filters: dict = {}
+
+
+class GeneratedBlock(BaseModel):
+    task_id: str
+    title: str
+    start: str
+    end: str
+    score: float

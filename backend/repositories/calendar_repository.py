@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from supabase_client import supabase
+from database.supabase_client import supabase
 from database.database_models import Task, TaskCreateRequest, TaskUpdateRequest
 #directly talks to supabase and tells what to pull. also imports models from 
 
