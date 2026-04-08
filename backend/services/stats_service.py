@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 
 
 class StatsService:
-    def __init__(self, timer_repo):
+    def __init__(self, timer_repo, plants_repo):
         self.timer_repo = timer_repo
+        self.plants_repo = plants_repo
 
     def get_stats(self, user_id):
         sessions = self.timer_repo.get_sessions(user_id)
@@ -24,7 +25,7 @@ class StatsService:
         # -------------------------
         # 2. PLANTS GROWN
         # -------------------------
-        plants_grown = sum(1 for s in sessions if s.get("task_completed"))
+        plants_grown = self.plants_repo.get_completed_plant_count(user_id)
 
         # -------------------------
         # 3. DAY STREAK

@@ -6,6 +6,9 @@ import { ROUTES } from "../../constants/Routes.ts";
 import { createTimerSession } from "../../api/timerApi.ts";
 import type { TimerSession } from "../../types/TimerSession.ts";
 import digital7 from "../../assets/fonts/digital-7.ttf";
+import {fetchActivePlant, growPlant} from "../../api/plantApi.ts";
+import { PlantStage1, PlantStage2, PlantStage3, PlantStage4, PlantStage5 } from "../../assets/plants/sunflower";
+
 
 /* ─────────────────────────────────────────
    TYPES
@@ -524,6 +527,18 @@ const PlantDisplay = styled.div`
     margin: 1.5rem 0;
 `;
 
+// Plant Styling
+const PlantContainer = styled.div`
+    position: absolute;
+    bottom: 60px;   /* sits just above the window sill */
+    left: 50%;
+    transform: translateX(-50%);
+    width: clamp(80px, 14vw, 140px);
+    z-index: 5;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+`;
+
 const TimeBox = styled.div`
     background: #EAEAEA;
     border-radius: 16px;
@@ -639,6 +654,14 @@ const SidebarEmpty = styled.div`
     margin-top: 1rem;
 `;
 
+// Plant helper stuff
+const STAGE_COMPONENTS = [PlantStage1, PlantStage2, PlantStage3, PlantStage4, PlantStage5];
+
+function PlantVisual({ stage }: { stage: number }) {
+    const Stage = STAGE_COMPONENTS[Math.min(Math.max(stage, 1), 5) - 1];
+    return <Stage />;
+}
+
 /* ─────────────────────────────────────────
    COMPONENT
 ───────────────────────────────────────── */
@@ -665,12 +688,75 @@ export default function TimerScreen() {
 
     // CHANGED: removed useEffect syncing for statusRef and secondsRef — deleted those refs
 
+    // PLANTS :)
+    const [plantStage, setPlantStage] = useState(1);         // 1–5
+    const [plantsEarned, setPlantsEarned] = useState(0);
+    const localPlantProgressRef = useRef(0);                  // ref for use inside setInterval
+
+    // Plant stuff
+    // Plant helper
+    const lastPlantSyncRef = useRef(Date.now());
+
+    const syncPlantProgress = useCallback(async () => {
+
+        const session = loadSession();
+        if (!session || session.paused) return; // ← only sync during active timer
+
+        const now = Date.now();
+        const deltaSeconds = Math.floor((now - lastPlantSyncRef.current) / 1000);
+        if (deltaSeconds <= 0) return;
+
+        try {
+            const result = await growPlant(deltaSeconds);
+            console.log("🌿 growPlant result:", { deltaSeconds, result });
+
+            if (result?.plants_earned > 0) setPlantsEarned((prev: number) => prev + result.plants_earned);
+            if (result?.stage != null) setPlantStage(result.stage);
+            localPlantProgressRef.current = result.progress ?? 0;
+
+            lastPlantSyncRef.current = now;
+            return result; // ← so callers can read stage/progress
+        } catch (e) {
+            console.warn("Plant sync failed", e);
+        }
+    }, []);
+
+    useEffect(() => {
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                syncPlantProgress();
+            }
+        }
+
+        window.addEventListener("beforeunload", syncPlantProgress);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener("beforeunload", syncPlantProgress);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, []);
+
     /* ══════════════════════════════════════════
        SESSION ENGINE — MOUNT RESOLUTION
     ══════════════════════════════════════════ */
     useEffect(() => {
         const { resumeAction, timerStatus, timerSeconds, timerDigits, isOwner: owner } =
             resolveSessionOnMount();
+        // Fetch active plant to resume from correct progress
+        async function loadActivePlant() {
+            try {
+                const data = await fetchActivePlant();
+                console.log("🌱 Plant on mount:", data);
+                if (data?.progress_seconds != null) {
+                    localPlantProgressRef.current = data.progress_seconds;
+                    setPlantStage(data.stage ?? 1);
+                }
+            } catch (e) {
+                console.warn("Could not fetch active plant", e);
+            }
+        }
+        loadActivePlant();
 
         setIsOwner(owner);
         setStatus(timerStatus);
@@ -778,27 +864,30 @@ export default function TimerScreen() {
     useEffect(() => {
         if (status !== "running") return;
 
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
             const session = loadSession();
             if (!session || session.paused || !session.endTime) return;
 
             const now = Date.now();
             const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
-
             setSeconds(remaining);
 
-            // CHANGED: only save to localStorage when timer hits zero (not every tick)
-            if (remaining <= 0) {
-                const now = Date.now();
+            // Local ref ticks every second (UI only, no backend)
+            localPlantProgressRef.current += 1;
 
-                // 🔥 mark session as paused
+            // Sync to backend every 30 seconds
+            if (localPlantProgressRef.current % 30 === 0) {
+                const result = await syncPlantProgress();
+                // Backend responds with current stage → updates UI
+                if (result?.stage != null) setPlantStage(result.stage);
+            }
+
+            if (remaining <= 0) {
+                await syncPlantProgress(); // final sync on timer end
                 session.paused = true;
                 session.pausedAt = now;
-
                 delete session.endTime;
-
                 saveSession(session);
-
                 setStatus("idle");
                 setSeconds(0);
             }
@@ -895,6 +984,7 @@ export default function TimerScreen() {
         // CHANGED: ensure totalPausedMs exists on reused sessions
         if (session.totalPausedMs == null) session.totalPausedMs = 0;
 
+        lastPlantSyncRef.current = Date.now();
         saveSession(session);
         setSeconds(totalSeconds);
         setStatus("running");
@@ -914,6 +1004,8 @@ export default function TimerScreen() {
         delete session.endTime;
         saveSession(session);
         setStatus("paused");
+
+        lastPlantSyncRef.current = Date.now();
     }
 
     // CHANGED: removed lastTickRef
@@ -932,11 +1024,17 @@ export default function TimerScreen() {
         delete session.remainingOnPause;
         saveSession(session);
         setStatus("running");
+
+        lastPlantSyncRef.current = Date.now();
     }
 
     // CHANGED: removed lastTickRef, added totalPausedMs reset
-    function reset() {
+    async function reset() {
         ensureControl();
+
+        await syncPlantProgress(); // flush before resetting clock
+        lastPlantSyncRef.current = Date.now(); // restart clock
+
         const session = loadSession();
         if (session) {
             delete session.endTime;
@@ -974,7 +1072,12 @@ export default function TimerScreen() {
 
         try {
             const res = await createTimerSession(payload);
-            return res.data;
+
+            return {
+                session: res.data,
+                //plantsEarned: plantRes.plants_earned,
+            };
+
         } catch (e) {
             console.error("Failed to save session", e);
             return null;
@@ -991,6 +1094,9 @@ export default function TimerScreen() {
 
     async function confirmEndSession(taskCompleted?: boolean) {
         const session = loadSession();
+
+        await syncPlantProgress();
+
         if (!session) {
             setConfirmQuit(false);
             setShowTaskComplete(false);
@@ -999,18 +1105,19 @@ export default function TimerScreen() {
         }
 
         const now = Date.now();
-        const data = await saveSessionToDB(session, now, taskCompleted ?? false);
-
+        const result = await saveSessionToDB(session, now, taskCompleted ?? false);
         clearSession();
         setStatus("idle");
         setSeconds(0);
         setDigits("000000");
 
-        if (data) {
-            setSummaryData(data);
+        if (result) {
+            setSummaryData({
+                ...result.session,
+                // Use accumulated plantsEarned from state (includes mid-session ones)
+                plantsEarned: plantsEarned,
+            });
             setShowSummary(true);
-        } else {
-            navigate(ROUTES.HOME);
         }
         setConfirmQuit(false);
         setShowTaskComplete(false);
@@ -1089,7 +1196,7 @@ export default function TimerScreen() {
                                         tabIndex={0}
                                         onKeyDown={handleKeyDown}
                                         onClick={() => inputRef.current?.focus()}
-                                        title="Click then type digits — Backspace to clear"
+                                        // title="Click then type digits — Backspace to clear"
                                     >
                                         <DigitGroup $active={digits.length >= 5}>{h}</DigitGroup>
                                         <Colon>:</Colon>
@@ -1121,6 +1228,10 @@ export default function TimerScreen() {
                                 )}
                             </Controls>
                         </Main>
+
+                        <PlantContainer>
+                            <PlantVisual stage={plantStage} />
+                        </PlantContainer>
 
                         {hasPlan && (
                             <>
@@ -1195,11 +1306,14 @@ export default function TimerScreen() {
                             <SummaryTitle>Good Job!</SummaryTitle>
 
                             {/* Replace with plant growth logic */}
-                            {true && (
+                            {summaryData?.plantsEarned > 0 && (
                                 <>
-                                    <SummarySubtitle>You grew a plant!</SummarySubtitle>
+                                    <SummarySubtitle>
+                                        You grew {summaryData.plantsEarned} plant{summaryData.plantsEarned > 1 ? "s" : ""}!
+                                    </SummarySubtitle>
+
                                     <PlantDisplay>
-                                        🌱
+                                        {"🌱".repeat(summaryData.plantsEarned)}
                                     </PlantDisplay>
                                 </>
                             )}
@@ -1234,7 +1348,23 @@ export default function TimerScreen() {
                             </div>
 
                             <ButtonStack>
-                                <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>
+                                <PrimaryBtn onClick={() => {
+                                    console.log("Study Again clicked");
+
+                                    try {
+                                        const session = localStorage.getItem("activeSession");
+                                        console.log("Session before navigate:", session);
+
+                                        console.log("NAVIGATING NOW");
+                                        console.log("Current path:", window.location.pathname);
+
+                                        navigate(ROUTES.TIMER_ENTRY_PAGE);
+
+                                        console.log("NAVIGATION CALLED");
+                                    } catch (err) {
+                                        console.error("CLICK ERROR:", err);
+                                    }
+                                }}>
                                     Study Again
                                 </PrimaryBtn>
 

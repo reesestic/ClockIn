@@ -1,11 +1,15 @@
 import styled from "styled-components";
 import BackButton from "../components/navigation/BackButton";
 import { ROUTES } from "../constants/Routes";
-import { useState } from "react";
-import BusyTimeItem from "../components/profileComponents/BusyTimeItem";
-import BusyTimeModal from "../components/profileComponents/BusyTimeModal";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import type {BusyTimeData} from "../components/profileComponents/BusyTimeCard.tsx";
+import {
+    startGoogleLogin,
+    syncGoogleCalendar,
+    disconnectGoogleCalendar,
+    getGoogleStatus
+} from "../api/googleApi.ts";
+import {useAuth} from "../context/AuthContext.tsx";
 
 
 /* ── Layout ───────────────────────── */
@@ -121,82 +125,50 @@ const ActionBtn = styled.button`
     &:hover { color: #111; }
 `;
 
-const BusyList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 8px;
-`;
-
-// Overlay that covers the whole page when busy times section is open
-const BusyTimeOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-`;
-
-const BusyTimePanel = styled.div`
-    background: white;
-    border-radius: 16px;
-    padding: 28px;
-    width: min(700px, 90vw);
-    max-height: 80vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`;
-
-const PanelTitle = styled.h3`
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #222;
-    margin: 0 0 8px;
-`;
-
-const CloseBtn = styled.button`
-    align-self: flex-end;
-    background: none;
-    border: none;
-    font-size: 0.85rem;
-    color: #888;
-    cursor: pointer;
-    &:hover { color: #333; }
-`;
-
 /* ── Component ───────────────────── */
 
 export default function Availability() {
     const [syncOn, setSyncOn] = useState(false);
-    const [showBusyPanel, setShowBusyPanel] = useState(false);
-    const [editing, setEditing] = useState<null | number>(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const [statusLoading, setStatusLoading] = useState(true);
 
-    // CHANGED: useState so delete/edit actually updates the list
-    const [busyTimes, setBusyTimes] = useState([
-        { id: 1, title: "Gym",    time: "6:00 PM → 7:30 PM", days: "MON • WED • FRI" },
-        { id: 2, title: "Class",  time: "2:00 PM → 4:00 PM", days: "TUE • THU" },
-        { id: 3, title: "Dinner", time: "7:00 PM → 8:00 PM", days: "DAILY" },
-    ]);
+    const { user } = useAuth();
+
+    async function handleToggleGoogleSync() {
+        if (!isConnected) {
+            startGoogleLogin(user!.id);
+            return;
+        }
+
+        if (syncOn) {
+            const confirmed = window.confirm(
+                "Remove all Google Calendar events from your schedule?"
+            );
+            if (!confirmed) return;
+
+            await disconnectGoogleCalendar();
+
+            setSyncOn(false);
+            setIsConnected(false);
+        } else {
+            await syncGoogleCalendar();
+            setSyncOn(true);
+        }
+    }
 
     const navigate = useNavigate();
 
-    function handleSaveBusyTime(data: BusyTimeData) {
-        setBusyTimes(prev => [
-            ...prev,
-            {
-                id: Date.now(),
-                title: data.title,
-                time: `${data.start.hour}:${data.start.minute} ${data.start.ampm} → ${data.end.hour}:${data.end.minute} ${data.end.ampm}`,
-                days: data.days.join(" • "),
-            }
-        ]);
 
-        setEditing(null);
-    }
+    useEffect(() => {
+        async function loadStatus() {
+            const data = await getGoogleStatus();
+            console.log("google status:", data);  // check this
+            setIsConnected(data.connected);
+            setSyncOn(data.connected);
+            setStatusLoading(false);
+        }
+        loadStatus();
+    }, []);
 
     return (
         <Page>
@@ -219,7 +191,12 @@ export default function Availability() {
                 {/* Row 2 — Sync Google Calendar */}
                 <SettingRow>
                     <SettingLabel>Sync Google Calendar</SettingLabel>
-                    <Toggle $on={syncOn} onClick={() => setSyncOn(p => !p)} />
+                    <Toggle
+                        $on={syncOn}
+                        onClick={handleToggleGoogleSync}
+                        disabled={statusLoading}
+                        style={{ opacity: statusLoading ? 0.4 : 1 }}
+                    />
                 </SettingRow>
 
                 <Divider />
@@ -231,47 +208,6 @@ export default function Availability() {
 
                 <Divider />
             </Card>
-
-            {/* ── Busy Times Panel ── */}
-            {showBusyPanel && (
-                <BusyTimeOverlay onClick={() => setShowBusyPanel(false)}>
-                    <BusyTimePanel onClick={e => e.stopPropagation()}>
-                        <PanelTitle>Busy Times</PanelTitle>
-
-                        <ActionBtn onClick={() => setEditing(-1)}>
-                            + Add Busy Time
-                        </ActionBtn>
-
-                        <Divider />
-
-                        <BusyList>
-                            {busyTimes.map(item => (
-                                <BusyTimeItem
-                                    key={item.id}
-                                    title={item.title}
-                                    time={item.time}
-                                    days={item.days}
-                                    onEdit={() => setEditing(item.id)}
-                                    // CHANGED: actually removes from list
-                                    onDelete={() => setBusyTimes(prev => prev.filter(b => b.id !== item.id))}
-                                />
-                            ))}
-                        </BusyList>
-
-                        <Divider />
-
-                        <CloseBtn onClick={() => setShowBusyPanel(false)}>Close</CloseBtn>
-                    </BusyTimePanel>
-                </BusyTimeOverlay>
-            )}
-
-            {/* ── Edit Modal ── */}
-            {editing !== null && (
-                <BusyTimeModal
-                    onClose={() => setEditing(null)}
-                    onSave={handleSaveBusyTime}
-                />
-            )}
         </Page>
     );
 }

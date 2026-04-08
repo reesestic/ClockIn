@@ -26,6 +26,16 @@ class BusyTimesService:
     def delete(self, user_id, busy_time_id):
         return self.repo.delete(user_id, busy_time_id)
 
+    def replace_google_events(self, user_id, busy_times):
+        self.repo.delete_by_source(user_id, "google")
+
+        for bt in busy_times:
+            self.repo.create(user_id, bt)
+
+
+    def delete_google_events(self, user_id):
+        self.repo.delete_by_source(user_id, "google")
+
     # def sync_google(user_id: str):
     #     # 1. fetch events from google
     #     events = google_client.get_events(user_id)

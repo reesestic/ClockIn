@@ -13,16 +13,19 @@ import type { BusyTimeRecord } from "../api/busyTimesApi";
 
 interface BusyTime extends BusyTimeData {
     id: string;
+    source?: string;
 }
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const BLOCK_COLORS = ["#AFDBFF", "#FFF59A"]; // Iceberg, Soft Canary
+// const BLOCK_COLORS = ["#aaa"]; // Gray
 /* ── Helpers ─────────────────────── */
 
 // Convert DB record → frontend BusyTime
 function recordToLocal(r: BusyTimeRecord): BusyTime {
     return {
         id: r.id,
+        source: r.source,  // add this
         title: r.title,
         start: r.start_time ? isoToTimeValue(r.start_time) : { hour: "8", minute: "00", ampm: "AM" },
         end:   r.end_time   ? isoToTimeValue(r.end_time)   : { hour: "9", minute: "00", ampm: "AM" },
@@ -307,7 +310,8 @@ export default function BusyTimes() {
                                             <GridBlock
                                                 key={b.id}
                                                 $color={BLOCK_COLORS[getColorIndex(b.id, busyTimes) % BLOCK_COLORS.length]}
-                                                onClick={() => setEditing(b.id)}
+                                                onClick={b.source === "google" ? undefined : () => setEditing(b.id)}
+                                                style={{ cursor: b.source === "google" ? "default" : "pointer" }}
                                             >
                                                 <BlockTitle>{b.title}</BlockTitle>
                                                 <BlockTime>{formatTime(b.start)}</BlockTime>
@@ -335,6 +339,7 @@ export default function BusyTimes() {
                                             title={b.title}
                                             time={formatTimeRange(b)}
                                             days={daysLabel(b.days)}
+                                            source={b.source}
                                             onEdit={() => setEditing(b.id)}
                                             onDelete={() => handleDelete(b.id)}
                                         />

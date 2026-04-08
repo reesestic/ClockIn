@@ -59,11 +59,13 @@ type Props = {
     title: string;
     time: string;
     days: string;
+    source?: string;
     onEdit: () => void;
     onDelete: () => void;
 };
 
-export default function BusyTimeItem({ title, time, days, onEdit, onDelete }: Props) {
+export default function BusyTimeItem({ title, time, days, source, onEdit, onDelete }: Props) {
+    const isGoogle = source === "google";
     return (
         <Card>
             <Left>
@@ -71,10 +73,12 @@ export default function BusyTimeItem({ title, time, days, onEdit, onDelete }: Pr
                 <Time>{time}</Time>
                 <Days>{days}</Days>
             </Left>
-            <Actions>
-                <ActionBtn onClick={onEdit}>Edit</ActionBtn>
-                <ActionBtn onClick={onDelete}>Delete</ActionBtn>
-            </Actions>
+            {!isGoogle && (
+                <Actions>
+                    <ActionBtn onClick={onEdit}>Edit</ActionBtn>
+                    <ActionBtn onClick={onDelete}>Delete</ActionBtn>
+                </Actions>
+            )}
         </Card>
     );
 }

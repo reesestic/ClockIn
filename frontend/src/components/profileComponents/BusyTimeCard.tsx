@@ -64,18 +64,21 @@ export function timeValueToISO(t: TimeValue): string {
     let h = parseInt(t.hour);
     if (t.ampm === "PM" && h !== 12) h += 12;
     if (t.ampm === "AM" && h === 12) h = 0;
-    return `1970-01-01T${h.toString().padStart(2, "0")}:${t.minute}:00.000Z`;
+    // Store as plain time string, no timezone
+    return `${h.toString().padStart(2, "0")}:${t.minute}:00`;
 }
 
 export function isoToTimeValue(iso: string): TimeValue {
-    const date = new Date(iso);
-    let h = date.getUTCHours();
+    // Handle both "HH:MM:SS" and full ISO strings
+    const timePart = iso.includes("T") ? iso.split("T")[1] : iso;
+    const [hStr, mStr] = timePart.split(":");
+    let h = parseInt(hStr);
     const ampm: "AM" | "PM" = h >= 12 ? "PM" : "AM";
     if (h > 12) h -= 12;
     if (h === 0) h = 12;
     return {
         hour: h.toString(),
-        minute: date.getUTCMinutes().toString().padStart(2, "0"),
+        minute: mStr,
         ampm,
     };
 }

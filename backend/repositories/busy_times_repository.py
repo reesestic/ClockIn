@@ -43,3 +43,6 @@ class BusyTimesRepository:
             .execute()
         )
         return { "deleted_id": busy_time_id }
+
+    def delete_by_source(self, user_id: str, source: str):
+        self.supabase.table("BusyTimes").delete().eq("user_id", user_id).eq("source", source).execute()
