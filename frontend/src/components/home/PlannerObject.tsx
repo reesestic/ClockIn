@@ -9,7 +9,7 @@ const Wrapper = styled.div`
     top: 60%;
     left: 60%;
     transform:scale(2.1);
-    z-index: 10;
+    z-index: 8;
 `;
 
 const StyledPlanner = styled(PlannerIcon)`

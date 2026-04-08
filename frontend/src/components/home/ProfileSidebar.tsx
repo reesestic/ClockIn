@@ -1,6 +1,5 @@
 import styled from "styled-components";
 import { useAuth } from "../../context/AuthContext.tsx";
-import HomeIcon from "../icons/HomeIcon.tsx";
 import { useNavigate } from "react-router-dom";
 import {ROUTES} from "../../constants/Routes.ts";
 import ProfileLeavesIcon from "../icons/ProfileLeavesIcon";
@@ -18,40 +17,7 @@ const Overlay = styled.div<{ $open: boolean }>`
     pointer-events: ${p => p.$open ? "auto" : "none"};
 `;
 
-const PeekBtn = styled.button<{ $open: boolean }>`
-    position: absolute;
-    top: 16px;
-    right: -52px;
-    width: 44px;
-    height: 44px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: ${p => p.$open ? 1 : 0};
-    pointer-events: ${p => p.$open ? "auto" : "none"};
 
-    &::after {
-        content: "Profile";
-        position: absolute;
-        left: calc(100% + 8px);
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(50, 50, 50, 0.85);
-        color: white;
-        font-size: 0.72rem;
-        padding: 3px 8px;
-        border-radius: 4px;
-        white-space: nowrap;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s;
-    }
-
-    &:hover::after { opacity: 1; }
-`;
 
 const Panel = styled.div<{ $open: boolean }>`
     position: absolute;
@@ -75,9 +41,7 @@ const Panel = styled.div<{ $open: boolean }>`
     font-size: clamp(0.7rem, 1rem, 1.2rem);
 `;
 
-const StyledHomeIcon = styled(HomeIcon)`
-    path { fill: white; }
-`;
+
 
 
 const PanelTitle = styled.div`
@@ -236,9 +200,7 @@ export default function ProfileSidebar({ open, onClose }: Props) {
     return (
         <Overlay $open={open} onClick={onClose}>
             <Panel $open={open} onClick={e => e.stopPropagation()}>
-                <PeekBtn $open={open} onClick={onClose}>
-                    <StyledHomeIcon />
-                </PeekBtn>
+
 
                 <PanelTitle>Home</PanelTitle>
                 {/* Box 1 — Avatar + Name */}

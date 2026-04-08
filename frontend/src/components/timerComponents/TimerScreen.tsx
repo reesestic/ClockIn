@@ -202,11 +202,10 @@ const SkyTile = styled.div`
     width: 100%;
     height: 100%;
     background-image: url('/timer_sky.svg');
-    background-size: cover;
-    background-repeat: no-repeat;
+    background-repeat: repeat-x;
+    background-size: auto 100%; /* height fits, width scales naturally */
     flex-shrink: 0;
 `;
-
 const Frame = styled.div`
     position: relative;
     width: 90%;
