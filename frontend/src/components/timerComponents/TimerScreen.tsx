@@ -711,6 +711,7 @@ export default function TimerScreen() {
             console.log("🌿 growPlant result:", { deltaSeconds, result });
 
             if (result?.plants_earned > 0) setPlantsEarned((prev: number) => prev + result.plants_earned);
+            // Animation call here
             if (result?.stage != null) setPlantStage(result.stage);
             localPlantProgressRef.current = result.progress ?? 0;
 
