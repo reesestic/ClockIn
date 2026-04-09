@@ -179,14 +179,14 @@ const TaskEditableContainer = styled.div`
     border-radius: 4px;
 `;
 
-const TitleRow = styled.div`
+const TitleRow = styled.div<{ colorHex: string }>`
     display: flex;
-    background-color: #fff59a;
+    background-color: ${({ colorHex }) => colorHex};
     width: 100%;
 `;
 
-const TitleInput = styled.input`
-    background-color: #fff59a;
+const TitleInput = styled.input<{ colorHex: string }>`
+    background-color: ${({ colorHex }) => colorHex};
     color: black;
     font-weight: bold;
     font-size: 1rem;
@@ -196,10 +196,6 @@ const TitleInput = styled.input`
     width: 100%;
     box-sizing: border-box;
     cursor: text;
-
-    &:focus {
-        outline: 2px solid #f0d800;
-    }
 `;
 
 const CollapsedFieldContainer = styled.div`
@@ -353,8 +349,22 @@ interface ModalTaskEditableProps {
     onChange: (updated: Task) => void;
 }
 
+const colors: Record<string, string> = {
+    red: "#FFAFB1",
+    orange: "#F6C98A",
+    yellow: "#FFF59A",
+    green: "#C0E8AA",
+    blue: "#AFDBFF",
+    purple: "#C5AFFF",
+    pink: "#FFC7E8",
+};
+
+const getColorHex = (colorName?: string) =>
+    colors[colorName ?? "yellow"] ?? colors["yellow"];
+
 function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
     const [local, setLocal] = useState<Task>({ ...task });
+    const colorHex = getColorHex(local.color);
 
     const update = (fields: Partial<Task>) => {
         const updated = { ...local, ...fields };
@@ -362,10 +372,12 @@ function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
         onChange(updated);
     };
 
+
     return (
         <TaskEditableContainer>
-            <TitleRow>
+            <TitleRow colorHex={colorHex}>
                 <TitleInput
+                    colorHex={colorHex}
                     value={local.title}
                     onChange={e => update({ title: e.target.value })}
                     placeholder="Task title"

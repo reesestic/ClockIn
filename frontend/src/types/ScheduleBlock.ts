@@ -2,11 +2,11 @@ export type ScheduleBlock = {
     id: string;
     title: string;
 
-    start: string;
-    end: string;
+    date: string;   // "YYYY-MM-DD"
+    start: string;  // "HH:MM"
+    end: string;    // "HH:MM"
 
     duration?: number;
     task_id?: string;
-    // future extensibility
     color?: string;
 };

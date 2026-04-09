@@ -14,6 +14,17 @@ class TaskRepository:
         result = self.supabase.table('Tasks').insert(task_data).execute()
         print("Supabase insert result:", result)
         return result.data[0] if result.data else None
+    
+    async def insert_many(self, tasks_data: list, user_id: str):
+        #insert a list of tasks for a user, return the created tasks
+        response = self.supabase.table("Tasks").insert(tasks_data).execute()
+        return response.data
+
+    def get_task(self, task_id: str, user_id: str):
+        result = self.supabase.table("Tasks").select("*").eq("id", task_id).eq("user_id", user_id).execute()
+        if not result.data:
+            raise ValueError(f"Task {task_id} not found")
+        return result.data[0]
 
     def get_tasks(self, user_id):
         response = self.supabase.table('Tasks').select('*').eq('user_id', user_id).execute()

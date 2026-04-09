@@ -1,9 +1,10 @@
-    // Frontend routes that attach to links/routes to load React components
+// Frontend routes that attach to links/routes to load React components
 
 export const ROUTES = {
     HOME: "/",
     STICKY_NOTES: "/sticky-notes",
     PLANNER: "/planner",
+    TASKS: "/tasks",
 
     TIMER_ENTRY_PAGE: "/timer",
     TIMER_TASK_SELECTION_PAGE: "/timer/select",
@@ -13,6 +14,3 @@ export const ROUTES = {
     BUSY_TIMES: "/busy-times",
     SETTINGS: "/settings"
 };
-
-
-

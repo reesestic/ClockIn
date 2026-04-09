@@ -14,6 +14,19 @@ export async function getTasks(): Promise<Task[]> {
     return await response.json();
 }
 
+export async function getTask(id: string): Promise<Task> {
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/get_by_id/${id}`
+    );
+    if (!response.ok) {
+        throw new Error("Failed to fetch task");
+    }
+    return await response.json();
+}
+
+
+
+
 
 export async function saveTask(activeTask: Omit<Task, "id" | "can_schedule">) {
     if (!activeTask) return;
@@ -74,9 +87,21 @@ export async function updateTask(task: Task): Promise<Task> {
                 task_duration: task.task_duration,
                 status: task.status,
                 can_schedule: task.can_schedule,
+                color: task.color,
             })
         }
     );
     if (!response.ok) throw new Error("Failed to update task");
+    return await response.json();
+}
+
+export const getTasksForUser = getTasks;
+
+export async function splitTask(taskId: string, split: number): Promise<Task[]> {
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/split/${taskId}/${split}`,
+        { method: "POST" }
+    );
+    if (!response.ok) throw new Error("Failed to split task");
     return await response.json();
 }

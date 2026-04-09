@@ -6,9 +6,10 @@ import { ROUTES } from "../../constants/Routes";
 const StyledClock = styled(ClockIcon)`
     position: absolute;
     width: 13%;
-    top: 77%;
-    left: 75%;
+    top: 55%;
+    left: 11%;   /* was left: 75% — clock is bottom-left */
     cursor: pointer;
+    transform: scale(1.2);
 `;
 
 const StyledLink = styled(Link)`

@@ -1,103 +1,144 @@
 from datetime import datetime
+from uuid import UUID
+from database.supabase_client import supabase
+
 
 class ScheduleRepository:
-    def __init__(self, supabase):
-        self.supabase = supabase
 
-    # -------------------------
-    # CREATE / REPLACE SCHEDULE
-    # -------------------------
-    def create_schedule(self, user_id):
-        # 1. Find existing schedule
-        existing = (
-            self.supabase
-            .table("Schedules")
-            .select("id")
-            .eq("user_id", user_id)
-            .limit(1)
+    def log_behavior_event(self, user_id: UUID, task_id: UUID, slot_offered: datetime, action: str):
+        supabase.table("user_behavior_events").insert({
+            "user_id": str(user_id),
+            "task_id": str(task_id),
+            "slot_offered": slot_offered.isoformat(),
+            "action": action,
+        }).execute()
+
+    def log_behavior_event_with_features(
+        self,
+        user_id: UUID,
+        task_id: UUID,
+        slot_offered: datetime,
+        action: str,
+        features: list[float],
+        latent_vars: dict,
+    ):
+        """
+        Logs a behavior event with pre-computed features and OpenAI-inferred
+        latent variables.  features = [priority_norm, urgency_norm, duration_fit].
+        latent_vars is stored as JSONB (nullable columns filled dynamically).
+        """
+        import json
+        supabase.table("user_behavior_events").insert({
+            "user_id":      str(user_id),
+            "task_id":      str(task_id),
+            "slot_offered": slot_offered.isoformat(),
+            "action":       action,
+            "priority_norm":  features[0] if len(features) > 0 else None,
+            "urgency_norm":   features[1] if len(features) > 1 else None,
+            "duration_fit":   features[2] if len(features) > 2 else None,
+            "latent_features": json.dumps({k: v for k, v in latent_vars.items() if v is not None}),
+        }).execute()
+
+    def get_behavior_events(self, user_id: UUID) -> list[dict]:
+        response = (
+            supabase.table("user_behavior_events")
+            .select("*")
+            .eq("user_id", str(user_id))
             .execute()
         )
+        return response.data
 
-        if existing.data:
-            schedule_id = existing.data[0]["id"]
+    def save_schedule(self, user_id: UUID, task_id: UUID, start: datetime, end: datetime) -> dict:
+        response = supabase.table("schedules").insert({
+            "user_id": str(user_id),
+            "task_id": str(task_id),
+            "scheduled_start": start.isoformat(),
+            "scheduled_end": end.isoformat(),
+        }).execute()
+        return response.data[0]
 
-            # 2. Delete blocks first (FK safety)
-            (
-                self.supabase
-                .table("ScheduleBlocks")
-                .delete()
-                .eq("schedule_id", schedule_id)
-                .execute()
-            )
-
-            # 3. Delete schedule
-            (
-                self.supabase
-                .table("Schedules")
-                .delete()
-                .eq("id", schedule_id)
-                .execute()
-            )
-
-        # 4. Create new schedule
-        result = (
-            self.supabase
-            .table("Schedules")
-            .insert({
-                "user_id": user_id,
-                "name": "Generated Schedule",
-                "date": datetime.now().date().isoformat()
-            })
+    def get_schedules_for_user(self, user_id: UUID) -> list[dict]:
+        response = (
+            supabase.table("schedules")
+            .select("*")
+            .eq("user_id", str(user_id))
             .execute()
         )
+        return response.data
 
-        return result.data[0]
-
-
-    # -------------------------
-    # INSERT BLOCKS (BULK)
-    # -------------------------
-    def insert_blocks(self, blocks: list):
-        result = (
-            self.supabase
-            .table("ScheduleBlocks")
-            .insert(blocks)
+    def get_behavior_events_ordered(self, user_id: UUID) -> list[dict]:
+        response = (
+            supabase.table("user_behavior_events")
+            .select("*")
+            .eq("user_id", str(user_id))
+            .order("slot_offered", desc=False)
             .execute()
         )
+        return response.data
 
-        return result.data
-
-
-    # -------------------------
-    # FETCH USER SCHEDULE
-    # -------------------------
-    def get_schedule(self, user_id):
-        result = (
-            self.supabase
-            .table("Schedules")
-            .select("*, ScheduleBlocks(*)")
-            .eq("user_id", user_id)
-            .limit(1)
+    def get_perceptron_weights(self, user_id: UUID) -> dict | None:
+        response = (
+            supabase.table("perceptron_weights")
+            .select("*")
+            .eq("user_id", str(user_id))
             .execute()
         )
-
-        if not result.data:
+        if not response.data:
             return None
-
-        schedule = result.data[0]
-
-        # reshape for frontend
+        row = response.data[0]
         return {
-            "id": schedule["id"],
-            "blocks": [
-                {
-                    "id": block["id"],
-                    "taskId": block["task_id"],
-                    "title": block["title"],
-                    "start": block["start_time"],
-                    "end": block["end_time"],
-                    "color": block.get("color")
-                }
-                for block in schedule.get("ScheduleBlocks", [])
-            ]
+            "priority": row["priority"],
+            "urgency": row["urgency"],
+            "duration_fit": row["duration_fit"],
         }
+
+    def save_perceptron_weights(self, user_id: UUID, weights: dict) -> None:
+        supabase.table("perceptron_weights").upsert({
+            "user_id": str(user_id),
+            "priority": weights["priority"],
+            "urgency": weights["urgency"],
+            "duration_fit": weights["duration_fit"],
+            "updated_at": datetime.utcnow().isoformat(),
+        }, on_conflict="user_id").execute()
+
+    # ── Latent feature discovery ──────────────────────────────────────────────
+
+    def increment_latent_key_count(self, key: str) -> None:
+        """Atomically increment the seen-count for a latent key via RPC."""
+        supabase.rpc("increment_latent_key", {"key_name": key}).execute()
+
+    def get_promotable_latent_keys(self, threshold: int) -> list[str]:
+        """Return keys that have been seen ≥ threshold times and not yet promoted."""
+        response = (
+            supabase.table("latent_key_stats")
+            .select("key")
+            .gte("count", threshold)
+            .eq("promoted", False)
+            .execute()
+        )
+        return [row["key"] for row in response.data]
+
+    def promote_latent_column(self, key: str) -> None:
+        """
+        Promote a latent key to a real float column on user_behavior_events.
+        Backfills existing JSONB data and marks the key as promoted.
+        Executes via a SECURITY DEFINER Postgres function (see feature_discovery_service.py
+        for the required SQL setup).
+        """
+        supabase.rpc("promote_latent_column", {"col_name": key}).execute()
+
+    def get_active_user_ids(self) -> list[str]:
+        """Returns user IDs that have at least one behavior event."""
+        response = (
+            supabase.table("user_behavior_events")
+            .select("user_id")
+            .execute()
+        )
+        seen = set()
+        result = []
+        for row in response.data:
+            uid = row["user_id"]
+            if uid not in seen:
+                seen.add(uid)
+                result.append(uid)
+        return result

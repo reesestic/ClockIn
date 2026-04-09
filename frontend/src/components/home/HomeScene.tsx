@@ -7,6 +7,7 @@ import HomepageBlankObject from "./HomepageBlankObject";
 import ProfileSidebar from "./ProfileSidebar";
 import HomeIcon from "../icons/HomeIcon.tsx";
 import styled from "styled-components";
+import TaskBookObject from "./TaskBookObject.tsx";
 
 export const SceneWrapper = styled.div`
     position: relative;
@@ -15,11 +16,11 @@ export const SceneWrapper = styled.div`
     overflow: hidden;
 `;
 
-const HomeBtn = styled.button`
-    position: absolute;
+const HomeBtn = styled.button<{ $open: boolean }>`
+    position: fixed;
     top: 16px;
-    left: 16px;
-    z-index: 10;
+    left: ${p => p.$open ? `${350 + 8}px` : "16px"};
+    z-index: 200;
     background: none;
     border: none;
     cursor: pointer;
@@ -27,6 +28,7 @@ const HomeBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export default function HomeScene() {
@@ -42,13 +44,13 @@ export default function HomeScene() {
             <PlannerObject />
             <ClockObject />
             <StickyNotesOnDeskObject />
+            <TaskBookObject />
 
-            {/* Only show the home button when sidebar is closed */}
-            {!sidebarOpen && (
-                <HomeBtn onClick={() => setSidebarOpen(true)}>
-                    <HomeIcon />
-                </HomeBtn>
-            )}
+
+
+            <HomeBtn $open={sidebarOpen} onClick={() => setSidebarOpen(prev => !prev)}>
+                <HomeIcon className="w-[53px] h-[53px]" />
+            </HomeBtn>
         </SceneWrapper>
     );
 }

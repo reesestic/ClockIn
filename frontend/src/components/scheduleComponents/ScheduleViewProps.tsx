@@ -6,4 +6,5 @@ export type ScheduleViewProps = {
     schedule: Schedule | null;
     onBlockClick?: (item: ScheduleBlock | Task | null) => void;
     onGenerate?: () => void;
-};
+    onBlocksChange?: (blocks: ScheduleBlock[]) => void;
+}

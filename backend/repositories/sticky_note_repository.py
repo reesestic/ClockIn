@@ -18,6 +18,10 @@ class StickyNoteRepository:
             .execute()
         return response.data[0]['text'] if response.data else None
 
+    def get_color(self, sticky_id: str):
+        result = self.supabase.table("StickyNotes").select("color").eq("id", sticky_id).single().execute()
+        return result.data["color"] if result.data else "yellow"
+
     # Creation stuff
     def create_note(self, user_id: str, title: str, content: str, color: str, x: int, y: int, z: int):
         result = self.supabase.table("StickyNotes").insert({

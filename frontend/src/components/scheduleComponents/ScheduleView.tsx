@@ -1,6 +1,6 @@
 import type {ScheduleViewProps} from "./ScheduleViewProps";
-import ScheduleContent from "./ScheduleContent.tsx";
 import ScheduleViewHeader from "./ScheduleViewHeader";
+import DraggableWeekGrid from "./DraggableWeekGrid";
 import styled from "styled-components";
 
 const Wrapper = styled.div`
@@ -16,27 +16,26 @@ const HeaderSection = styled.div`
 
 const ContentSection = styled.div`
   height: 80%;
-  overflow: hidden; /* important */
+  overflow: hidden;
 `;
 
-export default function ScheduleView({ schedule, onGenerate, onBlockClick }: ScheduleViewProps) {
-
+export default function ScheduleView({ schedule, onGenerate, onBlocksChange }: ScheduleViewProps) {
     return (
         <Wrapper>
             <HeaderSection>
-                <ScheduleViewHeader
-                    onGenerate={onGenerate!}
-                />
+                <ScheduleViewHeader onGenerate={onGenerate ?? (() => {})} />
             </HeaderSection>
 
             <ContentSection>
                 {schedule ? (
-                    <ScheduleContent
-                        schedule={schedule}
-                        onBlockClick={onBlockClick}
+                    <DraggableWeekGrid
+                        blocks={schedule.blocks}
+                        onBlocksChange={onBlocksChange ?? (() => {})}
                     />
                 ) : (
-                    <div style={{ padding: "1rem" }}>No schedule yet</div>
+                    <div style={{ padding: "1rem", color: "#999" }}>
+                        No schedule yet — select tasks and click Create Schedule!
+                    </div>
                 )}
             </ContentSection>
         </Wrapper>

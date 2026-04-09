@@ -1,14 +1,11 @@
 import styled from "styled-components";
 import { useAuth } from "../../context/AuthContext.tsx";
-import HomeIcon from "../icons/HomeIcon.tsx";
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {ROUTES} from "../../constants/Routes.ts";
 import ProfileLeavesIcon from "../icons/ProfileLeavesIcon";
 import ProfileTimerIcon from "../icons/ProfileTimerIcon";
 import ProfileBeeIcon from "../icons/ProfileBeeIcon";
 import DailyStreakIcon from "../icons/DailyStreakIcon.tsx";
-import {getStats} from "../../api/statsApi.ts";
 
 
 const SIDEBAR_WIDTH = 350;
@@ -20,40 +17,7 @@ const Overlay = styled.div<{ $open: boolean }>`
     pointer-events: ${p => p.$open ? "auto" : "none"};
 `;
 
-const PeekBtn = styled.button<{ $open: boolean }>`
-    position: absolute;
-    top: 16px;
-    right: -52px;
-    width: 44px;
-    height: 44px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: ${p => p.$open ? 1 : 0};
-    pointer-events: ${p => p.$open ? "auto" : "none"};
 
-    &::after {
-        content: "Profile";
-        position: absolute;
-        left: calc(100% + 8px);
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(50, 50, 50, 0.85);
-        color: white;
-        font-size: 0.72rem;
-        padding: 3px 8px;
-        border-radius: 4px;
-        white-space: nowrap;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s;
-    }
-
-    &:hover::after { opacity: 1; }
-`;
 
 const Panel = styled.div<{ $open: boolean }>`
     position: absolute;
@@ -77,9 +41,7 @@ const Panel = styled.div<{ $open: boolean }>`
     font-size: clamp(0.7rem, 1rem, 1.2rem);
 `;
 
-const StyledHomeIcon = styled(HomeIcon)`
-    path { fill: white; }
-`;
+
 
 
 const PanelTitle = styled.div`
@@ -234,23 +196,11 @@ interface Props {
 export default function ProfileSidebar({ open, onClose }: Props) {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
-    const [stats, setStats] = useState<any>(null);
-
-    useEffect(() => {
-        if (!open) return;
-
-        getStats()
-            .then(setStats)
-            .catch(console.error);
-
-    }, [open]);
 
     return (
         <Overlay $open={open} onClick={onClose}>
             <Panel $open={open} onClick={e => e.stopPropagation()}>
-                <PeekBtn $open={open} onClick={onClose}>
-                    <StyledHomeIcon />
-                </PeekBtn>
+
 
                 <PanelTitle>Home</PanelTitle>
                 {/* Box 1 — Avatar + Name */}
@@ -259,14 +209,14 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                         <BeeIcon />
                     </AvatarWrapper>
                     <UserName>{user?.email?.split("@")[0] ?? "User"}</UserName>
-                    <UserSub>@{user?.username ?? "username"}</UserSub>
+                    <UserSub>(username)</UserSub>
                 </ProfileBox>
 
 
                 {/* Box 2 — Plants */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>{stats?.plants_grown ?? "--"}</StatValue>
+                        <StatValue>23</StatValue>
                         <LeavesIcon />
                     </StatRow>
                     <StatLabel>Total Plants Grown</StatLabel>
@@ -275,7 +225,7 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                 {/* Box 3 — Hours */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>{stats?.total_hours ?? "--"}</StatValue>
+                        <StatValue>25.5</StatValue>
                         <TimerIcon />
                     </StatRow>
                     <StatLabel>Total Hours Worked</StatLabel>
@@ -283,7 +233,8 @@ export default function ProfileSidebar({ open, onClose }: Props) {
 
                 <StatBox>
                     <StatRow>
-                        <StatValue>{stats?.day_streak ?? "--"}</StatValue>                        <StreakIcon />
+                        <StatValue>3</StatValue>
+                        <StreakIcon />
                     </StatRow>
                     <StatLabel>Day Study Streak</StatLabel>
                 </StatBox>

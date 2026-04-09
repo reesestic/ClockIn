@@ -3,6 +3,7 @@ import Home from "./pages/Home.tsx";
 import { ROUTES } from "./constants/Routes";
 import { Route, Routes } from "react-router-dom";
 import PlannerPage from "./pages/PlannerPage";
+import TaskPage from "./pages/TaskPage.tsx";
 import TimerEntryPage from "./components/timerComponents/TimerEntryPage.tsx";
 import TimerScreen from "./components/timerComponents/TimerScreen.tsx";
 import TimerTaskSelectionPage from "./pages/TimerTaskSelectionPage.tsx";
@@ -45,6 +46,10 @@ export default function Root() {
                 } />
                 <Route path={ROUTES.TIMER_SCREEN} element={<TimerScreen />} />
 
+                <Route
+                    path={ROUTES.TASKS}
+                    element={<TaskPage/>}
+                    />
                 <Route path={ROUTES.SETTINGS} element={<Settings />} />
                 <Route path={ROUTES.AVAILABILITY} element={<Availability />} />
                 <Route path={ROUTES.BUSY_TIMES} element={<BusyTimes />} />

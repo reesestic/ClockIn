@@ -36,8 +36,8 @@ openai_service = AIService(api_key)
 task_repository = TaskRepository(supabase)
 task_service = TaskService(task_repository)
 
-schedule_repository = ScheduleRepository(supabase)
-schedule_service = ScheduleService(schedule_repository, task_repository)
+schedule_repository = ScheduleRepository()
+schedule_service = ScheduleService()
 
 sticky_note_repository = StickyNoteRepository(supabase)
 sticky_note_service = StickyNoteService(sticky_note_repository, openai_service, task_service)
