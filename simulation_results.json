@@ -1,0 +1,112 @@
+{
+  "pipeline": "openai\u2192validator\u2192perceptron",
+  "metrics": {
+    "n_samples": 24,
+    "class_balance": {
+      "accepted": 12,
+      "rejected": 12
+    },
+    "accuracy": 0.9583,
+    "precision": 1.0,
+    "recall": 0.9167,
+    "f1": 0.9565,
+    "roc_auc": 1.0,
+    "cv_roc_auc_mean": 1.0,
+    "cv_roc_auc_std": 0.0,
+    "confusion_matrix": [
+      [
+        12,
+        0
+      ],
+      [
+        1,
+        11
+      ]
+    ]
+  },
+  "learned_weights": {
+    "priority": 0.1732,
+    "urgency": 0.4621,
+    "duration_fit": 0.3647
+  },
+  "default_weights": {
+    "priority": 0.4,
+    "urgency": 0.4,
+    "duration_fit": 0.2
+  },
+  "simulation": {
+    "n_pairs": 12,
+    "default_accuracy": 1.0,
+    "learned_accuracy": 1.0,
+    "accuracy_improvement": 0.0,
+    "avg_score_delta": 0.002283,
+    "pct_pairs_improved": 1.0
+  },
+  "baseline_comparison": {
+    "n_pairs": 12,
+    "A_full_pipeline": {
+      "accuracy": 1.0,
+      "vs_default": 0.0
+    },
+    "B_rule_based": {
+      "accuracy": 1.0,
+      "vs_default": 0.0
+    },
+    "C_perceptron_only": {
+      "accuracy": 1.0,
+      "vs_default": 0.0
+    },
+    "D_openai_gate": {
+      "accuracy": 1.0,
+      "vs_default": 0.0
+    },
+    "best_method": "Rule-based only",
+    "our_improvement_over_best_baseline": 0.0
+  },
+  "field_breakdown": {
+    "appointment_time": 12
+  },
+  "validator": {
+    "passed": 12,
+    "rejected": 3146,
+    "reasons": {
+      "insufficient_history": 3049,
+      "inconsistent_direction": 1,
+      "low_confidence": 0,
+      "feature_invalid": 0,
+      "no_change": 96
+    }
+  },
+  "convergence": {
+    "n_qualifying": 0,
+    "threshold_used": 5,
+    "stats": {}
+  },
+  "persona_summary": [],
+  "sample_reasonings": [
+    "The user likely changed the appointment time to better accommodate their schedule and increase the task's importance and urgency.",
+    "The user likely changed the appointment time to better fit their schedule and increase urgency.",
+    "The user likely changed the appointment time to an earlier slot to increase urgency and fit better within their schedule.",
+    "The user likely changed the appointment time to a more suitable and productive hour.",
+    "The user likely changed the appointment time to better align with their schedule and increase the task's importance and urgency.",
+    "The user likely changed the appointment time to better fit their schedule and increase urgency.",
+    "The user likely adjusted the appointment time to better fit their schedule.",
+    "The user likely changed the appointment time to a more suitable and manageable slot earlier in the day.",
+    "The user likely changed the appointment time to better align with their schedule and increase the task's urgency.",
+    "The user likely changed the appointment time to better align with their schedule and increase the task's importance and urgency."
+  ],
+  "feature_discovery": {
+    "feature_keys": [
+      "priority",
+      "urgency",
+      "duration_fit"
+    ],
+    "promoted_keys": [],
+    "key_counts": {}
+  },
+  "decay_comparison": {
+    "n_qualifying": 0,
+    "min_corrections": 50,
+    "authors": {}
+  }
+}
