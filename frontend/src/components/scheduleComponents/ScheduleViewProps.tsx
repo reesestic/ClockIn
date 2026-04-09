@@ -3,8 +3,8 @@ import type {ScheduleBlock} from "../../types/ScheduleBlock.ts";
 import type {Task} from "../../types/Task";
 
 export type ScheduleViewProps = {
-    schedule?: Schedule;
+    schedule: Schedule | null;
     onBlockClick?: (item: ScheduleBlock | Task | null) => void;
-    onEdit?: () => void;
+    onGenerate?: () => void;
     onBlocksChange?: (blocks: ScheduleBlock[]) => void;
 }

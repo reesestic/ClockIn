@@ -4,7 +4,7 @@ import type { Preference, ScheduleFilters } from "../../types/ScheduleFilters";
 import type { Schedule } from "../../types/Schedule";
 import type { ScheduleBlock } from "../../types/ScheduleBlock";
 import type { Task } from "../../types/Task";
-import { generateSchedule } from "../../api/ScheduleApi";
+import { generateSchedule } from "../../api/scheduleApi";
 import DraggableWeekGrid from "../scheduleComponents/DraggableWeekGrid";
 
 type Props = {
@@ -75,11 +75,11 @@ const TaskCard = styled.div<{ $index: number }>`
   border-radius: 10px;
   margin-bottom: 8px;
   overflow: hidden;
-  border: 1.5px solid ${({ $index }) => ($index % 2 === 0 ? "#e8c84a" : "#7db8e8")};
+  border: 1.5px solid ${({ $index }) => ($index % 2 === 0 ? "#FFF59A" : "#7db8e8")};
 `;
 
 const TaskCardHeader = styled.div<{ $index: number }>`
-  background: ${({ $index }) => ($index % 2 === 0 ? "#f5d94e" : "#8fc7ef")};
+  background: ${({ $index }) => ($index % 2 === 0 ? "#FFF59A" : "#8fc7ef")};
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;

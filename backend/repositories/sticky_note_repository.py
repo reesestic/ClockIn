@@ -18,26 +18,36 @@ class StickyNoteRepository:
             .execute()
         return response.data[0]['text'] if response.data else None
 
+    def get_color(self, sticky_id: str):
+        result = self.supabase.table("StickyNotes").select("color").eq("id", sticky_id).single().execute()
+        return result.data["color"] if result.data else "yellow"
+
     # Creation stuff
-    def create_note(self, title, content, color: str, x: int, y: int, z: int):
+    def create_note(self, user_id: str, title: str, content: str, color: str, x: int, y: int, z: int):
         result = self.supabase.table("StickyNotes").insert({
             # remember ID returned in this too!!
             "title": title,
             "text": content,
             "color" : color,
-            "user_id": "11111111-1111-1111-1111-111111111111",
-            "posX" : x,
+            "user_id": user_id,
+            "posX": x,
             "posY": y,
             "posZ" : z
         }).execute()
         return result.data[0]
 
-    def update_note(self, id: str, title: str, content: str):
-        result = (self.supabase.table("StickyNotes").update({
+    def update_note(self, id: str, title: str, content: str, user_id: str, x: int, y: int, z: int):
+        result = (
+            self.supabase.table("StickyNotes")
+            .update({
                 "title": title,
-                "text": content
+                "text": content,
+                "posX": x,   # ← add
+                "posY": y,   # ← add
+                "posZ": z,   # ← add
             })
             .eq("id", id)
+            .eq("user_id", user_id)
             .execute()
         )
         return result.data[0]
@@ -53,22 +63,25 @@ class StickyNoteRepository:
 
         return result.data
 
-    def delete_note(self, note_id: str):
+    def delete_note(self, note_id: str, user_id: str):
         result = (
             self.supabase
             .table("StickyNotes")
             .delete()
             .eq("id", note_id)
+            .eq("user_id", user_id)
             .execute()
         )
+
         if not result.data:
-            raise Exception("Note not found")
+            raise Exception("Note not found or not authorized")
 
         return note_id
 
-    def update_color(self, note_id: str, color: StickyNoteColor):
+    def update_color(self, note_id: str, color: StickyNoteColor,  user_id: str):
         result = (self.supabase.table("StickyNotes").update({"color" : color.value })
             .eq("id", note_id)
+            .eq("user_id", user_id)
             .execute()
             )
 
@@ -84,3 +97,14 @@ class StickyNoteRepository:
             "posZ": posZ}
             ).execute()
         return
+
+    def update_position(self, note_id: str, x: int, y: int, z: int, user_id: str):
+        result = (
+            self.supabase.table("StickyNotes")
+            .update({"posX": x, "posY": y, "posZ": z})
+            .eq("id", note_id)
+            .eq("user_id", user_id)   # security check
+            .execute()
+        )
+        print(result.data[0])
+        return result.data[0] if result.data else None

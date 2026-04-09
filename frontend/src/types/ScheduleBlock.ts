@@ -1,17 +1,12 @@
 export type ScheduleBlock = {
     id: string;
+    title: string;
 
-    taskId: string;
-
-    title: string; // denormalized for easy UI
-
-    start: string; // "HH:MM" 24h format
-    end: string;   // "HH:MM" 24h format
-
-    date?: string; // "YYYY-MM-DD" for calendar week positioning
+    date: string;   // "YYYY-MM-DD"
+    start: string;  // "HH:MM"
+    end: string;    // "HH:MM"
 
     duration?: number;
-
-    // future extensibility
+    task_id?: string;
     color?: string;
 };

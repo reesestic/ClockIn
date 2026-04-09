@@ -4,5 +4,13 @@ export const ROUTES = {
     HOME: "/",
     STICKY_NOTES: "/sticky-notes",
     PLANNER: "/planner",
-    TIMER: "/timer"
+    TASKS: "/tasks",
+
+    TIMER_ENTRY_PAGE: "/timer",
+    TIMER_TASK_SELECTION_PAGE: "/timer/select",
+    TIMER_SCREEN: "/timer/run",
+
+    AVAILABILITY: "/availability",
+    BUSY_TIMES: "/busy-times",
+    SETTINGS: "/settings"
 };

@@ -5,7 +5,7 @@ from dotenv import load_dotenv #loads .env
 load_dotenv() #runs the .env
 
 url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_ANON_KEY")
+key = os.getenv("SUPABASE_SECRET_KEY")
 
 supabase = None
 

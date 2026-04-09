@@ -1,50 +1,70 @@
 import {
-    CancelButton,
-    ExpandedStickyNote,
     Overlay,
-    OverlayButtons,
-    SaveButton,
-    DeleteButton
+    OverlayContent,
+    IconButton,
+    BottomActions,
 } from "../../pages/StickyNoteHome.styles";
 import type { StickyNoteColor } from "../../types/StickyNoteThemes";
+import StickyNoteMenu from "./StickyNoteMenu.tsx";
 
+import CancelIcon from "../icons/CancelIcon.tsx";
+import ConfirmIcon from "../icons/ConfirmIcon.tsx";
+import styled from "styled-components";
 import type { Note } from "../../types/Note";
+import StickyNoteEditable from "./StickyNoteEditable.tsx";
 
-type Props = {
+
+const LargeIconButton = styled(IconButton)`
+  svg {
+    width: 35px;
+    height: 35px;
+  }
+`;
+
+const NoteAndMenuRow = styled.div`
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+`;
+
+type OverlayProps = {
     note: Note;
     onChange: (title: string, content: string) => void;
     onSave: () => void;
     onCancel: () => void;
-    onDelete: () => void;
     onColorChange: (noteId: string, color: StickyNoteColor) => void;
 };
 
-export default function StickyNoteOverlay({note, onChange, onSave, onCancel, onDelete, onColorChange}: Props)
-{
-
+export default function StickyNoteOverlay({ note, onChange, onSave, onCancel, onColorChange }: OverlayProps) {
     return (
-        <Overlay>
-            <div onClick={(e) => e.stopPropagation()}>
-                <ExpandedStickyNote
-                    note={note}
-                    onChange={onChange}
-                    onColorChange={onColorChange}
-                />
+        <Overlay onClick={onCancel}>
+            <OverlayContent onClick={(e) => e.stopPropagation()}>
 
-                <OverlayButtons>
-                    <SaveButton onClick={onSave}>
-                        Save
-                    </SaveButton>
+                <NoteAndMenuRow>
+                    <StickyNoteEditable
+                        note={note}
+                        onChange={onChange}
+                        size="large"
+                    />
 
-                    <CancelButton onClick={onCancel}>
-                        Cancel
-                    </CancelButton>
+                    <StickyNoteMenu
+                        noteId={note.id ?? undefined}
+                        selectedColor={note.color}
+                        onColorChange={onColorChange}
+                    />
+                </NoteAndMenuRow>
 
-                    <DeleteButton onClick={onDelete}>
-                        Delete
-                    </DeleteButton>
-                </OverlayButtons>
-            </div>
+                <BottomActions>
+                    <LargeIconButton style={{ color: "#FFF59A" }} onClick={onSave}>
+                        <ConfirmIcon />
+                    </LargeIconButton>
+                    <LargeIconButton style={{ color: "#AFDBFF" }} onClick={onCancel}>
+                        <CancelIcon />
+                    </LargeIconButton>
+                </BottomActions>
+
+            </OverlayContent>
         </Overlay>
     );
 }

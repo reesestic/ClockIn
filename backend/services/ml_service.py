@@ -115,7 +115,7 @@ class MLService:
 
     def _features_from_event(self, event: dict) -> list[float]:
         """Compute [priority_norm, urgency_norm, duration_fit] from a behavior event row."""
-        priority = event.get("priority") or 3
+        priority = event.get("importance") or 3
         priority_norm = min(priority, 5) / 5.0
 
         due_date = event.get("due_date")

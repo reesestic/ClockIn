@@ -8,15 +8,12 @@ const Container = styled.div`
 `;
 
 const Left = styled.div`
-    flex: 1;
-    border-right: 1px solid black;
+    flex: 3;
+    border-right: 1px solid lightgray;
 `;
 
 const Right = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    flex: 7;
 `;
 
 export default function TwoColumnLayout(

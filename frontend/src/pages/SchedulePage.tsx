@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getTasksForUser } from "../api/taskApi";
-import { generateSchedule, acceptBlock, rejectBlock } from "../api/ScheduleApi";
+import { generateSchedule, acceptBlock, rejectBlock } from "../api/scheduleApi";
 import DraggableWeekGrid from "../components/scheduleComponents/DraggableWeekGrid";
 import type { ScheduleBlock } from "../types/ScheduleBlock";
 import "./SchedulePage.css";
@@ -98,7 +98,7 @@ export default function SchedulePage({ onClose }: { onClose?: () => void }) {
         });
         if (movedBlock) {
             const old = blocks.find(b => b.id === movedBlock.id)!;
-            rejectBlock(movedBlock.taskId, `${old.date}T${old.start}:00`, user.id).catch(console.error);
+            rejectBlock(movedBlock.task_id!, `${old.date}T${old.start}:00`, user.id).catch(console.error);
         }
         setAccepted(false);
         setBlocks(newBlocks);
@@ -107,7 +107,7 @@ export default function SchedulePage({ onClose }: { onClose?: () => void }) {
     async function handleAccept() {
         if (!user || blocks.length === 0) return;
         await Promise.all(
-            blocks.map(b => acceptBlock(b.taskId, `${b.date}T${b.start}:00`, `${b.date}T${b.end}:00`, user.id))
+            blocks.map(b => acceptBlock(b.task_id!, `${b.date}T${b.start}:00`, `${b.date}T${b.end}:00`, user.id))
         );
         setAccepted(true);
     }

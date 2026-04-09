@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { AddIcon } from "../icons/AddIcon";
+import AddIcon from "../icons/AddIcon";
 
 type AddButtonProps = {
     onClick: () => void;

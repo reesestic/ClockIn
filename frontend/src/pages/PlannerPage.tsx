@@ -9,89 +9,98 @@ import type { Task } from "../types/Task";
 import type { Schedule } from "../types/Schedule";
 import type { ScheduleBlock } from "../types/ScheduleBlock";
 
-import { getTasks, createTask, deleteTask, updateTask } from "../api/TaskApi";
+import { getTasks, saveTask, deleteTask, updateTask } from "../api/taskApi";
+import { rejectBlock, getSchedule } from "../api/scheduleApi";
+import { ROUTES } from "../constants/Routes.ts";
+import BackButton from "../components/navigation/BackButton.tsx";
 
 export default function PlannerPage() {
     const { user } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
     const [showFilters, setShowFilters] = useState(false);
-    const [activeSchedule, setActiveSchedule] = useState<Schedule | null>(null);
-    const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
+    const [schedule, setSchedule] = useState<Schedule | null>(null);
 
     useEffect(() => {
         getTasks().then(setTasks).catch(console.error);
+        getSchedule().then(setSchedule).catch(() => setSchedule(null));
     }, []);
 
     function toggleTaskSelection(taskId: string) {
-        setSelectedTaskIds((prev) =>
-            prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
+        setSelectedTaskIds(prev =>
+            prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
         );
     }
 
     function handleUpdateTask(updated: Task) {
-        setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+        setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
         if (updated.id) {
-            updateTask(updated.id, updated).catch(console.error);
+            updateTask(updated).catch(console.error);
         }
     }
 
-    async function handleCreateTask(task: Omit<Task, "id" | "can_schedule">) {
-        const newTask = await createTask(task);
-        setTasks((prev) => [...prev, newTask]);
+    async function handleCreateTask(newTask: Omit<Task, "id" | "can_schedule">): Promise<void> {
+        const created = await saveTask(newTask);
+        setTasks(prev => [created, ...prev]);
     }
 
     async function handleDeleteTask(taskId: string) {
         await deleteTask(taskId);
-        setTasks((prev) => prev.filter((t) => t.id !== taskId));
-        setSelectedTaskIds((prev) => prev.filter((id) => id !== taskId));
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+        setSelectedTaskIds(prev => prev.filter(id => id !== taskId));
     }
 
-    function handleConfirm(schedule: Schedule) {
-        setActiveSchedule(schedule);
-        setScheduleBlocks(schedule.blocks);
+    function handleConfirm(confirmed: Schedule) {
+        setSchedule(confirmed);
         setShowFilters(false);
-        setTasks((prev) => prev.filter((t) => !selectedTaskIds.includes(t.id!)));
+        setTasks(prev => prev.filter(t => !selectedTaskIds.includes(t.id!)));
         setSelectedTaskIds([]);
     }
 
-    function handleBlocksChange(blocks: ScheduleBlock[]) {
-        setScheduleBlocks(blocks);
-        if (activeSchedule) {
-            setActiveSchedule({ ...activeSchedule, blocks });
-        }
-    }
+    function handleBlocksChange(newBlocks: ScheduleBlock[]) {
+        if (!schedule || !user) return;
 
-    const displaySchedule = activeSchedule
-        ? { ...activeSchedule, blocks: scheduleBlocks }
-        : undefined;
+        const movedBlock = newBlocks.find(nb => {
+            const old = schedule.blocks.find(b => b.id === nb.id);
+            return old && (old.start !== nb.start || old.date !== nb.date);
+        });
+
+        if (movedBlock) {
+            const old = schedule.blocks.find(b => b.id === movedBlock.id)!;
+            rejectBlock(movedBlock.task_id!, `${old.date}T${old.start}:00`, user.id).catch(console.error);
+        }
+
+        setSchedule({ ...schedule, blocks: newBlocks });
+    }
 
     return (
         <>
             <TwoColumnLayout
                 left={
-                    <TaskSidebar
-                        props={{
-                            tasks,
-                            mode: "planner",
-                            selectedTaskIds,
-                            onToggleSelect: toggleTaskSelection,
-                            onUpdateTask: handleUpdateTask,
-                        }}
-                        onAddTask={handleCreateTask}
-                        onGenerateSchedule={() => setShowFilters(true)}
-                        onDeleteTask={handleDeleteTask}
-                        onAddToSchedule={(taskId) => {
-                            if (!selectedTaskIds.includes(taskId)) {
-                                setSelectedTaskIds((prev) => [...prev, taskId]);
-                            }
-                        }}
-                    />
+                    <>
+                        <BackButton to={ROUTES.HOME} style={{ color: "#000000" }} />
+                        <TaskSidebar
+                            props={{
+                                tasks,
+                                mode: "planner",
+                                selectedTaskIds,
+                                onToggleSelect: toggleTaskSelection,
+                                onUpdateTask: handleUpdateTask,
+                            }}
+                            onAddTask={handleCreateTask}
+                            onDeleteTask={handleDeleteTask}
+                            onAddToSchedule={(taskId) => {
+                                if (!selectedTaskIds.includes(taskId)) {
+                                    setSelectedTaskIds(prev => [...prev, taskId]);
+                                }
+                            }}
+                        />
+                    </>
                 }
                 right={
                     <ScheduleView
-                        schedule={displaySchedule}
-                        onEdit={() => setShowFilters(true)}
+                        schedule={schedule}
+                        onGenerate={() => setShowFilters(true)}
                         onBlocksChange={handleBlocksChange}
                     />
                 }
@@ -101,7 +110,7 @@ export default function PlannerPage() {
                 <ScheduleFilterModal
                     onClose={() => setShowFilters(false)}
                     onConfirm={handleConfirm}
-                    selectedTasks={tasks.filter((t) => selectedTaskIds.includes(t.id!))}
+                    selectedTasks={tasks.filter(t => selectedTaskIds.includes(t.id!))}
                     userId={user.id}
                 />
             )}

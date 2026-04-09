@@ -1,0 +1,87 @@
+import styled from "styled-components";
+
+const Card = styled.div`
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px 20px;
+
+    border-radius: 14px;
+    background: white;
+    border: 2px solid lightgray;
+    box-shadow: -3px 3px 10px #b5b5b5;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+const Left = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex: 1;
+`;
+
+const Title = styled.div`
+    font-weight: 700;
+    font-size: 0.95rem;
+    min-width: 120px;
+`;
+
+const Time = styled.div`
+    color: #555;
+    min-width: 200px;
+`;
+
+const Days = styled.div`
+    color: #777;
+`;
+
+const Actions = styled.div`
+    display: flex;
+    gap: 16px;
+`;
+
+const ActionBtn = styled.button`
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #666;
+
+    &:hover {
+        color: black;
+    }
+`;
+
+type Props = {
+    title: string;
+    time: string;
+    days: string;
+    onEdit: () => void;
+    onDelete: () => void;
+};
+
+export default function BusyTimeItem({
+                                         title,
+                                         time,
+                                         days,
+                                         onEdit,
+                                         onDelete,
+                                     }: Props) {
+    return (
+        <Card>
+            <Left>
+                <Title>{title}</Title>
+                <Time>{time}</Time>
+                <Days>{days}</Days>
+            </Left>
+
+            <Actions>
+                <ActionBtn onClick={onEdit}>Edit</ActionBtn>
+                <ActionBtn onClick={onDelete}>Delete</ActionBtn>
+            </Actions>
+        </Card>
+    );
+}

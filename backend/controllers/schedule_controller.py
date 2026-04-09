@@ -6,7 +6,7 @@ from models.schedule_model import SlotScoreRequest, SlotScoreResponse, BehaviorE
 from services.schedule_service import ScheduleService
 from repositories.calendar_repository import CalendarRepository
 
-router = APIRouter(prefix="/schedule", tags=["schedule"])
+router = APIRouter(prefix="/api/schedule", tags=["schedule"])
 
 schedule_service = ScheduleService()
 task_repo = CalendarRepository()

@@ -45,7 +45,7 @@ class ScheduleService:
             {
                 "id": str(t.id),
                 "title": t.title,
-                "priority": t.priority,
+                "priority": t.importance,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "task_duration": t.task_duration,
             }
@@ -141,18 +141,25 @@ class ScheduleService:
         best_slot = None
 
         due_date = task.get("due_date")
-        due_dt = datetime.fromisoformat(due_date).replace(tzinfo=timezone.utc) if due_date else None
+        due_dt = None
+        if due_date:
+            parsed = datetime.fromisoformat(due_date)
+            due_dt = parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+        duration_mins = task.get("task_duration") or 60
 
         for day_offset in range(7):
             day = now + timedelta(days=day_offset)
             for hour in range(6, 23):
-                slot_dt = day.replace(hour=hour, minute=0, second=0, microsecond=0)
-                if slot_dt <= now:
-                    continue
-                if (slot_dt.date().isoformat(), hour) in booked:
-                    continue
-                if due_dt and slot_dt > due_dt:
-                    continue
+                for minute in range(0, 60, 15):
+                    slot_dt = day.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                    if slot_dt <= now:
+                        continue
+                    if (slot_dt.date().isoformat(), slot_dt.hour) in booked:
+                        continue
+                    slot_end = slot_dt + timedelta(minutes=duration_mins)
+                    if due_dt and slot_end > due_dt:
+                        continue
                 duration_fit = self._score_duration_fit(task.get("task_duration"), slot_dt)
                 score = round(
                     weights["priority"] * priority_score +
@@ -188,7 +195,8 @@ class ScheduleService:
     def _score_urgency(self, due_date: str | None) -> float:
         if due_date is None:
             return 0.3
-        due = datetime.fromisoformat(due_date).replace(tzinfo=timezone.utc)
+        parsed = datetime.fromisoformat(due_date)
+        due = parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
         days_left = (due - now).days
         if days_left <= 0:
@@ -246,7 +254,7 @@ class ScheduleService:
         task = self.task_repo.get_task_by_id(task_id)
         task_dict = {
             "title":         task.title         if task else "unknown",
-            "priority":      task.priority      if task else 3,
+            "priority":      task.importance      if task else 3,
             "due_date":      task.due_date.isoformat() if (task and task.due_date) else None,
             "task_duration": task.task_duration if task else 60,
         }
