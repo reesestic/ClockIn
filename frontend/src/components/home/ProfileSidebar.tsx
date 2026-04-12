@@ -1,11 +1,13 @@
 import styled from "styled-components";
 import { useAuth } from "../../context/AuthContext.tsx";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {ROUTES} from "../../constants/Routes.ts";
 import ProfileLeavesIcon from "../icons/ProfileLeavesIcon";
 import ProfileTimerIcon from "../icons/ProfileTimerIcon";
 import ProfileBeeIcon from "../icons/ProfileBeeIcon";
 import DailyStreakIcon from "../icons/DailyStreakIcon.tsx";
+import {getStats} from "../../api/statsApi.ts";
 
 
 const SIDEBAR_WIDTH = 350;
@@ -194,30 +196,39 @@ interface Props {
 }
 
 export default function ProfileSidebar({ open, onClose }: Props) {
-    const { user, signOut } = useAuth();
+    const {user, signOut} = useAuth();
     const navigate = useNavigate();
+    const [stats, setStats] = useState<any>(null);
+
+    useEffect(() => {
+        if (!open) return;
+
+        getStats()
+            .then(setStats)
+            .catch(console.error);
+
+    }, [open]);
 
     return (
         <Overlay $open={open} onClick={onClose}>
             <Panel $open={open} onClick={e => e.stopPropagation()}>
 
-
                 <PanelTitle>Home</PanelTitle>
                 {/* Box 1 — Avatar + Name */}
                 <ProfileBox>
                     <AvatarWrapper>
-                        <BeeIcon />
+                        <BeeIcon/>
                     </AvatarWrapper>
                     <UserName>{user?.email?.split("@")[0] ?? "User"}</UserName>
-                    <UserSub>(username)</UserSub>
+                    <UserSub>@{user?.username ?? "username"}</UserSub>
                 </ProfileBox>
 
 
                 {/* Box 2 — Plants */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>23</StatValue>
-                        <LeavesIcon />
+                        <StatValue>{stats?.plants_grown ?? "--"}</StatValue>
+                        <LeavesIcon/>
                     </StatRow>
                     <StatLabel>Total Plants Grown</StatLabel>
                 </StatBox>
@@ -225,28 +236,28 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                 {/* Box 3 — Hours */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>25.5</StatValue>
-                        <TimerIcon />
+                        <StatValue>{stats?.total_hours ?? "--"}</StatValue>
+                        <TimerIcon/>
                     </StatRow>
                     <StatLabel>Total Hours Worked</StatLabel>
                 </StatBox>
 
                 <StatBox>
                     <StatRow>
-                        <StatValue>3</StatValue>
-                        <StreakIcon />
+                        <StatValue>{stats?.day_streak ?? "--"}</StatValue> <StreakIcon/>
                     </StatRow>
                     <StatLabel>Day Study Streak</StatLabel>
                 </StatBox>
-
-
 
 
                 {/* Bottom links — pushed to bottom via margin-top: auto on BottomLinks */}
                 <BottomSection>
                     <SectionLabel>Account</SectionLabel>
 
-                    <ActionRow onClick={() => { navigate(ROUTES.SETTINGS); onClose(); }}>
+                    <ActionRow onClick={() => {
+                        navigate(ROUTES.SETTINGS);
+                        onClose();
+                    }}>
                         <ActionIcon>⚙️</ActionIcon>
                         <ActionLabel>Settings</ActionLabel>
                         <ActionChevron>›</ActionChevron>
@@ -258,7 +269,10 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                         <ActionChevron>›</ActionChevron>
                     </ActionRow>
 
-                    <ActionRow onClick={async () => { await signOut(); onClose(); }}>
+                    <ActionRow onClick={async () => {
+                        await signOut();
+                        onClose();
+                    }}>
                         <ActionIcon>🚪</ActionIcon>
                         <SignOutLabel>Sign Out</SignOutLabel>
                         <ActionChevron>›</ActionChevron>

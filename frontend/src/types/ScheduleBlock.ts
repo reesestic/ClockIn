@@ -1,6 +1,7 @@
 export type ScheduleBlock = {
     id: string;
     title: string;
+    description?: string;
 
     date: string;   // "YYYY-MM-DD"
     start: string;  // "HH:MM"

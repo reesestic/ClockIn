@@ -324,7 +324,7 @@ const Main = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding-bottom: 60px;
+    padding-bottom: 130px;
     position: relative;
     z-index: 4;
 `;
@@ -348,7 +348,7 @@ const TimerInputRow = styled.div`
     font-size: clamp(5rem, 14vw, 10rem);
     color: rgba(255,255,255,0.62);
     text-shadow: 0 0 10px rgba(255,255,255,0.2);
-    margin-bottom: 2.5rem;
+    margin-bottom: 0.5rem;
     letter-spacing: 0.02em;
 `;
 
@@ -368,7 +368,7 @@ const TimeDisplay = styled.div`
     font-size: clamp(5rem, 14vw, 10rem);
     color: rgba(255,255,255,0.62);
     text-shadow: 0 0 10px rgba(255,255,255,0.2);
-    margin-bottom: 2.5rem;
+    margin-bottom: 0.75rem;
     letter-spacing: 0.02em;
 `;
 
@@ -418,14 +418,6 @@ const PageBackButton = styled(BackButton)`
     top: 1.2rem;
     left: 1rem;
     z-index: 10;
-`;
-
-const HintText = styled.div`
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.6);
-    margin-top: -1.5rem;
-    margin-bottom: 2rem;
-    letter-spacing: 0.05em;
 `;
 
 const Overlay = styled.div`
@@ -525,13 +517,14 @@ const PlantDisplay = styled.div`
 
 const PlantContainer = styled.div`
     position: absolute;
-    bottom: 60px;
+    bottom: 45px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scale(0.7);
     width: clamp(80px, 14vw, 140px);
     z-index: 5;
     pointer-events: none;
     transition: opacity 0.4s ease;
+    transform-origin: bottom center;
 `;
 
 const TimeBox = styled.div`
@@ -1263,7 +1256,6 @@ export default function TimerScreen() {
                                         <Colon>:</Colon>
                                         <DigitGroup $active={digits.length < 3}>{ss}</DigitGroup>
                                     </TimerInputRow>
-                                    <HintText>click &amp; type digits — backspace to clear</HintText>
                                 </>
                             )}
 
