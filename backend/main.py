@@ -81,15 +81,27 @@ app.include_router(google_router)
 app.include_router(plants_router)
 
 def daily_sync_job():
+    # Sync once immediately on startup
+    try:
+        res = supabase.table("GoogleTokens").select("user_id").execute()
+        for row in res.data:
+            try:
+                google_service.sync_calendar(row["user_id"])
+            except Exception as e:
+                print(f"Startup sync failed for {row['user_id']}: {e}")
+    except Exception as e:
+        print(f"Startup sync error: {e}")
+
+    # Then sync every 24 hours
     while True:
-        time.sleep(86400)  # 24 hours
+        time.sleep(86400)
         try:
             res = supabase.table("GoogleTokens").select("user_id").execute()
             for row in res.data:
                 try:
                     google_service.sync_calendar(row["user_id"])
                 except Exception as e:
-                    print(f"Sync failed for {row['user_id']}: {e}")
+                    print(f"Daily sync failed for {row['user_id']}: {e}")
         except Exception as e:
             print(f"Daily sync job error: {e}")
 

@@ -92,6 +92,8 @@ type SortKey = "none" | "due_date" | "difficulty" | "importance" | "task_duratio
 
 type TaskListProps = TaskSidebarProps & {
     onAddTask?: () => void;
+    hideControls?: boolean;   // add this
+
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -107,6 +109,7 @@ export default function TaskList({
                                      onAddTask,
                                      mode,
                                      onSplitTask,
+                                     hideControls = false,
                                  }: TaskListProps) {
     const [search, setSearch] = useState("");
     const [sortKey, setSortKey] = useState<SortKey>("none");
@@ -128,28 +131,28 @@ export default function TaskList({
 
     return (
         <TaskContainer>
-            <StickyBar>
-                {mode === "tasklist" && onAddTask && (
-                    <AddButton onClick={onAddTask} title="Add task">
-                        +
-                    </AddButton>
-                )}
-                <SearchInput
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="search tasks..."
-                />
-                <SortSelect
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as SortKey)}
-                >
-                    <option value="none">sort by...</option>
-                    <option value="due_date">due date</option>
-                    <option value="importance">importance</option>
-                    <option value="difficulty">difficulty</option>
-                    <option value="task_duration">duration</option>
-                </SortSelect>
-            </StickyBar>
+            {!hideControls && (        // wrap StickyBar
+                <StickyBar>
+                    {mode === "tasklist" && onAddTask && (
+                        <AddButton onClick={onAddTask} title="Add task">+</AddButton>
+                    )}
+                    <SearchInput
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="search tasks..."
+                    />
+                    <SortSelect
+                        value={sortKey}
+                        onChange={(e) => setSortKey(e.target.value as SortKey)}
+                    >
+                        <option value="none">sort by...</option>
+                        <option value="due_date">due date</option>
+                        <option value="importance">importance</option>
+                        <option value="difficulty">difficulty</option>
+                        <option value="task_duration">duration</option>
+                    </SortSelect>
+                </StickyBar>
+            )}
 
             {sortedTasks.map((task: Task, index: number) => {
                 if (mode === "planner") {
