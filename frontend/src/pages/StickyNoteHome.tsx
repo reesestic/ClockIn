@@ -22,6 +22,7 @@ import TrashDropZone from "../components/dropzones/TrashDropZone.tsx";
 import type {StickyNoteColor} from "../types/StickyNoteThemes.ts";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
+import {useNotes} from "../context/NoteContext.tsx";
 
 
 // Code for drag/drop
@@ -510,7 +511,7 @@ function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel 
 
 export function StickyNoteHome() {
 
-    const [notes, setNotes] = useState<Note[]>([]);
+    const { notes, setNotes } = useNotes();
     const [activeNote, setActiveNote] = useState<Note | null>(null);
     const [proposedTasks, setProposedTasks] = useState<Task[]>([]);
     const [showTaskModal, setShowTaskModal] = useState(false);

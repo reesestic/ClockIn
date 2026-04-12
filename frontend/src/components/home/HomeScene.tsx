@@ -8,6 +8,9 @@ import ProfileSidebar from "./ProfileSidebar";
 import HomeIcon from "../icons/HomeIcon.tsx";
 import styled from "styled-components";
 import TaskBookObject from "./TaskBookObject.tsx";
+import TutorialButton from "../onboardingComponents/TutorialButton.tsx";
+import {HOME_TUTORIAL_STEPS} from "../../constants/HomeTutorialSteps.ts";
+ // adjust to your actual path
 
 export const SceneWrapper = styled.div`
     position: relative;
@@ -36,7 +39,6 @@ export default function HomeScene() {
 
     return (
         <SceneWrapper>
-            {/* Sidebar overlays the scene — nothing else moves */}
             <ProfileSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             <HomepageBlankObject />
@@ -46,11 +48,12 @@ export default function HomeScene() {
             <StickyNotesOnDeskObject />
             <TaskBookObject />
 
-
-
-            <HomeBtn $open={sidebarOpen} onClick={() => setSidebarOpen(prev => !prev)}>
+            <HomeBtn data-tutorial="home-btn" $open={sidebarOpen} onClick={() => setSidebarOpen(prev => !prev)}>
                 <HomeIcon className="w-[53px] h-[53px]" />
             </HomeBtn>
+
+            {/* Tutorial ? button — loads home steps and sits bottom-right */}
+            <TutorialButton steps={HOME_TUTORIAL_STEPS} />
         </SceneWrapper>
     );
 }
