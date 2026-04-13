@@ -1,4 +1,4 @@
-    // Frontend routes that attach to links/routes to load React components
+// Frontend routes that attach to links/routes to load React components
 
 export const ROUTES = {
     HOME: "/",
@@ -14,6 +14,3 @@ export const ROUTES = {
     BUSY_TIMES: "/busy-times",
     SETTINGS: "/settings"
 };
-
-
-

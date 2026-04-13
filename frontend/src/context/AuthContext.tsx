@@ -8,6 +8,7 @@ import { supabase } from "../supabaseClient";
 interface AuthUser {
     id: string;
     email: string;
+    username?: string;
 }
 
 interface AuthContextValue {
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser({
                     id: sessionUser.id,
                     email: sessionUser.email!,
+                    username: sessionUser.user_metadata?.username,
                 });
             }
 
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser({
                     id: session.user.id,
                     email: session.user.email!,
+                    username: session.user.user_metadata?.username,
                 });
             } else {
                 setUser(null);
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser({
                 id: data.user.id,
                 email: data.user.email!,
+                username: data.user.user_metadata?.username,
             });
         }
 

@@ -95,6 +95,8 @@ export async function updateTask(task: Task): Promise<Task> {
     return await response.json();
 }
 
+export const getTasksForUser = getTasks;
+
 export async function splitTask(taskId: string, split: number): Promise<Task[]> {
     const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/split/${taskId}/${split}`,

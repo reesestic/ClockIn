@@ -1,7 +1,7 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import {saveNote, deleteNote, getNotes, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
+import {saveNote, deleteNote, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
 import BackButton from "../components/navigation/BackButton.tsx";
@@ -23,6 +23,7 @@ import type {StickyNoteColor} from "../types/StickyNoteThemes.ts";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import {useNotes} from "../context/NoteContext.tsx";
+import LottieLoading from "../components/ui/LottieLoading.tsx";
 
 
 // Code for drag/drop
@@ -57,10 +58,6 @@ const fadeIn = keyframes`
 const slideUp = keyframes`
     from { opacity: 0; transform: translateY(24px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0)    scale(1);    }
-`;
-
-const spin = keyframes`
-    to { transform: rotate(360deg); }
 `;
 
 // ─── Modal Styled Components ───────────────────────────────────────────────────
@@ -156,16 +153,6 @@ const CancelButton = styled.button`
         border-color: #bbb;
         color: #555;
     }
-`;
-
-const Spinner = styled.div`
-    width: 28px;
-    height: 28px;
-    border: 3px solid #f0ece0;
-    border-top-color: #1a1a1a;
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-    margin: 24px auto;
 `;
 
 // ─── Modal Task Editable Styled Components ─────────────────────────────────────
@@ -484,7 +471,7 @@ function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel 
                 </div>
 
                 {isLoading ? (
-                    <Spinner />
+                    <LottieLoading size={100} />
                 ) : (
                     <TaskList>
                         {tasks.map((task, i) => (
@@ -518,6 +505,7 @@ export function StickyNoteHome() {
     const [isLoadingTasks, setIsLoadingTasks] = useState(false);
     const [pendingDrop, setPendingDrop] = useState<PendingDrop>(null);
     const [hoveredZone, setHoveredZone] = useState<"calendar" | "trash" | null>(null);
+
 
     // ── CHANGE: new state to track which note spawned the task modal ────────
     const [sourceNote, setSourceNote] = useState<Note | null>(null);
@@ -583,21 +571,7 @@ export function StickyNoteHome() {
 
     // Claude end
 
-    useEffect(() => {
-        async function loadNotes() {
-            try {
-                // check normalization in StickyNoteServices to find syntax
-                const normalizedNotesFromDB = await getNotes();
-                console.log(normalizedNotesFromDB);
-                setNotes(normalizedNotesFromDB);
-
-            } catch (error) {
-                console.error("Failed to load notes", error);
-            }
-        }
-
-        loadNotes();
-    }, []);
+    
 
     const notesWithPositions = notes.map((note, i) => ({
         ...note,
@@ -803,17 +777,19 @@ export function StickyNoteHome() {
                 {/*// notes board changed*/}
                 <NotesAndButtonsLayout>
                     <NotesBoard ref={boardRef}>
-                        {notesWithPositions.map((note) => (
-                            <DraggableStickyNote
-                                key={note.id}
-                                note={note}
-                                boardRef={boardRef}
-                                dropZones={dropZones}
-                                onDragEnd={handleDragEnd}
-                                onNoteClick={setActiveNote}
-                                onDropZoneRelease={handleDropZoneRelease}
-                            />
-                        ))}
+                        { (
+                            notesWithPositions.map((note) => (
+                                <DraggableStickyNote
+                                    key={note.id}
+                                    note={note}
+                                    boardRef={boardRef}
+                                    dropZones={dropZones}
+                                    onDragEnd={handleDragEnd}
+                                    onNoteClick={setActiveNote}
+                                    onDropZoneRelease={handleDropZoneRelease}
+                                />
+                            ))
+                        )}
                     </NotesBoard>
 
                     <ActionColumn>

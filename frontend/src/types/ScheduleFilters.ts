@@ -6,4 +6,6 @@ export type ScheduleFilters = {
     value: Preference;
     time: Preference;
     subject: Preference;
+    difficulty?: Preference;
+    allowed_days?: string[];
 };

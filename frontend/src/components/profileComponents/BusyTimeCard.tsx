@@ -10,7 +10,6 @@ interface TimeValue {
 }
 
 export interface BusyTimeData {
-    id?: number;
     title: string;
     start: TimeValue;
     end: TimeValue;
@@ -23,7 +22,6 @@ const HOURS   = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 const MINUTES = ["00", "15", "30", "45"];
 const DAYS    = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-
 function toMinutes(t: TimeValue): number {
     let h = parseInt(t.hour);
     if (t.ampm === "PM" && h !== 12) h += 12;
@@ -35,15 +33,61 @@ function isEndBeforeStart(start: TimeValue, end: TimeValue): boolean {
     return toMinutes(end) <= toMinutes(start);
 }
 
+function findOverlaps(current: BusyTimeData, existing: BusyTimeData[], editingTitle?: string): string[] {
+    const errors: string[] = [];
+
+    for (const other of existing) {
+        if (other.title === editingTitle) continue;
+
+        const overlappingDays = current.days.filter(d => other.days.includes(d));
+        if (overlappingDays.length === 0) continue;
+
+        const currentStart = toMinutes(current.start);
+        const currentEnd   = toMinutes(current.end);
+        const otherStart   = toMinutes(other.start);
+        const otherEnd     = toMinutes(other.end);
+
+        const overlaps = currentStart < otherEnd && currentEnd > otherStart;
+        if (overlaps) {
+            errors.push(`"${other.title}" on ${overlappingDays.join(", ")}`);
+        }
+    }
+
+    return errors;
+}
+
 export function formatTime(t: TimeValue) {
     return `${t.hour}:${t.minute} ${t.ampm}`;
+}
+
+export function timeValueToISO(t: TimeValue): string {
+    let h = parseInt(t.hour);
+    if (t.ampm === "PM" && h !== 12) h += 12;
+    if (t.ampm === "AM" && h === 12) h = 0;
+    // Store as plain time string, no timezone
+    return `${h.toString().padStart(2, "0")}:${t.minute}:00`;
+}
+
+export function isoToTimeValue(iso: string): TimeValue {
+    // Handle both "HH:MM:SS" and full ISO strings
+    const timePart = iso.includes("T") ? iso.split("T")[1] : iso;
+    const [hStr, mStr] = timePart.split(":");
+    let h = parseInt(hStr);
+    const ampm: "AM" | "PM" = h >= 12 ? "PM" : "AM";
+    if (h > 12) h -= 12;
+    if (h === 0) h = 12;
+    return {
+        hour: h.toString(),
+        minute: mStr,
+        ampm,
+    };
 }
 
 /* ── Animations ──────────────────── */
 
 const slideUp = keyframes`
     from { opacity: 0; transform: translateY(12px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
 /* ── Styles ──────────────────────── */
@@ -52,8 +96,8 @@ const Container = styled.div`
     width: 100%;
     border-radius: 12px;
     background: white;
-    border: 2px solid lightgray;
-    box-shadow: -3px 3px 10px 0px #b5b5b5;
+    border: 2px solid #e0e0e0;
+    box-shadow: -3px 3px 10px 0px #d0d0d0;
     overflow: hidden;
     animation: ${slideUp} 0.2s ease;
 `;
@@ -61,14 +105,13 @@ const Container = styled.div`
 const TitleInput = styled.input`
     width: 100%;
     border: none;
-    background: #eaeaea;
+    background: #f0f0f0;
     padding: 8px 10px;
     font-weight: bold;
     font-size: 1rem;
     outline: none;
     box-sizing: border-box;
-
-    &:focus { background: #e0e0e0; }
+    &:focus { background: #e8e8e8; }
 `;
 
 const Content = styled.div`
@@ -97,14 +140,13 @@ const Label = styled.span`
 
 const SmallBtn = styled.button`
     font-size: 0.72rem;
-    color: #4B94DB;
+    color: #666;
     background: none;
     border: none;
     cursor: pointer;
     padding: 0;
     font-weight: 600;
-
-    &:hover { text-decoration: underline; }
+    &:hover { text-decoration: underline; color: #333; }
 `;
 
 const TimeRow = styled.div`
@@ -122,8 +164,7 @@ const SmallSelect = styled.select<{ $error?: boolean }>`
     background: white;
     cursor: pointer;
     transition: border-color 0.15s;
-
-    &:focus { outline: 2px solid #AFDBFF; border-color: #AFDBFF; }
+    &:focus { outline: 2px solid #ccc; border-color: #aaa; }
 `;
 
 const TimeSeparator = styled.span`
@@ -146,14 +187,14 @@ const DaysRow = styled.div`
 const Day = styled.button<{ $selected: boolean }>`
     padding: 5px 10px;
     border-radius: 6px;
-    border: 1.5px solid ${({ $selected }) => ($selected ? "#4B94DB" : "#ccc")};
-    background: ${({ $selected }) => ($selected ? "#AFDBFF" : "#f5f5f5")};
+    border: 1.5px solid ${({ $selected }) => ($selected ? "#555" : "#ccc")};
+    background: ${({ $selected }) => ($selected ? "#e0e0e0" : "#f5f5f5")};
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s;
-
-    &:hover { border-color: #4B94DB; }
+    color: ${({ $selected }) => ($selected ? "#222" : "#777")};
+    &:hover { border-color: #555; }
 `;
 
 const Divider = styled.hr`
@@ -188,7 +229,6 @@ const CancelBtn = styled.button`
     font-weight: 600;
     color: #888;
     cursor: pointer;
-
     &:hover { border-color: #bbb; color: #555; }
 `;
 
@@ -196,14 +236,13 @@ const SaveBtn = styled.button<{ $disabled: boolean }>`
     padding: 7px 18px;
     border-radius: 8px;
     border: none;
-    background: ${p => (p.$disabled ? "#ccc" : "#4B94DB")};
-    color: white;
+    background: ${p => (p.$disabled ? "#e0e0e0" : "#555")};
+    color: ${p => (p.$disabled ? "#aaa" : "white")};
     font-size: 0.85rem;
     font-weight: 600;
     cursor: ${p => (p.$disabled ? "not-allowed" : "pointer")};
     transition: background 0.15s;
-
-    &:hover { background: ${p => (p.$disabled ? "#ccc" : "#3a7fc1")}; }
+    &:hover { background: ${p => (p.$disabled ? "#e0e0e0" : "#333")}; }
 `;
 
 const DuplicateBtn = styled.button`
@@ -215,8 +254,7 @@ const DuplicateBtn = styled.button`
     font-weight: 600;
     color: #666;
     cursor: pointer;
-
-    &:hover { border-color: #4B94DB; color: #4B94DB; }
+    &:hover { border-color: #aaa; color: #333; }
 `;
 
 /* ── Sub-component: TimePicker ───── */
@@ -264,6 +302,7 @@ function TimePicker({ value, onChange, error }: TimePickerProps) {
 
 interface Props {
     initial?: Partial<BusyTimeData>;
+    existingTimes?: BusyTimeData[];
     onSave: (data: BusyTimeData) => void;
     onCancel: () => void;
     onDuplicate?: () => void;
@@ -271,31 +310,21 @@ interface Props {
 
 /* ── Component ───────────────────── */
 
-export default function BusyTimeCard({
-                                         initial,
-                                         onSave,
-                                         onCancel,
-                                         onDuplicate,
-                                     }: Props) {
-    const [title,  setTitle]  = useState(initial?.title  ?? "");
-    const [start,  setStart]  = useState<TimeValue>(initial?.start  ?? { hour: "6", minute: "00", ampm: "AM" });
-    const [end,    setEnd]    = useState<TimeValue>(initial?.end    ?? { hour: "7", minute: "00", ampm: "AM" });
-    const [days,   setDays]   = useState<string[]>(initial?.days   ?? []);
+export default function BusyTimeCard({ initial, existingTimes, onSave, onCancel, onDuplicate }: Props) {
+    const [title, setTitle] = useState(initial?.title ?? "");
+    const [start, setStart] = useState<TimeValue>(initial?.start ?? { hour: "6", minute: "00", ampm: "AM" });
+    const [end,   setEnd]   = useState<TimeValue>(initial?.end   ?? { hour: "7", minute: "00", ampm: "AM" });
+    const [days,  setDays]  = useState<string[]>(initial?.days   ?? []);
 
     const titleRef = useRef<HTMLInputElement>(null);
+    useEffect(() => { titleRef.current?.focus(); }, []);
 
-    // Auto-focus title on mount
-    useEffect(() => {
-        titleRef.current?.focus();
-    }, []);
-
-    const timeError = isEndBeforeStart(start, end);
-    const canSave   = title.trim().length > 0 && days.length > 0 && !timeError;
+    const timeError    = isEndBeforeStart(start, end);
+    const overlapErrors = findOverlaps({ title, start, end, days }, existingTimes ?? [], initial?.title);
+    const canSave      = title.trim().length > 0 && days.length > 0 && !timeError && overlapErrors.length === 0;
 
     function toggleDay(day: string) {
-        setDays(prev =>
-            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-        );
+        setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
     }
 
     function handleSave() {
@@ -303,7 +332,6 @@ export default function BusyTimeCard({
         onSave({ title, start, end, days });
     }
 
-    // Enter on title moves to first select
     function handleTitleKeyDown(e: React.KeyboardEvent) {
         if (e.key === "Enter") {
             e.preventDefault();
@@ -311,7 +339,6 @@ export default function BusyTimeCard({
             first?.focus();
         }
     }
-
 
     return (
         <Container>
@@ -324,7 +351,6 @@ export default function BusyTimeCard({
             />
 
             <Content>
-
                 <Row>
                     <Label>Start</Label>
                     <TimePicker value={start} onChange={setStart} />
@@ -336,18 +362,12 @@ export default function BusyTimeCard({
                     {timeError && <ErrorMsg>End time must be after start time</ErrorMsg>}
                 </Row>
 
-                {/* Days */}
                 <Row>
                     <RowHeader>
                         <Label>Days</Label>
-                        {/* Every day shortcut */}
                         <SmallBtn
                             type="button"
-                            onClick={() =>
-                                setDays(prev =>
-                                    prev.length === 7 ? [] : [...DAYS]
-                                )
-                            }
+                            onClick={() => setDays(prev => prev.length === 7 ? [] : [...DAYS])}
                         >
                             {days.length === 7 ? "Clear all" : "Every day"}
                         </SmallBtn>
@@ -364,6 +384,10 @@ export default function BusyTimeCard({
                             </Day>
                         ))}
                     </DaysRow>
+                    {/* Overlap errors shown below days */}
+                    {overlapErrors.map((err, i) => (
+                        <ErrorMsg key={i}>Overlaps with {err}</ErrorMsg>
+                    ))}
                 </Row>
             </Content>
 
@@ -371,21 +395,15 @@ export default function BusyTimeCard({
 
             <Footer>
                 <FooterLeft>
-                    {/* Duplicate — only shown when editing existing */}
                     {onDuplicate && (
                         <DuplicateBtn type="button" onClick={onDuplicate}>
                             Duplicate
                         </DuplicateBtn>
                     )}
                 </FooterLeft>
-
                 <FooterRight>
                     <CancelBtn type="button" onClick={onCancel}>Cancel</CancelBtn>
-                    <SaveBtn
-                        type="button"
-                        $disabled={!canSave}
-                        onClick={handleSave}
-                    >
+                    <SaveBtn type="button" $disabled={!canSave} onClick={handleSave}>
                         Save
                     </SaveBtn>
                 </FooterRight>

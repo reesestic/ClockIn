@@ -5,4 +5,5 @@ export type Schedule = {
     name: string;
     date: string;
     blocks: ScheduleBlock[];
+    skipped?: string[];  // titles of tasks that couldn't be scheduled
 };

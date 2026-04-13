@@ -5,12 +5,10 @@ const Card = styled.div`
     max-width: 900px;
     margin: 0 auto;
     padding: 16px 20px;
-
     border-radius: 14px;
     background: white;
-    border: 2px solid lightgray;
-    box-shadow: -3px 3px 10px #b5b5b5;
-
+    border: 1.5px solid #e0e0e0;
+    box-shadow: -2px 2px 8px #d8d8d8;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -26,16 +24,19 @@ const Left = styled.div`
 const Title = styled.div`
     font-weight: 700;
     font-size: 0.95rem;
+    color: #222;
     min-width: 120px;
 `;
 
 const Time = styled.div`
     color: #555;
+    font-size: 0.9rem;
     min-width: 200px;
 `;
 
 const Days = styled.div`
-    color: #777;
+    color: #888;
+    font-size: 0.85rem;
 `;
 
 const Actions = styled.div`
@@ -48,28 +49,23 @@ const ActionBtn = styled.button`
     background: none;
     cursor: pointer;
     font-size: 0.85rem;
-    color: #666;
+    color: #888;
+    font-weight: 600;
 
-    &:hover {
-        color: black;
-    }
+    &:hover { color: #222; }
 `;
 
 type Props = {
     title: string;
     time: string;
     days: string;
+    source?: string;
     onEdit: () => void;
     onDelete: () => void;
 };
 
-export default function BusyTimeItem({
-                                         title,
-                                         time,
-                                         days,
-                                         onEdit,
-                                         onDelete,
-                                     }: Props) {
+export default function BusyTimeItem({ title, time, days, source, onEdit, onDelete }: Props) {
+    const isGoogle = source === "google";
     return (
         <Card>
             <Left>
@@ -77,11 +73,12 @@ export default function BusyTimeItem({
                 <Time>{time}</Time>
                 <Days>{days}</Days>
             </Left>
-
-            <Actions>
-                <ActionBtn onClick={onEdit}>Edit</ActionBtn>
-                <ActionBtn onClick={onDelete}>Delete</ActionBtn>
-            </Actions>
+            {!isGoogle && (
+                <Actions>
+                    <ActionBtn onClick={onEdit}>Edit</ActionBtn>
+                    <ActionBtn onClick={onDelete}>Delete</ActionBtn>
+                </Actions>
+            )}
         </Card>
     );
 }

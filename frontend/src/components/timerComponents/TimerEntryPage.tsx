@@ -1,7 +1,5 @@
-import {useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TaskOpenModal from "../modal/TaskOpenModal.tsx"
-import TimerTaskSelectionPage from "../../pages/TimerTaskSelectionPage.tsx"
-import TimerScreen from "./TimerScreen.tsx";
 import styled from "styled-components";
 import BackButton from "../navigation/BackButton.tsx";
 import { ROUTES } from "../../constants/Routes.ts";
@@ -14,17 +12,20 @@ const PageBackButton = styled(BackButton)`
 `;
 
 export default function TimerEntryPage() {
-    const [mode, setMode] = useState<"none" | "free" | "task">("none");
-
-    if (mode === "free") return <TimerScreen />;
-    if (mode === "task") return <TimerTaskSelectionPage />;
+    const navigate = useNavigate();
 
     return (
         <>
             <PageBackButton to={ROUTES.HOME}/>
             <TaskOpenModal
-                onFree={() => setMode("free")}
-                onTask={() => setMode("task")}
+                onFree={() =>
+                    navigate(ROUTES.TIMER_SCREEN, {
+                        state: { mode: "free" }
+                    })
+                }
+                onTask={() =>
+                    navigate(ROUTES.TIMER_TASK_SELECTION_PAGE)
+                }
             />
         </>
     );

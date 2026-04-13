@@ -3,115 +3,201 @@ import CalendarIcon from "../icons/CalendarIcon";
 
 type Props = {
     onGenerate: () => void;
+    onEdit?: () => void;
+    onDoneEditing?: () => void;
+    isLocked?: boolean;
+    hasSchedule?: boolean;
 };
 
 const Wrapper = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 1.5rem 0 2rem 0;
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0 0.6rem 0;
+    gap: 0;
 `;
 
 const Left = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 1.7rem;
-    margin-left: 1rem;
-`;
-
-const StyledCalendarIcon = styled(CalendarIcon)`
-  width: 40px;
-  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
 `;
 
 const IconWrapper = styled.div`
-  width: clamp(36px, 4vw, 64px);
-  height: clamp(36px, 4vw, 64px);
+  width: 62px;
+  height: 62px;
   flex-shrink: 0;
-
-  svg {
-    width: 100%;
-    height: 100%;
-  }
+  svg { width: 100%; height: 100%; }
 `;
 
-
 const TitleBlock = styled.div`
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 `;
 
 const Title = styled.h2`
-    margin: 0;
-    white-space: nowrap;
-    font-size: clamp(0.8rem, 3rem, 4rem);
-    font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #1a1a1a;
+  line-height: 1.1;
 `;
 
 const Subtitle = styled.p`
-    margin: 2px 0 0 0;
-    font-size: clamp(0.5rem, 0.9rem, 1.7rem);
-    font-weight: 700;
-    color: #636363;
+  margin: 2px 0 0 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  font-style: italic;
+  color: #bbb;
 `;
 
-const Right = styled.div`
-    display: flex;
-    align-items: flex-start;
-    flex: 1;
-    margin: 1rem 3rem;
-    justify-content: space-between;
-    gap: 4rem;
+const Center = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 `;
 
-const Actions = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
+const DateBlock = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
 `;
 
-const DateText = styled.div`
-  font-size: 2rem;
-  color: #9ca3af;
+const DateSmall = styled.span`
+  font-size: 0.8rem;
+  color: #c8d0d8;
+  font-weight: 600;
+`;
+
+const DateBig = styled.span`
+  font-size: 1.9rem;
+  color: #c8d0d8;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0 2px;
 `;
 
 const CreateButton = styled.button`
-  border: 2px black solid;
-  color: gray;
-  border-radius: 10px;
+  background: #FFF59A;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 10px;
+  font-size: 15px;
+  font-weight: 300;
+  color: #1a1a1a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: background 0.15s;
+  &:hover { background: #FFF59A; }
 `;
 
-export default function ScheduleViewHeader({ onGenerate }: Props) {
+const BtnIconWrapper = styled.span`
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  svg { width: 100%; height: 100%; }
+`;
+
+const PlusBadge = styled.span`
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  background: #4b94db;
+  border-radius: 50%;
+  color: white;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 14px;
+  text-align: center;
+  border: 1.5px solid #FFF59A;
+`;
+
+const EditButton = styled.button`
+  border: 1.5px solid #C5AFFF;
+  color: #C5AFFF;
+  border-radius: 20px;
+  padding: 5px 13px;
+  font-size: 11px;
+  font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  &:hover { background: rgba(108,92,231,0.06); }
+`;
+
+const DoneButton = styled.button`
+  border: 1.5px solid #22c55e;
+  color: #22c55e;
+  border-radius: 20px;
+  padding: 5px 13px;
+  font-size: 11px;
+  font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  &:hover { background: rgba(34,197,94,0.06); }
+`;
+
+const ScheduledBadge = styled.span`
+  font-size: 10px;
+  color: #22c55e;
+  font-weight: 700;
+`;
+
+export default function ScheduleViewHeader({ onGenerate, onEdit, onDoneEditing, isLocked, hasSchedule }: Props) {
+    const now = new Date();
 
     return (
         <Wrapper>
             <Left>
-                <IconWrapper>
-                    <StyledCalendarIcon />
-                </IconWrapper>
+                <IconWrapper><CalendarIcon /></IconWrapper>
                 <TitleBlock>
                     <Title>Your Schedule</Title>
-                    <Subtitle>catered to what’s most important to you...</Subtitle>
+                    <Subtitle>catered to what's most important to you...</Subtitle>
                 </TitleBlock>
             </Left>
 
-            <Right>
-                <Actions>
-                    <CreateButton onClick={() => onGenerate()}>
+            <Center>
+                {!isLocked && hasSchedule ? (
+                    <DoneButton onClick={() => onDoneEditing?.()}>Done Editing ✓</DoneButton>
+                ) : (
+                    <CreateButton onClick={onGenerate}>
                         Create Schedule
+                        <BtnIconWrapper>
+                            <CalendarIcon />
+                            <PlusBadge>+</PlusBadge>
+                        </BtnIconWrapper>
                     </CreateButton>
-                </Actions>
+                )}
+                {isLocked && (
+                    <>
+                        <EditButton onClick={() => onEdit?.()}>Edit Schedule</EditButton>
+                        <ScheduledBadge>✓ Scheduled</ScheduledBadge>
+                    </>
+                )}
+            </Center>
 
-                <DateText>
-                    {new Date().toLocaleDateString("en-US", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                    })}
-                </DateText>
-            </Right>
+            <DateBlock>
+                <DateSmall>{now.toLocaleDateString("en-US", { weekday: "short" })}</DateSmall>
+                <DateBig>{now.getDate()}</DateBig>
+                <DateSmall>{now.toLocaleDateString("en-US", { month: "short" })}</DateSmall>
+            </DateBlock>
         </Wrapper>
     );
 }

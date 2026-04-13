@@ -4,4 +4,9 @@ export const API_ROUTES = {
     TASKS: "/api/tasks",
     SCHEDULE: "/api/schedule",
     TIMER: "/api/timer",
+    BUSY_TIMES: "/api/busy-times",
+    STATS: "/api/stats",
+    GOOGLE: "/api/google",
+    PLANTS: "/api/plants",
+
 };
