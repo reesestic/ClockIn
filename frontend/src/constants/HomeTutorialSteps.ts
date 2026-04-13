@@ -7,7 +7,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         body: "Let's get familiar with the",
         highlight: "features before you begin.",
         modalPosition: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
-        beePosition: { top: "50%", right: "39%" },
+        beePosition: { top: "50%", right: "37%" },
     },
     {
         id: "sticky-notes",
@@ -38,7 +38,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         highlight: "Stay organized.",
         targetSelector: "[data-tutorial='task-book']",
         modalPosition: { top: "38%", left: "14%" },
-        beePosition: { top: "46%", left: "33%" },
+        beePosition: { top: "46%", left: "35%" },
         lineCurve: { offsetX: 100, offsetY: 0 },
         spotlightOffset: {x: 200, y: -30}
     },
