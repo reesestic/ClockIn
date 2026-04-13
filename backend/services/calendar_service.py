@@ -98,7 +98,7 @@ class CalendarService:
         1. Round *now* up to the next 15-minute boundary.
         2. Fetch all events in [now, due_date] with a single API call.
         3. Walk forward in 15-minute steps; skip outside 8 AM – 10 PM window;
-           skip if the task would end past the work-day end or past due_date.
+        skip if the task would end past the work-day end or past due_date.
         4. Reject a candidate if any existing event overlaps it.
         5. Return the first conflict-free slot, or raise ValueError if none found.
 
