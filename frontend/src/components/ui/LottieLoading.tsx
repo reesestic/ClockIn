@@ -14,7 +14,7 @@ export default function LottieLoading({ size = 80 }: { size?: number }) {
     return (
         <Wrapper>
             <div style={{ width: size, height: size }}>
-                <Lottie animationData={animationData} loop autoplay />
+                <Lottie animationData={animationData} loop autoplay assetsPath="/images/"/>
             </div>
         </Wrapper>
     );
