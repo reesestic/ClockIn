@@ -4,7 +4,50 @@ import type { Schedule } from "../types/Schedule";
 import type { ScheduleBlock } from "../types/ScheduleBlock";
 import { authFetch } from "./authFetch";
 
-/** Convert a backend block (ISO datetime start/end) to a frontend ScheduleBlock */
+// ─── Raw API shapes ───────────────────────────────────────────────────────────
+
+/** Block as it arrives from the backend, before normalisation */
+interface RawBlock {
+    id?: string;
+    task_id?: string;
+    title?: string;
+    description?: string;
+    /** Present on freshly-generated blocks */
+    start?: string;
+    end?: string;
+    /** Present on blocks loaded from the DB */
+    scheduled_start?: string;
+    scheduled_end?: string;
+    color?: string;
+}
+
+/** Shape returned by /generate when the backend returns the new { scheduled, skipped } envelope */
+interface RawGenerateResponse {
+    scheduled: RawBlock[];
+    skipped?: Array<{ title?: string }>;
+}
+
+/** Shape returned when the backend wraps blocks in an object */
+interface RawBlocksWrapper {
+    blocks: RawBlock[];
+}
+
+// ─── Type guards ──────────────────────────────────────────────────────────────
+
+function isRawBlockArray(v: unknown): v is RawBlock[] {
+    return Array.isArray(v);
+}
+
+function isRawGenerateResponse(v: unknown): v is RawGenerateResponse {
+    return typeof v === "object" && v !== null && "scheduled" in v;
+}
+
+function isRawBlocksWrapper(v: unknown): v is RawBlocksWrapper {
+    return typeof v === "object" && v !== null && "blocks" in v;
+}
+
+// ─── Parsing helpers ──────────────────────────────────────────────────────────
+
 /** Strip timezone suffix so the browser treats the value as local wall-clock time.
  *  The backend stores naive local datetimes; Supabase re-adds +00:00 on read,
  *  which would shift the displayed time by the user's UTC offset. */
@@ -12,16 +55,15 @@ function stripTZ(s: string): string {
     return s.replace(/([+-]\d{2}:\d{2}|Z)$/, "");
 }
 
-function parseBlock(raw: any): ScheduleBlock {
+function parseBlock(raw: RawBlock): ScheduleBlock {
     // Backend returns either "start"/"end" (generate) or "scheduled_start"/"scheduled_end" (load)
     const start = new Date(stripTZ(raw.start ?? raw.scheduled_start ?? ""));
     const end   = new Date(stripTZ(raw.end   ?? raw.scheduled_end   ?? ""));
     const pad = (n: number) => String(n).padStart(2, "0");
     const date = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
     return {
-        // Prefer the schedule-row UUID (raw.id) so blocks are always unique,
-        // even if the same task appears twice due to old duplicate DB rows.
-        // Fall back to task_id for freshly-generated blocks (not yet in DB).
+        // Prefer the schedule-row UUID so blocks are always unique, even if the
+        // same task appears twice due to old duplicate DB rows.
         id: raw.id ?? raw.task_id ?? crypto.randomUUID(),
         title: raw.title ?? "",
         description: raw.description ?? undefined,
@@ -33,7 +75,7 @@ function parseBlock(raw: any): ScheduleBlock {
     };
 }
 
-function wrapBlocks(rawBlocks: any[]): Schedule {
+function wrapBlocks(rawBlocks: RawBlock[]): Schedule {
     const blocks = rawBlocks.map(parseBlock);
     return {
         id: crypto.randomUUID(),
@@ -43,16 +85,28 @@ function wrapBlocks(rawBlocks: any[]): Schedule {
     };
 }
 
+// ─── Shared response normaliser ───────────────────────────────────────────────
+
+/** Handles all three response shapes the schedule endpoints can return */
+function normaliseScheduleResponse(data: unknown): Schedule {
+    if (isRawBlockArray(data)) return wrapBlocks(data);
+    if (isRawBlocksWrapper(data)) {
+        return { ...(data as unknown as Schedule), blocks: data.blocks.map(parseBlock) };
+    }
+    // Already a full Schedule object
+    return data as Schedule;
+}
+
+// ─── API functions ────────────────────────────────────────────────────────────
+
 export async function getSchedule(userId?: string): Promise<Schedule> {
     const url = userId
         ? `${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}/user/${userId}`
         : `${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}`;
     const res = await authFetch(url);
     if (!res.ok) throw new Error("Failed to fetch schedule");
-    const data = await res.json();
-    if (Array.isArray(data)) return wrapBlocks(data);
-    if (data?.blocks) return { ...data, blocks: data.blocks.map(parseBlock) };
-    return data;
+    const data: unknown = await res.json();
+    return normaliseScheduleResponse(data);
 }
 
 export async function generateSchedule(
@@ -68,12 +122,12 @@ export async function generateSchedule(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-                task_ids: taskIds,
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                filters: (({ allowed_days: _days, ...rest }) => rest)(filters),
-                allowed_days: filters.allowed_days ?? [],
-                ignored_event_ids: ignoredEventIds,
-            }),
+            task_ids: taskIds,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            filters: (({ allowed_days: _days, ...rest }) => rest)(filters),
+            allowed_days: filters.allowed_days ?? [],
+            ignored_event_ids: ignoredEventIds,
+        }),
     });
 
     if (!res.ok) {
@@ -82,16 +136,16 @@ export async function generateSchedule(
         throw new Error("Failed to generate schedule");
     }
 
-    const data = await res.json();
-    // New shape: { scheduled: [...], skipped: [...] }
-    if (data?.scheduled) {
+    const data: unknown = await res.json();
+
+    // New envelope shape: { scheduled: [...], skipped: [...] }
+    if (isRawGenerateResponse(data)) {
         const schedule = wrapBlocks(data.scheduled);
-        schedule.skipped = (data.skipped ?? []).map((s: any) => s.title);
+        schedule.skipped = (data.skipped ?? []).map((s) => s.title ?? "");
         return schedule;
     }
-    if (Array.isArray(data)) return wrapBlocks(data);
-    if (data?.blocks) return { ...data, blocks: data.blocks.map(parseBlock) };
-    return data;
+
+    return normaliseScheduleResponse(data);
 }
 
 export async function acceptBlock(
