@@ -19,6 +19,12 @@ import TaskEditable from "../taskComponents/TaskEditable.tsx";
 
 type Status = "idle" | "running" | "paused";
 
+interface LocationState {
+    mode?: "task" | "free";
+    item?: Task | ScheduleBlock | null;
+    hasPlan?: boolean;
+}
+
 interface Session {
     startTime: number;
     lastActive: number;
@@ -50,6 +56,12 @@ interface PersistedWorkflow {
     steps: WorkflowStep[];
     isPomodoro: boolean;
     savedAt: number;
+}
+
+interface SummaryData {
+    active_seconds?: number;
+    plantsEarned?: number;
+    [key: string]: unknown;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -678,7 +690,6 @@ const BlockedBanner = styled.div`
     }
 `;
 
-/* ── Sidebar: width bumped to 500px to give the task card room ── */
 const Sidebar = styled.div<{ $open: boolean }>`
     position: absolute;
     top: 0; right: 0;
@@ -697,7 +708,6 @@ const Sidebar = styled.div<{ $open: boolean }>`
     overflow-y: hidden;
 `;
 
-/* ── Handle: right position matches new width ── */
 const SidebarHandle = styled.button<{ $open: boolean }>`
     position: absolute;
     top: 50%;
@@ -727,8 +737,6 @@ const SidebarHandle = styled.button<{ $open: boolean }>`
     }
 `;
 
-/* ── NEW sidebar content components ── */
-
 const SidebarTaskName = styled.div`
     font-size: 1.2rem;
     font-weight: 700;
@@ -751,10 +759,6 @@ const SidebarDivider = styled.div`
     margin: 0.75rem 0;
 `;
 
-/*
- * Forces TaskEditable's Container (which has max-width:60%)
- * to fill the full sidebar content width instead.
- */
 const TaskCardWrapper = styled.div`
     width: 100%;
     margin-bottom: 0.25rem;
@@ -781,7 +785,6 @@ const PomodoroWarning = styled.div`
     line-height: 1.4;
 `;
 
-/* ── NEW: wraps the entire study plan block in a white card ── */
 const StudyPlanCard = styled.div`
     background: white;
     border-radius: 12px;
@@ -865,21 +868,23 @@ export default function TimerScreen() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const locationState = (location.state as any) || {};
+    // Fix: typed location.state instead of `any`
+    const locationState = (location.state as LocationState) || {};
+
     const resolvedContext = useMemo<PersistedContext>(() => {
         if (locationState.mode) {
             const ctx: PersistedContext = {
                 mode:    locationState.mode,
                 item:    locationState.item  ?? null,
                 hasPlan: !!locationState.hasPlan,
-                savedAt: Date.now(),
+                savedAt: Date.now(), // eslint-disable-line react-hooks/purity
             };
             saveContext(ctx);
             return ctx;
         }
         const persisted = loadContext();
         if (persisted) return persisted;
-        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() };
+        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() }; // eslint-disable-line react-hooks/purity
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const { mode, item, hasPlan } = resolvedContext;
@@ -896,7 +901,7 @@ export default function TimerScreen() {
     const [showTaskComplete, setShowTaskComplete] = useState(false);
     const [showReusePrompt, setShowReusePrompt] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
-    const [summaryData, setSummaryData] = useState<any>(null);
+    const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Plant state
@@ -910,10 +915,8 @@ export default function TimerScreen() {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [stepProgressPct, setStepProgressPct] = useState(0);
 
-    // ── NEW: task for sidebar display (may differ from currentTask in schedule mode) ──
     const [sidebarTask, setSidebarTask] = useState<Task | null>(currentTask);
 
-    // ── NEW: how many active seconds have elapsed in this session ──
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(() => {
         const s = loadSession();
         return s ? computeActiveSeconds(s, Date.now()) : 0;
@@ -927,15 +930,16 @@ export default function TimerScreen() {
     const stepIndexRef = useRef(0);
     const stepElapsedRef = useRef(0);
     const localPlantProgressRef = useRef(0);
-    const lastPlantSyncRef = useRef(Date.now());
+    // Fix: initialize to 0, set real value in useEffect to avoid Date.now() during render
+    const lastPlantSyncRef = useRef(0);
+
+    useEffect(() => {
+        lastPlantSyncRef.current = Date.now();
+    }, []);
 
     useEffect(() => { statusRef.current = status; }, [status]);
     useEffect(() => { workflowStepsRef.current = workflowSteps; }, [workflowSteps]);
 
-    /* ══════════════════════════════════════════
-       NEW: fetch task for sidebar (handles schedule-block mode
-       where currentTask is null but we still have a taskId)
-    ══════════════════════════════════════════ */
     useEffect(() => {
         if (currentTask) {
             setSidebarTask(currentTask);
@@ -980,6 +984,40 @@ export default function TimerScreen() {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [syncPlantProgress]);
+
+    /* ══════════════════════════════════════════
+       SESSION SAVE / END
+       Hoisted above mount useEffect so forceEndSession
+       is declared before it is referenced
+    ══════════════════════════════════════════ */
+    async function saveSessionToDB(session: Session, now: number, taskCompleted = false) {
+        if (!session.hasStartedWork) return null;
+        const elapsed = Math.floor((now - session.startTime) / 1000);
+        if (elapsed < 10) return null;
+        const payload: TimerSession = {
+            ...(currentTask?.id ? { task_id: currentTask.id } : {}),
+            mode: currentTask ? "task" : "free",
+            started_at: new Date(session.startTime).toISOString(),
+            ended_at: new Date(now).toISOString(),
+            elapsed_seconds: elapsed,
+            active_seconds: computeActiveSeconds(session, now),
+            task_completed: taskCompleted,
+        };
+        try {
+            const res = await createTimerSession(payload);
+            return { session: res.data };
+        } catch (e) {
+            console.error("Failed to save session", e);
+            return null;
+        }
+    }
+
+    // Fix: hoisted above the mount useEffect that calls it
+    async function forceEndSession(session: Session) {
+        const data = await saveSessionToDB(session, Date.now());
+        clearAll();
+        return data;
+    }
 
     /* ══════════════════════════════════════════
        MOUNT — session resolution + plant fetch
@@ -1048,7 +1086,7 @@ export default function TimerScreen() {
         setWorkflowLoading(true);
         getTask(taskId)
             .then((task: Task) => {
-                setSidebarTask(task); // also update sidebar task from the fetched data
+                setSidebarTask(task);
                 return generateWorkflow({ title: task.title, description: task.description });
             })
             .then((data: { steps: WorkflowStep[]; is_pomodoro: boolean }) => {
@@ -1076,10 +1114,8 @@ export default function TimerScreen() {
             const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
             setSeconds(remaining);
 
-            // ── NEW: update elapsed seconds for the time-remaining display ──
             setSessionElapsedSeconds(computeActiveSeconds(session, now));
 
-            // ── Plant ──
             localPlantProgressRef.current += 1;
             if (localPlantProgressRef.current % 30 === 0) {
                 const result = await syncPlantProgress();
@@ -1098,7 +1134,6 @@ export default function TimerScreen() {
                 return;
             }
 
-            // ── Step auto-advance ──
             const steps = workflowStepsRef.current;
             if (steps.length > 0) {
                 stepElapsedRef.current += 1;
@@ -1117,7 +1152,6 @@ export default function TimerScreen() {
                 }
             }
 
-            // ── Persist step position ──
             session.currentStepIndex = stepIndexRef.current;
             session.stepElapsedSecs  = stepElapsedRef.current;
             saveSession(session);
@@ -1321,37 +1355,6 @@ export default function TimerScreen() {
         setStepProgressPct(0);
     }
 
-    /* ══════════════════════════════════════════
-       SESSION SAVE / END
-    ══════════════════════════════════════════ */
-    async function saveSessionToDB(session: Session, now: number, taskCompleted = false) {
-        if (!session.hasStartedWork) return null;
-        const elapsed = Math.floor((now - session.startTime) / 1000);
-        if (elapsed < 10) return null;
-        const payload: TimerSession = {
-            ...(currentTask?.id ? { task_id: currentTask.id } : {}),
-            mode: currentTask ? "task" : "free",
-            started_at: new Date(session.startTime).toISOString(),
-            ended_at: new Date(now).toISOString(),
-            elapsed_seconds: elapsed,
-            active_seconds: computeActiveSeconds(session, now),
-            task_completed: taskCompleted,
-        };
-        try {
-            const res = await createTimerSession(payload);
-            return { session: res.data };
-        } catch (e) {
-            console.error("Failed to save session", e);
-            return null;
-        }
-    }
-
-    async function forceEndSession(session: Session) {
-        const data = await saveSessionToDB(session, Date.now());
-        clearAll();
-        return data;
-    }
-
     async function confirmEndSession(taskCompleted?: boolean) {
         const session = loadSession();
         await syncPlantProgress();
@@ -1402,12 +1405,10 @@ export default function TimerScreen() {
     /* ─────────────────────────────────────
        DERIVED VALUES FOR SIDEBAR
     ───────────────────────────────────── */
-
-    // task_duration is in minutes → convert to seconds for the math
     const taskDurationSeconds = (sidebarTask?.task_duration ?? 0) * 60;
     const taskTimeRemaining   = taskDurationSeconds > 0
         ? Math.max(0, taskDurationSeconds - sessionElapsedSeconds)
-        : null; // null = no duration set, don't show the line
+        : null;
 
     /* ─────────────────────────────────────
        RENDER
@@ -1417,8 +1418,6 @@ export default function TimerScreen() {
     const totalTyped = digitsToSeconds(digits);
     const canStart = totalTyped > 0;
     const showControlBanner = !isOwner;
-
-    // Show the sidebar whenever we have a task OR a plan
     const showSidebar = hasPlan || !!currentTask;
 
     return (
@@ -1479,9 +1478,6 @@ export default function TimerScreen() {
                             <PlantVisual stage={plantStage} />
                         </PlantContainer>
 
-                        {/* ═══════════════════════════════════════
-                            SIDEBAR — shown for any task or plan
-                        ═══════════════════════════════════════ */}
                         {showSidebar && (
                             <>
                                 <SidebarHandle
@@ -1490,8 +1486,6 @@ export default function TimerScreen() {
                                     aria-label={sidebarOpen ? "Close plan" : "Open plan"}
                                 />
                                 <Sidebar $open={sidebarOpen}>
-
-                                    {/* ── Big task name + time remaining ── */}
                                     <SidebarTaskName>
                                         {sidebarTask?.title ?? "Study Session"}
                                     </SidebarTaskName>
@@ -1504,7 +1498,6 @@ export default function TimerScreen() {
 
                                     <SidebarDivider />
 
-                                    {/* ── Task card (read-only) ── */}
                                     {sidebarTask && (
                                         <TaskCardWrapper>
                                             <TaskEditable
@@ -1586,7 +1579,6 @@ export default function TimerScreen() {
                     </Overlay>
                 )}
 
-                {/* ── Step 1: Confirm end ── */}
                 {showEndConfirm && (
                     <Overlay>
                         <OverlayContent onClick={e => e.stopPropagation()}>
@@ -1608,7 +1600,6 @@ export default function TimerScreen() {
                     </Overlay>
                 )}
 
-                {/* ── Step 2: Task completion (task mode only) ── */}
                 {showTaskComplete && (
                     <Overlay>
                         <OverlayContent onClick={e => e.stopPropagation()}>
@@ -1640,7 +1631,7 @@ export default function TimerScreen() {
                         <SummaryCard>
                             <SummaryTitle>Good Job!</SummaryTitle>
 
-                            {summaryData?.plantsEarned > 0 && (
+                            {summaryData?.plantsEarned != null && summaryData.plantsEarned > 0 && (
                                 <>
                                     <SummarySubtitle>
                                         You grew {summaryData.plantsEarned} plant{summaryData.plantsEarned > 1 ? "s" : ""}!
