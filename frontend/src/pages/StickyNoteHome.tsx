@@ -474,7 +474,7 @@ function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel 
                 </div>
 
                 {isLoading ? (
-                    <LottieLoading size={100} />
+                    <LottieLoading size={200} />
                 ) : (
                     <TaskList>
                         {tasks.map((task, i) => (
