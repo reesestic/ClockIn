@@ -33,6 +33,10 @@ const OverlaySvg = styled.svg`
     animation: ${fadeIn} 0.3s ease;
 `;
 
+const lineFadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
 /* ── Line SVG sits on top of the overlay ── */
 const LineSvg = styled.svg`
     position: fixed;
@@ -42,6 +46,7 @@ const LineSvg = styled.svg`
     pointer-events: none;
     z-index: 10000;
     overflow: visible;
+    animation: ${lineFadeIn} 0.2s ease 0.1s both;
 `;
 
 /* CardWrapper owns position — set via inline style so it's there frame zero */
@@ -183,15 +188,11 @@ export default function TutorialOverlay() {
 
     // Find the target element and compute its spotlight rect
     useEffect(() => {
-        if (!isActive || !step?.targetSelector) {
-            setSpotlight(null);
-            return;
-        }
+        if (!isActive || !step?.targetSelector) return;
 
-        // Small delay so the DOM is ready after step transition
         const timer = setTimeout(() => {
             const el = document.querySelector(step.targetSelector!);
-            if (!el) { setSpotlight(null); return; }
+            if (!el) return; // 🚫 don't clear spotlight
 
             const rect = el.getBoundingClientRect();
             setSpotlight({
@@ -221,18 +222,10 @@ export default function TutorialOverlay() {
     const offsetY = step.spotlightOffset?.y ?? 0;
 
     // Line points to spotlight center if we have one, otherwise lineTarget
-    const targetX = spotlight
-        ? spotlight.x + spotlight.width / 2 + offsetX
-        : step.lineTarget?.right
-            ? w - pct(step.lineTarget.right, w)
-            : pct(step.lineTarget?.left, w);
-    const targetY = spotlight
-        ? spotlight.y + spotlight.height / 2 + offsetY
-        : step.lineTarget?.bottom
-            ? h - pct(step.lineTarget.bottom, h)
-            : pct(step.lineTarget?.top, h);
+    const targetX = spotlight ? spotlight.x + spotlight.width / 2 + offsetX : 0;
+    const targetY = spotlight ? spotlight.y + spotlight.height / 2 + offsetY : 0;
 
-    const showLine = step.id !== "welcome" && step.id !== "gist";
+    const showLine = step.id !== "welcome" && step.id !== "gist" && spotlight !== null;
 
     const cpX = (beeX + targetX) / 2 + (targetY - beeY) * 0.3 + (step.lineCurve?.offsetX ?? 0);
     const cpY = (beeY + targetY) / 2 - Math.abs(targetX - beeX) * 0.25 + (step.lineCurve?.offsetY ?? 0);
@@ -290,7 +283,7 @@ export default function TutorialOverlay() {
 
             {/* Dashed curved line from bee to target */}
             {showLine && (
-                <LineSvg>
+                <LineSvg key={currentStep}>
                     <path
                         d={`M ${beeX} ${beeY} Q ${cpX} ${cpY} ${targetX} ${targetY}`}
                         stroke="#FFF59A"
