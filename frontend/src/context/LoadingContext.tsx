@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 
 const LoadingContext = createContext<any>(null);
 
-export function LoadingProvider({ children }: any) {
+export function LoadingProvider({ children }: null) {
     const [loading, setLoading] = useState(false);
 
     return (
