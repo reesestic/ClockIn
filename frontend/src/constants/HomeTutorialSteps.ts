@@ -7,7 +7,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         body: "Let's get familiar with the",
         highlight: "features before you begin.",
         modalPosition: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
-        beePosition: { top: "49%", right: "37%" },
+        beePosition: { top: "50%", right: "39%" },
     },
     {
         id: "sticky-notes",
@@ -16,7 +16,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         highlight: "a quick thought.",
         targetSelector: "[data-tutorial='sticky-notes']",
         modalPosition: { bottom: "28%", left: "10%" },
-        beePosition: { bottom: "25%", left: "29%" },
+        beePosition: { bottom: "25%", left: "31%" },
         lineCurve:{offsetX: 250, offsetY:100},
         spotlightOffset:{x: -150, y:90},
     },
@@ -38,7 +38,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         highlight: "Stay organized.",
         targetSelector: "[data-tutorial='task-book']",
         modalPosition: { top: "38%", left: "14%" },
-        beePosition: { top: "44%", left: "32%" },
+        beePosition: { top: "46%", left: "33%" },
         lineCurve: { offsetX: 100, offsetY: 0 },
         spotlightOffset: {x: 200, y: -30}
     },
@@ -49,7 +49,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         highlight: "best fit for you!",
         targetSelector: "[data-tutorial='planner']",
         modalPosition: { top: "28%", left: "44%" },
-        beePosition: { top: "25%", left: "61%" },
+        beePosition: { top: "23%", left: "63%" },
         lineCurve: { offsetX: 100, offsetY: -30 },
         spotlightOffset: {x: 40, y: -240}
     },
@@ -60,7 +60,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         highlight: "grow a garden.",
         targetSelector: "[data-tutorial='pot']",
         modalPosition: { top: "15%", left: "36%" },
-        beePosition: { top: "22%", left: "55%" },
+        beePosition: { top: "22%", left: "57%" },
     },
     {
         id: "gist",
@@ -69,6 +69,6 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         highlight: "home.",
         targetSelector: "[data-tutorial='home-btn']",
         modalPosition: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
-        beePosition: { bottom: "52%", left: "39%" },
+        beePosition: { bottom: "52%", left: "37%" },
     },
 ];
