@@ -78,8 +78,19 @@ function getThisWeekDates(): string[] {
     });
 }
 
-function busyTimesToBlocks(busyTimes: { id: string; title: string; start_time: string | null; end_time: string | null; days_of_week: string[] }[], dates: string[]): ScheduleBlock[] {
-    const DAY_ABBR: Record<number, string> = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+function busyTimesToBlocks(
+    busyTimes: {
+        id: string;
+        title: string;
+        start_time: string | null;
+        end_time: string | null;
+        days_of_week: string[];
+    }[],
+    dates: string[]
+): ScheduleBlock[] {
+    const DAY_ABBR: Record<number, string> = {
+        0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT",
+    };
     const blocks: ScheduleBlock[] = [];
     for (const bt of busyTimes) {
         if (!bt.start_time || !bt.end_time) continue;
@@ -112,7 +123,9 @@ export default function PlannerPage() {
     const [hasGoogleCalendar, setHasGoogleCalendar] = useState(false);
 
     useEffect(() => {
-        getTasks().then(setTasks).catch(console.error);
+        getTasks()
+            .then(setTasks)
+            .catch((err: unknown) => console.error(err));
 
         getGoogleStatus()
             .then((s) => {
@@ -131,15 +144,14 @@ export default function PlannerPage() {
                             });
                             setCalendarBlocks(blocks);
                         })
-                        .catch(console.error);
+                        .catch((err: unknown) => console.error(err));
                 }
             })
-            .catch(console.error);
+            .catch((err: unknown) => console.error(err));
 
         if (user?.id) {
             getSchedule(user.id)
                 .then((s) => {
-                    // Strip calendar blocks — they're loaded separately
                     const taskOnly = { ...s, blocks: s.blocks.filter((b) => !b.isCalendarEvent) };
                     setSchedule(taskOnly);
                     if (taskOnly.blocks.length > 0) setIsLocked(true);
@@ -160,7 +172,6 @@ export default function PlannerPage() {
     function handleBlocksChange(newBlocks: ScheduleBlock[]) {
         if (!schedule || !user) return;
 
-        // Strip calendar blocks — they're managed separately in calendarBlocks state
         const taskBlocks = newBlocks.filter((b) => !b.isCalendarEvent);
 
         const movedBlock = taskBlocks.find((nb) => {
@@ -169,12 +180,16 @@ export default function PlannerPage() {
         });
 
         if (movedBlock && trackEdits) {
-            const old = originalSchedule?.blocks.find((b) => b.id === movedBlock.id)!;
-            rejectBlock(movedBlock.task_id!, `${old.date}T${old.start}:00`, user.id).catch(console.error);
+            const old = originalSchedule?.blocks.find((b) => b.id === movedBlock.id);
+            if (old) {
+                rejectBlock(movedBlock.task_id!, `${old.date}T${old.start}:00`, user.id)
+                    .catch((err: unknown) => console.error(err));
+            }
         }
 
         setSchedule({ ...schedule, blocks: taskBlocks });
-        confirmSchedule(taskBlocks, user.id).catch(console.error);
+        confirmSchedule(taskBlocks, user.id)
+            .catch((err: unknown) => console.error(err));
     }
 
     function handleCalendarBlockToggle(blockId: string) {
@@ -189,7 +204,10 @@ export default function PlannerPage() {
                 .filter((b) => b.isIgnored)
                 .map((b) => b.id.split(":")[1])
                 .filter(Boolean);
-            localStorage.setItem(`clockin_ignored_cal:${user?.id}`, JSON.stringify([...new Set(ignoredIds)]));
+            localStorage.setItem(
+                `clockin_ignored_cal:${user?.id}`,
+                JSON.stringify([...new Set(ignoredIds)])
+            );
             return updated;
         });
     }
@@ -197,7 +215,7 @@ export default function PlannerPage() {
     const visibleCalendarBlocks =
         calendarMode === "off"    ? [] :
         calendarMode === "active" ? calendarBlocks.filter((b) => !b.isIgnored) :
-        calendarBlocks; // "all" — include ignored ones (rendered grey)
+        calendarBlocks;
 
     const displaySchedule = schedule
         ? { ...schedule, blocks: [...schedule.blocks, ...visibleCalendarBlocks] }
