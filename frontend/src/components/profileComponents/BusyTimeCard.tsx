@@ -1,9 +1,9 @@
 import styled, { keyframes } from "styled-components";
 import { useState, useEffect, useRef } from "react";
-import type { TimeValue, BusyTimeData } from "../types/BusyTime";
+import type { TimeValue, BusyTimeData } from "../../types/BusyTime";
 
 // Re-export the type so existing importers of BusyTimeData from this file don't break
-export type { BusyTimeData } from "../types/BusyTime";
+export type { BusyTimeData } from "../../types/BusyTime";
 
 /* ── Helpers ─────────────────────── */
 
