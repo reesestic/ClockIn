@@ -2,15 +2,26 @@ import styled from "styled-components";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {ROUTES} from "../../constants/Routes.ts";
+import { ROUTES } from "../../constants/Routes.ts";
 import ProfileLeavesIcon from "../icons/ProfileLeavesIcon";
 import ProfileTimerIcon from "../icons/ProfileTimerIcon";
 import ProfileBeeIcon from "../icons/ProfileBeeIcon";
 import DailyStreakIcon from "../icons/DailyStreakIcon.tsx";
-import {getStats} from "../../api/statsApi.ts";
+import { getStats } from "../../api/statsApi.ts";
 
+/* ── Types ───────────────────────── */
+
+interface UserStats {
+    plants_grown: number;
+    total_hours: number;
+    day_streak: number;
+}
+
+/* ── Constants ───────────────────── */
 
 const SIDEBAR_WIDTH = 350;
+
+/* ── Styles ──────────────────────── */
 
 const Overlay = styled.div<{ $open: boolean }>`
     position: fixed;
@@ -18,8 +29,6 @@ const Overlay = styled.div<{ $open: boolean }>`
     z-index: 99;
     pointer-events: ${p => p.$open ? "auto" : "none"};
 `;
-
-
 
 const Panel = styled.div<{ $open: boolean }>`
     position: absolute;
@@ -43,9 +52,6 @@ const Panel = styled.div<{ $open: boolean }>`
     font-size: clamp(0.7rem, 1rem, 1.2rem);
 `;
 
-
-
-
 const PanelTitle = styled.div`
     color: #636363;
     letter-spacing: 0.08em;
@@ -55,8 +61,6 @@ const PanelTitle = styled.div`
     font-weight: 700;
 `;
 
-
-/* ── Box 1: Avatar + Name ── */
 const ProfileBox = styled.div`
     display: flex;
     flex-direction: column;
@@ -89,7 +93,6 @@ const UserSub = styled.div`
     text-align: center;
 `;
 
-/* ── Stat Box ── */
 const StatBox = styled.div`
     display: flex;
     flex-direction: column;
@@ -150,7 +153,6 @@ const SectionLabel = styled.div`
     text-transform: uppercase;
     padding: 0 4px 8px;
     font-size: clamp(0.6rem, 0.9rem, 1.1rem);
-
 `;
 
 const ActionRow = styled.button`
@@ -164,7 +166,6 @@ const ActionRow = styled.button`
     align-items: center;
     gap: 12px;
     transition: background 0.15s;
-
     &:hover {
         background: rgba(0,0,0,0.06);
     }
@@ -190,23 +191,25 @@ const SignOutLabel = styled(ActionLabel)`
     color: #e05a5a;
 `;
 
+/* ── Props ───────────────────────── */
+
 interface Props {
     open: boolean;
     onClose: () => void;
 }
 
+/* ── Component ───────────────────── */
+
 export default function ProfileSidebar({ open, onClose }: Props) {
-    const {user, signOut} = useAuth();
+    const { user, signOut } = useAuth();
     const navigate = useNavigate();
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<UserStats | null>(null);
 
     useEffect(() => {
         if (!open) return;
-
         getStats()
             .then(setStats)
-            .catch(console.error);
-
+            .catch((err: unknown) => console.error(err));
     }, [open]);
 
     return (
@@ -214,21 +217,21 @@ export default function ProfileSidebar({ open, onClose }: Props) {
             <Panel $open={open} onClick={e => e.stopPropagation()}>
 
                 <PanelTitle>Home</PanelTitle>
+
                 {/* Box 1 — Avatar + Name */}
                 <ProfileBox>
                     <AvatarWrapper>
-                        <BeeIcon/>
+                        <BeeIcon />
                     </AvatarWrapper>
                     <UserName>{user?.email?.split("@")[0] ?? "User"}</UserName>
                     <UserSub>@{user?.username ?? "username"}</UserSub>
                 </ProfileBox>
 
-
                 {/* Box 2 — Plants */}
                 <StatBox>
                     <StatRow>
                         <StatValue>{stats?.plants_grown ?? "--"}</StatValue>
-                        <LeavesIcon/>
+                        <LeavesIcon />
                     </StatRow>
                     <StatLabel>Total Plants Grown</StatLabel>
                 </StatBox>
@@ -237,20 +240,21 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                 <StatBox>
                     <StatRow>
                         <StatValue>{stats?.total_hours ?? "--"}</StatValue>
-                        <TimerIcon/>
+                        <TimerIcon />
                     </StatRow>
                     <StatLabel>Total Hours Worked</StatLabel>
                 </StatBox>
 
+                {/* Box 4 — Streak */}
                 <StatBox>
                     <StatRow>
-                        <StatValue>{stats?.day_streak ?? "--"}</StatValue> <StreakIcon/>
+                        <StatValue>{stats?.day_streak ?? "--"}</StatValue>
+                        <StreakIcon />
                     </StatRow>
                     <StatLabel>Day Study Streak</StatLabel>
                 </StatBox>
 
-
-                {/* Bottom links — pushed to bottom via margin-top: auto on BottomLinks */}
+                {/* Bottom links */}
                 <BottomSection>
                     <SectionLabel>Account</SectionLabel>
 
@@ -278,6 +282,7 @@ export default function ProfileSidebar({ open, onClose }: Props) {
                         <ActionChevron>›</ActionChevron>
                     </ActionRow>
                 </BottomSection>
+
             </Panel>
         </Overlay>
     );
