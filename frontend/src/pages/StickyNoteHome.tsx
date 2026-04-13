@@ -1,7 +1,7 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import {saveNote, deleteNote, getNotes, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
+import {saveNote, deleteNote, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
 import BackButton from "../components/navigation/BackButton.tsx";
