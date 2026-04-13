@@ -54,7 +54,7 @@ const StyledLink = styled(Link)`
 
 const DateOverlay = styled.div`
     position: absolute;
-    top: 7%;
+    top: 5%;
     right: 26%;
     display: flex;
     flex-direction: row;
