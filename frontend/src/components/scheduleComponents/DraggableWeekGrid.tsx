@@ -18,7 +18,7 @@ const HOUR_HEIGHT = 36;   // px per hour
 const GRID_START = 0;     // 12am — allows scrolling above 6am
 const GRID_END = 24;      // midnight
 const SNAP_MINUTES = 15;
-export const TIME_COL_WIDTH = 42;
+import { TIME_COL_WIDTH, getWeekDays } from "../../utils/weekGridUtils";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
@@ -32,16 +32,6 @@ function minutesToTime(mins: number): string {
     return `${pad(Math.floor(clamped / 60))}:${pad(clamped % 60)}`;
 }
 
-export function getWeekDays() {
-    const today = new Date();
-    return Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        const label = d.toLocaleDateString("en-US", { weekday: "short" });
-        return { date, label, isToday: i === 0 };
-    });
-}
 
 const GridWrapper = styled.div`
   display: flex;
