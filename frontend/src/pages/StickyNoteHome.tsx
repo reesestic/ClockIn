@@ -25,8 +25,14 @@ import { useNavigate } from "react-router-dom";
 import {useNotes} from "../context/NoteContext.tsx";
 import LottieLoading from "../components/ui/LottieLoading.tsx";
 
+// ─── Custom event types ───────────────────────────────────────────────────────
 
-// Code for drag/drop
+declare global {
+    interface WindowEventMap {
+        noteHoverZone: CustomEvent<{ zoneId: string | null }>;
+    }
+}
+
 // ─── Default grid placement for notes with no saved position ─────────────────
 const NOTE_SIZE = 220;
 const GRID_COLS = 3;
@@ -155,10 +161,7 @@ const CancelButton = styled.button`
     }
 `;
 
-
-
 // ─── Modal Task Editable Styled Components ─────────────────────────────────────
-// Mirrors TaskEditable but stripped of checkbox, menu, collapse, and edit toggle
 
 const TaskEditableContainer = styled.div`
     display: flex;
@@ -291,7 +294,6 @@ const RadioOption = styled.button<{ selected: boolean }>`
     }
 `;
 
-// Toast Styled Components
 const ToastWrapper = styled.div`
     position: fixed;
     bottom: 40px;
@@ -362,7 +364,6 @@ function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
         onChange(updated);
     };
 
-
     return (
         <TaskEditableContainer>
             <TitleRow colorHex={colorHex}>
@@ -404,7 +405,7 @@ function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
                 </FieldRow>
 
                 <FieldRow style={{ justifyContent: "flex-start" }}>
-                    <FieldLabel style={{ flex: "none" , margin: "2%"}}>
+                    <FieldLabel style={{ flex: "none", margin: "2%" }}>
                         Importance
                         <RadioGroup>
                             {[1, 2, 3].map(val => (
@@ -507,29 +508,20 @@ export function StickyNoteHome() {
     const [isLoadingTasks, setIsLoadingTasks] = useState(false);
     const [pendingDrop, setPendingDrop] = useState<PendingDrop>(null);
     const [hoveredZone, setHoveredZone] = useState<"calendar" | "trash" | null>(null);
-
-    // ── CHANGE: new state to track which note spawned the task modal ────────
     const [sourceNote, setSourceNote] = useState<Note | null>(null);
-
     const [toast, setToast] = useState<{ count: number } | null>(null);
+
     const navigate = useNavigate();
 
-
-
-    // boardRef = the left notes column (drag is constrained to this)
     const boardRef = useRef<HTMLDivElement>(null);
-    // These measure the action column icons so we know their centers
     const calendarRef = useRef<HTMLDivElement>(null);
     const trashRef = useRef<HTMLDivElement>(null);
     const numberOfNotes = notes.length;
 
-    // Drop zones are measured relative to the board so DraggableStickyNote
-    // can compare note position (also board-relative) against them directly.
     const [dropZones, setDropZones] = useState<
         Array<{ id: string; x: number; y: number; radius: number }>
     >([]);
 
-    // ── Measure drop zone centers relative to the board ──────────────────────
     const recomputeZones = useCallback(() => {
         if (!boardRef.current || !calendarRef.current || !trashRef.current) return;
         const boardRect = boardRef.current.getBoundingClientRect();
@@ -566,13 +558,9 @@ export function StickyNoteHome() {
         const handler = (e: CustomEvent<{ zoneId: string | null }>) => {
             setHoveredZone(e.detail.zoneId as "calendar" | "trash" | null);
         };
-        window.addEventListener("noteHoverZone" as any, handler);
-        return () => window.removeEventListener("noteHoverZone" as any, handler);
+        window.addEventListener("noteHoverZone", handler);
+        return () => window.removeEventListener("noteHoverZone", handler);
     }, []);
-
-    // Claude end
-
-    
 
     const notesWithPositions = notes.map((note, i) => ({
         ...note,
@@ -583,23 +571,19 @@ export function StickyNoteHome() {
         },
     }));
 
-    // Prop method passed down to Editable sticky note to edit title and content (StickyNoteEditable.tsx)
     const updateNote = (title: string, content: string) => {
         setActiveNote(prev =>
-            prev ? {...prev, title, content} : prev
+            prev ? { ...prev, title, content } : prev
         );
     };
 
-    // Replaces sendNote, called by confirmCalendarDrop
     const generateTasksFromNote = async (note: Note) => {
         if (!note?.id) return;
 
         setShowTaskModal(true);
         setIsLoadingTasks(true);
-        setSourceNote(note); // remember which note to delete on confirm
+        setSourceNote(note);
 
-
-        // follow noteToTask pipeline through abckend
         try {
             const tasks = await noteToTask(note.id);
             setProposedTasks(tasks);
@@ -617,11 +601,10 @@ export function StickyNoteHome() {
     };
 
     const handleConfirmTasks = async () => {
-        const count = proposedTasks.length; // ← capture FIRST before clearing
+        const count = proposedTasks.length;
 
         await sendTasksToList(proposedTasks);
 
-        // Delete the original note only after the user confirms tasks
         if (sourceNote?.id) {
             await deleteNote(sourceNote.id);
             setNotes(prev => prev.filter(n => n.id !== sourceNote.id));
@@ -631,7 +614,6 @@ export function StickyNoteHome() {
         setProposedTasks([]);
         setActiveNote(null);
 
-        // ── show toast ──
         setToast({ count });
         setTimeout(() => setToast(null), 3000);
     };
@@ -640,7 +622,7 @@ export function StickyNoteHome() {
         setShowTaskModal(false);
         setProposedTasks([]);
         setIsLoadingTasks(false);
-        setSourceNote(null); // clear sourceNote
+        setSourceNote(null);
     };
 
     const handleSaveNote = async () => {
@@ -666,16 +648,12 @@ export function StickyNoteHome() {
     };
 
     const handleColorChange = async (noteId: string, color: StickyNoteColor) => {
-
         setNotes(prev =>
             prev.map(n =>
-                n.id === noteId
-                    ? { ...n, color }
-                    : n
+                n.id === noteId ? { ...n, color } : n
             )
         );
 
-        // update the open editable note
         setActiveNote(prev =>
             prev && (prev.id === noteId || (!prev.id && !noteId))
                 ? { ...prev, color }
@@ -692,11 +670,7 @@ export function StickyNoteHome() {
         } catch (error) {
             console.error("Failed to update color", error);
         }
-
     };
-
-    // Claude until return
-    // Drag released inside board → persist new position
 
     const handleDragEnd = useCallback(async (noteId: string, x: number, y: number) => {
         let newZ = 1;
@@ -716,9 +690,8 @@ export function StickyNoteHome() {
         } catch (err) {
             console.error(err);
         }
-    }, []); // Remvoed notes dependency
+    }, [setNotes]);
 
-    // ── Drop zone release ─────────────────────────────────────────────────────
     const handleDropZoneRelease = useCallback((zoneId: string, note: Note) => {
         setPendingDrop({ note, zone: zoneId as "trash" | "calendar" });
     }, []);
@@ -739,9 +712,9 @@ export function StickyNoteHome() {
         if (!pendingDrop) return;
 
         const note = pendingDrop.note;
-        setPendingDrop(null); // close the "send to planner?" confirm modal
+        setPendingDrop(null);
 
-        await generateTasksFromNote(note); // pipeline starts here
+        await generateTasksFromNote(note);
     };
 
     return (
@@ -759,7 +732,6 @@ export function StickyNoteHome() {
                     <AddButton
                         label="New Note"
                         onClick={() =>
-
                             setActiveNote({
                                 title: "",
                                 content: "",
@@ -771,11 +743,8 @@ export function StickyNoteHome() {
                                 }
                             })}
                     />
-                    {/*Commenting out select until later*/}
-                    {/*<button>Select</button>*/}
                 </AddAndSelectWrapper>
 
-                {/*// notes board changed*/}
                 <NotesAndButtonsLayout>
                     <NotesBoard ref={boardRef}>
                         {notesWithPositions.map((note) => (
@@ -799,7 +768,6 @@ export function StickyNoteHome() {
                             <TrashDropZone isHovered={hoveredZone === "trash"} />
                         </div>
                     </ActionColumn>
-
                 </NotesAndButtonsLayout>
 
                 {activeNote && (
@@ -812,7 +780,6 @@ export function StickyNoteHome() {
                     />
                 )}
 
-                {/* ── Trash drop confirm ───────────────────────────────────── */}
                 {pendingDrop?.zone === "trash" && (
                     <DeleteConfirmModal
                         noteTitle={pendingDrop.note.title}
@@ -821,7 +788,6 @@ export function StickyNoteHome() {
                     />
                 )}
 
-                {/* ── Calendar drop confirm ────────────────────────────────── */}
                 {pendingDrop?.zone === "calendar" && (
                     <DeleteConfirmModal
                         noteTitle={`Send "${pendingDrop.note.title}" to your planner?`}
