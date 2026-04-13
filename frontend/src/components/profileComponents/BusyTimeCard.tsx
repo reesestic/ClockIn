@@ -10,6 +10,7 @@ interface TimeValue {
 }
 
 export interface BusyTimeData {
+    id?: number;
     title: string;
     start: TimeValue;
     end: TimeValue;

@@ -4,29 +4,29 @@ import DraggableWeekGrid, { getWeekDays, TIME_COL_WIDTH } from "./DraggableWeekG
 import styled from "styled-components";
 
 const Wrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 `;
 
 const GridBorder = styled.div`
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #d0dce8;
-    border-radius: 5px;
-    overflow: hidden;
-    margin-bottom: 0.25rem;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d0dce8;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
 `;
 
 const EmptyState = styled.div`
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #aab8c8;
-    font-size: 14px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aab8c8;
+  font-size: 14px;
 `;
 
 const DayHeadersRow = styled.div`
@@ -73,7 +73,7 @@ const DayLabel = styled.div`
   letter-spacing: 0.4px;
 `;
 
-export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditing, onBlocksChange, isLocked }: ScheduleViewProps) {
+export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditing, onBlocksChange, isLocked, calendarMode, onSetCalendarMode, hasGoogleCalendar }: ScheduleViewProps) {
     const weekDays = getWeekDays();
 
     return (
@@ -84,6 +84,9 @@ export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditi
                 onDoneEditing={onDoneEditing}
                 isLocked={isLocked}
                 hasSchedule={!!schedule && schedule.blocks.length > 0}
+                calendarMode={calendarMode}
+                onSetCalendarMode={onSetCalendarMode}
+                hasGoogleCalendar={hasGoogleCalendar}
             />
 
             <DayHeadersRow>

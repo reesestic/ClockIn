@@ -517,8 +517,8 @@ export default function TaskEditable({
                             <FieldInput
                                 ref={dueDateRef}
                                 isEditing={isEditing}
-                                type="date"
-                                value={local.due_date ?? ""}
+                                type="datetime-local"
+                                value={local.due_date ? (local.due_date.length === 10 ? local.due_date + "T00:00" : local.due_date.slice(0, 16)) : ""}
                                 readOnly={!isEditing}
                                 onChange={(e) => {
                                     isDirty.current = true;

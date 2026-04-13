@@ -11,7 +11,7 @@ import type { BusyTimeRecord } from "../api/busyTimesApi";
 
 /* ── Types ───────────────────────── */
 
-interface BusyTime extends BusyTimeData {
+interface BusyTime extends Omit<BusyTimeData, 'id'> {
     id: string;
     source?: string;
 }
@@ -267,7 +267,8 @@ export default function BusyTimes() {
     async function handleDuplicate(id: string) {
         const original = busyTimes.find(b => b.id === id);
         if (!original) return;
-        const payload = localToPayload({ ...original, title: `${original.title} (copy)` });
+        const { id: _, ...rest } = original;
+        const payload = localToPayload({ ...rest, title: `${original.title} (copy)` });
         try {
             const created = await createBusyTime(payload);
             setBusyTimes(prev => [...prev, recordToLocal(created)]);
@@ -353,9 +354,6 @@ export default function BusyTimes() {
 
             {editing !== null && (
                 <BusyTimeModal
-                    initial={editingItem}
-                    // ← pass all times except the one being edited
-                    existingTimes={busyTimes.filter(b => b.id !== editing)}
                     onSave={handleSave}
                     onClose={() => setEditing(null)}
                     onDuplicate={editingItem ? () => handleDuplicate(editingItem.id) : undefined}

@@ -1,10 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import type { Preference, ScheduleFilters } from "../../types/ScheduleFilters";
 import type { Schedule } from "../../types/Schedule";
 import type { ScheduleBlock } from "../../types/ScheduleBlock";
 import type { Task } from "../../types/Task";
 import { generateSchedule, confirmSchedule, acceptBlock, rejectBlock } from "../../api/scheduleApi";
+import { getBusyTimes } from "../../api/busyTimesApi";
+import type { BusyTimeRecord } from "../../api/busyTimesApi";
+import { syncGoogleCalendar, getGoogleStatus } from "../../api/googleApi";
 import DraggableWeekGrid from "../scheduleComponents/DraggableWeekGrid";
 
 const TASK_COLORS = [
@@ -41,6 +44,40 @@ function formatDueDate(due: string | null | undefined): string | null {
     }
 }
 
+/** Convert synced Google Calendar BusyTimes into ScheduleBlocks for the grid. */
+function busyTimesToBlocks(busyTimes: BusyTimeRecord[], allowedDates: string[]): ScheduleBlock[] {
+    const DAY_ABBR: Record<number, string> = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+    const blocks: ScheduleBlock[] = [];
+
+    for (const bt of busyTimes) {
+        if (!bt.start_time || !bt.end_time) continue;
+
+        for (const date of allowedDates) {
+            const day = new Date(date + "T00:00");
+            const dayAbbr = DAY_ABBR[day.getDay()];
+
+            if (bt.days_of_week?.length > 0 && !bt.days_of_week.includes(dayAbbr)) continue;
+
+            blocks.push({
+                id: `cal:${bt.id}:${date}`,
+                title: bt.title,
+                date,
+                start: bt.start_time.slice(0, 5),
+                end: bt.end_time.slice(0, 5),
+                isCalendarEvent: true,
+            });
+        }
+    }
+
+    return blocks;
+}
+
+/** Extract the BusyTime ID from a calendar block ID. */
+function calBlockToBusyTimeId(blockId: string): string | null {
+    if (!blockId.startsWith("cal:")) return null;
+    return blockId.split(":")[1] ?? null;
+}
+
 type Props = {
     onClose: () => void;
     onConfirm: (schedule: Schedule) => void;
@@ -50,304 +87,341 @@ type Props = {
 
 /* ── Overlay / Modal shell ── */
 const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 `;
 
 const Modal = styled.div`
-    display: flex;
-    width: min(1100px, 94vw);
-    height: min(780px, 90vh);
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  display: flex;
+  width: min(1100px, 94vw);
+  height: min(780px, 90vh);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
 `;
 
 /* ── Left panel ── */
 const LeftPanel = styled.div`
-    width: 300px;
-    flex-shrink: 0;
-    background: #ffffff;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  width: 300px;
+  flex-shrink: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 `;
 
 const LeftScroll = styled.div`
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px 20px 12px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px 12px;
 `;
 
 const PanelTitle = styled.h2`
-    font-size: 18px;
-    font-weight: 700;
-    font-style: italic;
-    margin: 0 0 14px 0;
-    color: #1a1a1a;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  margin: 0 0 14px 0;
+  color: #1a1a1a;
 `;
 
 const TaskCard = styled.div<{ $bg: string }>`
-    border-radius: 10px;
-    margin-bottom: 8px;
-    background: ${({ $bg }) => $bg};
-    padding: 10px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: ${({ $bg }) => $bg};
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
 `;
 
 const TaskCardInfo = styled.div`
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 `;
 
 const TaskCardTitle = styled.div`
-    font-size: 13px;
-    font-weight: 700;
-    color: #1a1a1a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TaskCardDate = styled.div`
-    font-size: 11px;
-    color: #555;
-    margin-top: 3px;
+  font-size: 11px;
+  color: #555;
+  margin-top: 3px;
 `;
 
 const RemoveBtn = styled.button`
-    flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.12);
-    border: none;
-    color: #333;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    &:hover { background: rgba(0, 0, 0, 0.25); }
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.12);
+  border: none;
+  color: #333;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  &:hover { background: rgba(0, 0, 0, 0.25); }
 `;
 
 const AddTaskLink = styled.button`
-    background: none;
-    border: none;
-    color: #888;
-    font-size: 13px;
-    cursor: pointer;
-    text-align: left;
-    padding: 4px 0;
-    margin-bottom: 4px;
-    &:hover { color: #333; }
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 0;
+  margin-bottom: 4px;
+  &:hover { color: #333; }
 `;
 
 const TaskPickerDropdown = styled.div`
-    background: #f9f9f9;
-    border: 1px solid #e8e8e8;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    max-height: 160px;
-    overflow-y: auto;
+  background: #f9f9f9;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  max-height: 160px;
+  overflow-y: auto;
 `;
 
 const TaskPickerItem = styled.button`
-    width: 100%;
-    background: none;
-    border: none;
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    color: #333;
-    &:hover { background: #f0f0f0; }
-    &:first-child { border-radius: 10px 10px 0 0; }
-    &:last-child { border-radius: 0 0 10px 10px; }
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #333;
+  &:hover { background: #f0f0f0; }
+  &:first-child { border-radius: 10px 10px 0 0; }
+  &:last-child { border-radius: 0 0 10px 10px; }
 `;
 
 const SectionDivider = styled.div`
-    height: 1px;
-    background: #eee;
-    margin: 16px 0 14px;
+  height: 1px;
+  background: #eee;
+  margin: 16px 0 14px;
 `;
 
 const FilterRow = styled.div`
-    margin-bottom: 12px;
+  margin-bottom: 12px;
 `;
 
 const FilterLabel = styled.div`
-    font-size: 11px;
-    font-weight: 600;
-    color: #888;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const TogglePair = styled.div`
-    display: flex;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #e0e0e0;
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
 `;
 
 const ToggleBtn = styled.button<{ $active: boolean }>`
-    flex: 1;
-    padding: 7px 6px;
-    border: none;
-    background: ${({ $active }) => ($active ? "#1a1a1a" : "#fafafa")};
-    color: ${({ $active }) => ($active ? "white" : "#555")};
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.12s;
-    &:not(:last-child) { border-right: 1px solid #e0e0e0; }
+  flex: 1;
+  padding: 7px 6px;
+  border: none;
+  background: ${({ $active }) => ($active ? "#1a1a1a" : "#fafafa")};
+  color: ${({ $active }) => ($active ? "white" : "#555")};
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  &:not(:last-child) { border-right: 1px solid #e0e0e0; }
 `;
 
 const LeftFooter = styled.div`
-    padding: 14px 20px;
-    border-top: 1px solid #eee;
+  padding: 14px 20px;
+  border-top: 1px solid #eee;
 `;
 
 const CreateBtn = styled.button<{ $loading: boolean }>`
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: none;
-    background: ${({ $loading }) => ($loading ? "#ccc" : "#f5d94e")};
-    color: ${({ $loading }) => ($loading ? "#888" : "#1a1a1a")};
-    font-size: 14px;
-    font-weight: 800;
-    cursor: ${({ $loading }) => ($loading ? "not-allowed" : "pointer")};
-    transition: background 0.15s;
-    &:hover:not(:disabled) { background: #e8c84a; }
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: ${({ $loading }) => ($loading ? "#ccc" : "#f5d94e")};
+  color: ${({ $loading }) => ($loading ? "#888" : "#1a1a1a")};
+  font-size: 14px;
+  font-weight: 800;
+  cursor: ${({ $loading }) => ($loading ? "not-allowed" : "pointer")};
+  transition: background 0.15s;
+  &:hover:not(:disabled) { background: #e8c84a; }
 `;
 
 /* ── Right panel ── */
 const RightPanel = styled.div`
-    flex: 1;
-    background: #d6e8f5;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 24px 20px 16px;
-    min-width: 0;
+  flex: 1;
+  background: #d6e8f5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px 20px 16px;
+  min-width: 0;
 `;
 
 const RightTitle = styled.h2`
-    font-size: 20px;
-    font-weight: 700;
-    font-style: italic;
-    margin: 0 0 4px 0;
-    color: #1a1a1a;
-    flex-shrink: 0;
+  font-size: 20px;
+  font-weight: 700;
+  font-style: italic;
+  margin: 0 0 4px 0;
+  color: #1a1a1a;
+  flex-shrink: 0;
 `;
 
 const RightSubtitle = styled.p`
-    font-size: 13px;
-    font-weight: 400;
-    font-style: italic;
-    color: #4a6580;
-    margin: 0 0 14px 0;
-    flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  color: #4a6580;
+  margin: 0 0 14px 0;
+  flex-shrink: 0;
 `;
 
 const DayPillRow = styled.div`
-    display: flex;
-    gap: 6px;
-    margin-bottom: 14px;
-    flex-shrink: 0;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 `;
 
 const DayPill = styled.button<{ $selected: boolean }>`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 20px;
-    border: 2px solid ${({ $selected }) => ($selected ? "#3a7bd5" : "#b0c8e0")};
-    background: ${({ $selected }) => ($selected ? "#3a7bd5" : "transparent")};
-    color: ${({ $selected }) => ($selected ? "white" : "#4a6580")};
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.12s;
-    line-height: 1.3;
-    &:hover {
-        background: ${({ $selected }) => ($selected ? "#2e6abf" : "rgba(58,123,213,0.1)")};
-    }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 20px;
+  border: 2px solid ${({ $selected }) => ($selected ? "#3a7bd5" : "#b0c8e0")};
+  background: ${({ $selected }) => ($selected ? "#3a7bd5" : "transparent")};
+  color: ${({ $selected }) => ($selected ? "white" : "#4a6580")};
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1.3;
+  &:hover {
+    background: ${({ $selected }) => ($selected ? "#2e6abf" : "rgba(58,123,213,0.1)")};
+  }
 `;
 
 const DayPillNum = styled.span`
-    font-size: 13px;
-    font-weight: 800;
+  font-size: 13px;
+  font-weight: 800;
 `;
 
 const GridArea = styled.div`
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 const EmptyState = styled.div`
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #7a96b0;
-    font-size: 14px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7a96b0;
+  font-size: 14px;
 `;
 
 const ErrorText = styled.div`
-    color: #c0392b;
-    background: rgba(192,57,43,0.08);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
-    margin-bottom: 10px;
-    flex-shrink: 0;
+  color: #c0392b;
+  background: rgba(192,57,43,0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+`;
+
+const CalendarLegend = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #4a6580;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+`;
+
+const LegendDot = styled.div`
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(58,123,213,0.15);
+  border: 1.5px dashed #3a7bd5;
+  flex-shrink: 0;
+`;
+
+const ResyncBtn = styled.button<{ $syncing: boolean }>`
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #b0c8e0;
+  border-radius: 8px;
+  color: ${({ $syncing }) => ($syncing ? "#9aabb8" : "#3a7bd5")};
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  cursor: ${({ $syncing }) => ($syncing ? "not-allowed" : "pointer")};
+  transition: all 0.12s;
+  &:hover:not(:disabled) {
+    background: rgba(58,123,213,0.08);
+    border-color: #3a7bd5;
+  }
 `;
 
 const RightFooter = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    padding-top: 12px;
-    flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  flex-shrink: 0;
 `;
 
 const DoneBtn = styled.button`
-    padding: 10px 28px;
-    border-radius: 12px;
-    border: none;
-    background: #3a7bd5;
-    color: white;
-    font-size: 14px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: background 0.15s;
-    &:hover { background: #2e6abf; }
+  padding: 10px 28px;
+  border-radius: 12px;
+  border: none;
+  background: #3a7bd5;
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover { background: #2e6abf; }
 `;
 
 /* ── Filter toggle helper ── */
 function ToggleFilter({
-                          label,
-                          optA,
-                          optB,
-                          value,
-                          onChange,
-                      }: {
+    label,
+    optA,
+    optB,
+    value,
+    onChange,
+}: {
     label: string;
     optA: { label: string; value: Preference };
     optB: { label: string; value: Preference };
@@ -391,12 +465,74 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         difficulty: "none",
     });
 
-    const [schedule, setSchedule] = useState<Schedule | null>(null);
+    // All blocks on the grid: calendar events + generated task blocks
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
+    const [hasCalendarEvents, setHasCalendarEvents] = useState(false);
+    const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [schedule, setSchedule] = useState<Schedule | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const prevBlocksRef = useRef<ScheduleBlock[]>([]);
+
+    function loadCalendarBlocks() {
+        const allowedDates = weekDays.map((d) => d.date);
+        const savedIgnored: string[] = JSON.parse(
+            localStorage.getItem(`clockin_ignored_cal:${userId}`) ?? "[]"
+        );
+        return getBusyTimes().then((all) => {
+            console.log("[CalendarSync] All busy times from API:", all);
+            const googleEvents = all.filter((bt) => bt.source === "google");
+            console.log("[CalendarSync] Google events:", googleEvents);
+            if (googleEvents.length === 0) return;
+            const calBlocks = busyTimesToBlocks(googleEvents, allowedDates).map((b) => {
+                const btId = calBlockToBusyTimeId(b.id);
+                return btId && savedIgnored.includes(btId) ? { ...b, isIgnored: true } : b;
+            });
+            console.log("[CalendarSync] Resulting calendar blocks:", calBlocks);
+            // Preserve existing task blocks, replace calendar blocks
+            setBlocks((prev) => {
+                const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
+                return [...calBlocks, ...taskBlocks];
+            });
+            setHasCalendarEvents(true);
+        });
+    }
+
+    // Load Google Calendar events onto the grid on mount
+    useEffect(() => {
+        getGoogleStatus()
+            .then((s) => setIsGoogleConnected(s.connected))
+            .catch(() => {});
+        loadCalendarBlocks().catch((e) => {
+            console.error("[CalendarSync] Failed to load busy times:", e);
+        });
+    }, []);
+
+    async function handleResync() {
+        setSyncing(true);
+        setError(null);
+        try {
+            await syncGoogleCalendar();
+            await loadCalendarBlocks();
+        } catch {
+            setError("Failed to resync Google Calendar. Try again.");
+        } finally {
+            setSyncing(false);
+        }
+    }
+
+    // When allowedDays changes, re-filter calendar blocks to only show enabled days
+    useEffect(() => {
+        setBlocks((prev) => {
+            const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
+            const calBlocks = prev.filter(
+                (b) => b.isCalendarEvent && allowedDays.includes(b.date)
+            );
+            return [...calBlocks, ...taskBlocks];
+        });
+    }, [allowedDays]);
 
     function getTaskColor(taskId: string): { bg: string; text: string } {
         const idx = selectedTaskIds.indexOf(taskId);
@@ -424,6 +560,55 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         setFilters((prev) => ({ ...prev, [key]: value }));
     }
 
+    /** Derive ignored BusyTime IDs from blocks that are currently marked ignored. */
+    function getIgnoredBusyTimeIds(): string[] {
+        const ids = new Set<string>();
+        for (const b of blocks) {
+            if (b.isCalendarEvent && b.isIgnored) {
+                const btId = calBlockToBusyTimeId(b.id);
+                if (btId) ids.add(btId);
+            }
+        }
+        return Array.from(ids);
+    }
+
+    function saveIgnoredIds(updatedBlocks: ScheduleBlock[]) {
+        const ids = new Set<string>();
+        for (const b of updatedBlocks) {
+            if (b.isCalendarEvent && b.isIgnored) {
+                const btId = calBlockToBusyTimeId(b.id);
+                if (btId) ids.add(btId);
+            }
+        }
+        localStorage.setItem(`clockin_ignored_cal:${userId}`, JSON.stringify(Array.from(ids)));
+    }
+
+    /**
+     * Toggle a calendar block between ignored (greyed out) and active.
+     * All blocks for the same BusyTime are toggled together.
+     * Task blocks are removed outright.
+     */
+    function handleBlockDelete(blockId: string) {
+        const busyTimeId = calBlockToBusyTimeId(blockId);
+        if (busyTimeId) {
+            setBlocks((prev) => {
+                const currentlyIgnored = prev.find(
+                    (b) => b.id.startsWith(`cal:${busyTimeId}:`)
+                )?.isIgnored ?? false;
+                const updated = prev.map((b) =>
+                    b.isCalendarEvent && b.id.startsWith(`cal:${busyTimeId}:`)
+                        ? { ...b, isIgnored: !currentlyIgnored }
+                        : b
+                );
+                saveIgnoredIds(updated);
+                return updated;
+            });
+        } else {
+            // Regular task block — remove it
+            setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+        }
+    }
+
     async function doGenerate() {
         if (selectedTaskIds.length === 0) {
             setError("Select at least one task to schedule.");
@@ -437,16 +622,24 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         setError(null);
         try {
             const filtersWithDays: ScheduleFilters = { ...filters, allowed_days: allowedDays };
-            const result = await generateSchedule(selectedTaskIds, filtersWithDays, userId);
-            // Assign task colors to blocks
-            const coloredBlocks = result.blocks.map((b) => ({
+            const result = await generateSchedule(
+                selectedTaskIds,
+                filtersWithDays,
+                userId,
+                getIgnoredBusyTimeIds()
+            );
+            // Assign task colors
+            const coloredTaskBlocks = result.blocks.map((b) => ({
                 ...b,
                 color: getTaskColor(b.task_id ?? "").bg,
             }));
-            const coloredSchedule = { ...result, blocks: coloredBlocks };
+            // Keep calendar blocks that are still on the grid, add fresh task blocks
+            const calBlocks = blocks.filter((b) => b.isCalendarEvent);
+            const newBlocks = [...calBlocks, ...coloredTaskBlocks];
+            const coloredSchedule = { ...result, blocks: newBlocks };
             setSchedule(coloredSchedule);
-            setBlocks(coloredBlocks);
-            prevBlocksRef.current = coloredBlocks;
+            setBlocks(newBlocks);
+            prevBlocksRef.current = newBlocks;
             if (result.skipped?.length) {
                 setError(
                     `Could not find a slot for: ${result.skipped.join(", ")}. Try adjusting their due dates or duration.`
@@ -462,6 +655,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     function handleBlocksChange(newBlocks: ScheduleBlock[]) {
         const prev = prevBlocksRef.current;
         const movedBlock = newBlocks.find((nb) => {
+            if (nb.isCalendarEvent) return false;
             const old = prev.find((b) => b.id === nb.id);
             return old && (old.start !== nb.start || old.date !== nb.date);
         });
@@ -476,11 +670,14 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     }
 
     async function handleConfirm() {
-        if (!schedule || blocks.length === 0) return;
+        if (!schedule) return;
+        // Only save task blocks — calendar events are already in Google Calendar
+        const taskBlocks = blocks.filter((b) => !b.isCalendarEvent);
+        if (taskBlocks.length === 0) return;
         const confirmed = { ...schedule, blocks };
-        await confirmSchedule(blocks, userId).catch(console.error);
+        await confirmSchedule(taskBlocks, userId).catch(console.error);
         await Promise.all(
-            blocks
+            taskBlocks
                 .filter((b) => b.task_id)
                 .map((b) =>
                     acceptBlock(
@@ -497,6 +694,8 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
 
     const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!));
     const unselectedTasks = allTasks.filter((t) => !selectedTaskIds.includes(t.id!));
+    const hasTaskBlocks = blocks.some((b) => !b.isCalendarEvent);
+    const showGrid = blocks.length > 0;
 
     return (
         <Overlay onClick={onClose}>
@@ -570,7 +769,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 {/* ── Right panel ── */}
                 <RightPanel>
                     <RightTitle>Generated Schedule</RightTitle>
-                    <RightSubtitle>Select days for your new schedule</RightSubtitle>
+                    <RightSubtitle>Select days · click a calendar event to exclude it from scheduling</RightSubtitle>
 
                     <DayPillRow>
                         {weekDays.map((d) => (
@@ -585,29 +784,42 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                         ))}
                     </DayPillRow>
 
+                    {(hasCalendarEvents || isGoogleConnected) && (
+                        <CalendarLegend>
+                            <LegendDot />
+                            Google Calendar events — click to exclude from scheduling
+                            <ResyncBtn
+                                $syncing={syncing}
+                                disabled={syncing}
+                                onClick={handleResync}
+                            >
+                                {syncing ? "Syncing…" : "↺ Resync"}
+                            </ResyncBtn>
+                        </CalendarLegend>
+                    )}
+
                     {error && <ErrorText>{error}</ErrorText>}
 
                     <GridArea>
                         {loading ? (
                             <EmptyState>Generating your schedule…</EmptyState>
-                        ) : blocks.length > 0 ? (
+                        ) : showGrid ? (
                             <DraggableWeekGrid
                                 blocks={blocks}
                                 onBlocksChange={handleBlocksChange}
+                                onBlockDelete={handleBlockDelete}
                                 lightBg
                                 enabledDays={allowedDays}
                                 scrollToHour={7}
                             />
                         ) : (
                             <EmptyState>
-                                {selectedTaskIds.length === 0
-                                    ? "Add tasks and click Create."
-                                    : "Click Create to generate your schedule."}
+                                Add tasks and click Create to generate your schedule.
                             </EmptyState>
                         )}
                     </GridArea>
 
-                    {blocks.length > 0 && (
+                    {hasTaskBlocks && (
                         <RightFooter>
                             <DoneBtn onClick={handleConfirm}>Done ✓</DoneBtn>
                         </RightFooter>

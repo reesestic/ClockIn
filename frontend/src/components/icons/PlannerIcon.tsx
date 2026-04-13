@@ -21,6 +21,5 @@ export default function PlannerIcon({ className }: { className?: string }) {
 
 
 
-
     )
 }

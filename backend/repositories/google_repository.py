@@ -54,13 +54,11 @@ class GoogleRepository:
         )
         res.raise_for_status()
         new_tokens = res.json()
-
         expires_at = datetime.utcnow() + timedelta(seconds=new_tokens["expires_in"])
         self.supabase.table("GoogleTokens").update({
             "access_token": new_tokens["access_token"],
             "expires_at": expires_at.isoformat(),
         }).eq("user_id", user_id).execute()
-
         return new_tokens["access_token"]
 
     def _get_valid_access_token(self, tokens: dict) -> str:
@@ -86,17 +84,44 @@ class GoogleRepository:
     def delete_tokens(self, user_id: str):
         self.supabase.table("GoogleTokens").delete().eq("user_id", user_id).execute()
 
-    def fetch_events(self, tokens: dict) -> list:
-        access_token = self._get_valid_access_token(tokens)
+    def _fetch_calendar_ids(self, access_token: str) -> list[str]:
+        """Return IDs of all calendars the user has access to."""
         res = requests.get(
-            "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "https://www.googleapis.com/calendar/v3/users/me/calendarList",
             headers={"Authorization": f"Bearer {access_token}"},
-            params={
-                "timeMin": datetime.utcnow().isoformat() + "Z",
-                "timeMax": (datetime.utcnow() + timedelta(days=7)).isoformat() + "Z",
-                "singleEvents": True,
-                "orderBy": "startTime",
-            },
         )
         res.raise_for_status()
-        return res.json().get("items", [])
+        return [cal["id"] for cal in res.json().get("items", [])]
+
+    def _fetch_events_for_calendar(self, access_token: str, calendar_id: str) -> list:
+        time_min = datetime.utcnow().isoformat() + "Z"
+        time_max = (datetime.utcnow() + timedelta(days=7)).isoformat() + "Z"
+        res = requests.get(
+            f"https://www.googleapis.com/calendar/v3/calendars/{quote(calendar_id, safe='')}/events",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "timeMin": time_min,
+                "timeMax": time_max,
+                "singleEvents": True,
+                "orderBy": "startTime",
+                "maxResults": 250,
+            },
+        )
+        if not res.ok:
+            return []  # skip calendars we can't read (e.g. holidays, other people's)
+        return [e for e in res.json().get("items", []) if e.get("status") != "cancelled"]
+
+    def fetch_events(self, tokens: dict) -> list:
+        access_token = self._get_valid_access_token(tokens)
+        calendar_ids = self._fetch_calendar_ids(access_token)
+
+        all_events = []
+        seen_ids = set()
+        for cal_id in calendar_ids:
+            for event in self._fetch_events_for_calendar(access_token, cal_id):
+                event_id = event.get("id")
+                if event_id and event_id not in seen_ids:
+                    seen_ids.add(event_id)
+                    all_events.append(event)
+
+        return all_events

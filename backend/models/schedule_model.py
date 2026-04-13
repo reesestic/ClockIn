@@ -50,6 +50,8 @@ class AutoScheduleResponse(BaseModel):
 class GenerateScheduleRequest(BaseModel):
     task_ids: list[str]
     filters: dict = {}
+    allowed_days: list[str] = []
+    ignored_event_ids: list[str] = []
 
 
 class GeneratedBlock(BaseModel):

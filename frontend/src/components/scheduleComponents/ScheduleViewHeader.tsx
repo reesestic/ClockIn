@@ -7,13 +7,16 @@ type Props = {
     onDoneEditing?: () => void;
     isLocked?: boolean;
     hasSchedule?: boolean;
+    calendarMode?: "off" | "active" | "all";
+    onSetCalendarMode?: (mode: "off" | "active" | "all") => void;
+    hasGoogleCalendar?: boolean;
 };
 
 const Wrapper = styled.div`
-    display: flex;
-    align-items: center;
-    padding: 0.4rem 0 0.6rem 0;
-    gap: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 0 0.6rem 0;
+  gap: 0;
 `;
 
 const Left = styled.div`
@@ -160,7 +163,33 @@ const ScheduledBadge = styled.span`
   font-weight: 700;
 `;
 
-export default function ScheduleViewHeader({ onGenerate, onEdit, onDoneEditing, isLocked, hasSchedule }: Props) {
+const CalModeWrap = styled.div`
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #d0d8e8;
+  border-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+`;
+
+const CalModeSegment = styled.button<{ $active: boolean }>`
+  background: ${({ $active }) => ($active ? "#4b94db" : "transparent")};
+  color: ${({ $active }) => ($active ? "white" : "#9aabb8")};
+  border: none;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.13s;
+  &:not(:last-child) { border-right: 1.5px solid #d0d8e8; }
+  &:hover:not([disabled]) {
+    background: ${({ $active }) => ($active ? "#3a7bd5" : "rgba(75,148,219,0.08)")};
+    color: ${({ $active }) => ($active ? "white" : "#4b94db")};
+  }
+`;
+
+export default function ScheduleViewHeader({ onGenerate, onEdit, onDoneEditing, isLocked, hasSchedule, calendarMode, onSetCalendarMode, hasGoogleCalendar }: Props) {
     const now = new Date();
 
     return (
@@ -190,6 +219,19 @@ export default function ScheduleViewHeader({ onGenerate, onEdit, onDoneEditing, 
                         <EditButton onClick={() => onEdit?.()}>Edit Schedule</EditButton>
                         <ScheduledBadge>✓ Scheduled</ScheduledBadge>
                     </>
+                )}
+                {hasGoogleCalendar && onSetCalendarMode && (
+                    <CalModeWrap>
+                        <CalModeSegment $active={calendarMode === "off"} onClick={() => onSetCalendarMode("off")}>
+                            Off
+                        </CalModeSegment>
+                        <CalModeSegment $active={calendarMode === "active"} onClick={() => onSetCalendarMode("active")}>
+                            Active
+                        </CalModeSegment>
+                        <CalModeSegment $active={calendarMode === "all"} onClick={() => onSetCalendarMode("all")}>
+                            All
+                        </CalModeSegment>
+                    </CalModeWrap>
                 )}
             </Center>
 

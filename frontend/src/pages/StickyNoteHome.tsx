@@ -1,7 +1,7 @@
 import { ROUTES } from "../constants/Routes";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import {saveNote, deleteNote, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
+import {saveNote, deleteNote, getNotes, changeColor, noteToTask, sendTasksToList, updateNotePosition } from "../api/stickyNoteApi.ts";
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
 import BackButton from "../components/navigation/BackButton.tsx";
@@ -154,6 +154,8 @@ const CancelButton = styled.button`
         color: #555;
     }
 `;
+
+
 
 // ─── Modal Task Editable Styled Components ─────────────────────────────────────
 // Mirrors TaskEditable but stripped of checkbox, menu, collapse, and edit toggle
@@ -506,7 +508,6 @@ export function StickyNoteHome() {
     const [pendingDrop, setPendingDrop] = useState<PendingDrop>(null);
     const [hoveredZone, setHoveredZone] = useState<"calendar" | "trash" | null>(null);
 
-
     // ── CHANGE: new state to track which note spawned the task modal ────────
     const [sourceNote, setSourceNote] = useState<Note | null>(null);
 
@@ -777,19 +778,17 @@ export function StickyNoteHome() {
                 {/*// notes board changed*/}
                 <NotesAndButtonsLayout>
                     <NotesBoard ref={boardRef}>
-                        { (
-                            notesWithPositions.map((note) => (
-                                <DraggableStickyNote
-                                    key={note.id}
-                                    note={note}
-                                    boardRef={boardRef}
-                                    dropZones={dropZones}
-                                    onDragEnd={handleDragEnd}
-                                    onNoteClick={setActiveNote}
-                                    onDropZoneRelease={handleDropZoneRelease}
-                                />
-                            ))
-                        )}
+                        {notesWithPositions.map((note) => (
+                            <DraggableStickyNote
+                                key={note.id}
+                                note={note}
+                                boardRef={boardRef}
+                                dropZones={dropZones}
+                                onDragEnd={handleDragEnd}
+                                onNoteClick={setActiveNote}
+                                onDropZoneRelease={handleDropZoneRelease}
+                            />
+                        ))}
                     </NotesBoard>
 
                     <ActionColumn>

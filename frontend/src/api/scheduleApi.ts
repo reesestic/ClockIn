@@ -58,7 +58,8 @@ export async function getSchedule(userId?: string): Promise<Schedule> {
 export async function generateSchedule(
     taskIds: string[],
     filters: ScheduleFilters,
-    userId?: string
+    userId?: string,
+    ignoredEventIds: string[] = []
 ): Promise<Schedule> {
     const url = userId
         ? `${import.meta.env.VITE_API_URL}${API_ROUTES.SCHEDULE}/generate?user_id=${userId}`
@@ -67,11 +68,12 @@ export async function generateSchedule(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            task_ids: taskIds,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            filters: (({ allowed_days: _days, ...rest }) => rest)(filters),
-            allowed_days: filters.allowed_days ?? [],
-        }),
+                task_ids: taskIds,
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                filters: (({ allowed_days: _days, ...rest }) => rest)(filters),
+                allowed_days: filters.allowed_days ?? [],
+                ignored_event_ids: ignoredEventIds,
+            }),
     });
 
     if (!res.ok) {

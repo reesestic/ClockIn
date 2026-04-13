@@ -30,27 +30,32 @@ class GoogleService:
             return {"error": "not connected"}
 
         events = self.repo.fetch_events(tokens)
+        print(f"[GoogleSync] Fetched {len(events)} events from Google Calendar")
 
         busy_times = []
 
         for e in events:
             start = e.get("start", {}).get("dateTime") or e.get("start", {}).get("date")
             end = e.get("end", {}).get("dateTime") or e.get("end", {}).get("date")
-
             if not start or not end:
+                print(f"[GoogleSync] Skipping event with no start/end: {e.get('summary')}")
                 continue
+            try:
+                bt = {
+                    "title": e.get("summary", "Busy"),
+                    "start_time": self._format_time(start),
+                    "end_time": self._format_time(end),
+                    "days_of_week": self._get_days(start, end),
+                    "source": "google",
+                }
+                busy_times.append(bt)
+                print(f"[GoogleSync] Converted: {bt['title']} on {bt['days_of_week']} {bt['start_time']}–{bt['end_time']}")
+            except Exception as ex:
+                print(f"[GoogleSync] Error converting event '{e.get('summary')}': {ex}")
 
-            busy_times.append({
-                "title": e.get("summary", "Busy"),
-                "start_time": self._format_time(start),
-                "end_time": self._format_time(end),
-                "days_of_week": self._get_days(start, end),
-                "source": "google"
-            })
-
+        print(f"[GoogleSync] Saving {len(busy_times)} busy times to DB")
         self.busy_times_service.replace_google_events(user_id, busy_times)
-
-        return {"status": "synced"}
+        return {"status": "synced", "count": len(busy_times)}
 
     def _get_days(self, start_iso: str, end_iso: str) -> list[str]:
         start = datetime.fromisoformat(start_iso)

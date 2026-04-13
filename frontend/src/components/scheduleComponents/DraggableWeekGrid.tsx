@@ -44,88 +44,88 @@ export function getWeekDays() {
 }
 
 const GridWrapper = styled.div`
-    display: flex;
-    overflow-y: auto;
-    overflow-x: auto;
-    flex: 1;
-    align-items: flex-start;
+  display: flex;
+  overflow-y: auto;
+  overflow-x: auto;
+  flex: 1;
+  align-items: flex-start;
 `;
 
 const TimeCol = styled.div<{ $noHeaderPad?: boolean }>`
-    width: ${TIME_COL_WIDTH}px;
-    flex-shrink: 0;
-    padding-top: ${({ $noHeaderPad }) => ($noHeaderPad ? "0" : "22px")};
+  width: ${TIME_COL_WIDTH}px;
+  flex-shrink: 0;
+  padding-top: ${({ $noHeaderPad }) => ($noHeaderPad ? "0" : "22px")};
 `;
 
 const TimeLabel = styled.div`
-    height: ${HOUR_HEIGHT}px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding-right: 8px;
-    padding-top: 2px;
-    font-size: 10px;
-    color: #9aabb8;
-    box-sizing: border-box;
+  height: ${HOUR_HEIGHT}px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 8px;
+  padding-top: 2px;
+  font-size: 10px;
+  color: #9aabb8;
+  box-sizing: border-box;
 `;
 
 const DaysContainer = styled.div`
-    display: flex;
-    flex: 1;
-    min-width: 0;
+  display: flex;
+  flex: 1;
+  min-width: 0;
 `;
 
 const DayCol = styled.div<{ $isOver: boolean; $lightBg?: boolean }>`
-    flex: 1;
-    min-width: 80px;
-    border-left: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8e8e8" : "#ebebeb")};
-    background: ${({ $isOver }) => ($isOver ? "rgba(58,123,213,0.04)" : "transparent")};
-    transition: background 0.1s;
+  flex: 1;
+  min-width: 80px;
+  border-left: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8e8e8" : "#ebebeb")};
+  background: ${({ $isOver }) => ($isOver ? "rgba(58,123,213,0.04)" : "transparent")};
+  transition: background 0.1s;
 `;
 
 const DayHeaderArea = styled.div<{ $lightBg?: boolean }>`
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8e8e8" : "#e8eef4")};
-    position: sticky;
-    top: 0;
-    background: #ffffff;
-    z-index: 10;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8e8e8" : "#e8eef4")};
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 10;
 `;
 
 const TodayPill = styled.div`
-    background: #3a7bd5;
-    color: white;
-    border-radius: 10px;
-    padding: 1px 8px;
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+  background: #3a7bd5;
+  color: white;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 `;
 
 const DayLabel = styled.div`
-    font-size: 9px;
-    font-weight: 600;
-    color: #aab8c8;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #aab8c8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 `;
 
 const DayBody = styled.div`
-    position: relative;
-    height: ${(GRID_END - GRID_START) * HOUR_HEIGHT}px;
+  position: relative;
+  height: ${(GRID_END - GRID_START) * HOUR_HEIGHT}px;
 `;
 
 const HourLine = styled.div<{ $index: number; $lightBg?: boolean }>`
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: ${({ $index }) => $index * HOUR_HEIGHT}px;
-    border-top: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8eaee" : "#e8eaee")};
-    pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: ${({ $index }) => $index * HOUR_HEIGHT}px;
+  border-top: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8eaee" : "#e8eaee")};
+  pointer-events: none;
 `;
 
 const BlockEl = styled.div<{
@@ -134,83 +134,97 @@ const BlockEl = styled.div<{
     $isDragging: boolean;
     $bg?: string;
     $textColor?: string;
+    $isCalendarEvent?: boolean;
+    $isIgnored?: boolean;
 }>`
-    position: absolute;
-    left: 1px;
-    right: 1px;
-    top: ${({ $top }) => $top}px;
-    height: ${({ $height }) => Math.max(20, $height)}px;
-    background: ${({ $bg }) => $bg ?? "#C5AFFF"};
-    border: 1.5px solid rgba(0, 0, 0, 0.1);
-    color: ${({ $textColor }) => $textColor ?? "white"};
-    border-radius: 0;
-    padding: 2px 7px;
-    font-size: 11px;
-    font-weight: 300;
-    cursor: grab;
-    user-select: none;
-    box-sizing: border-box;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    opacity: ${({ $isDragging }) => ($isDragging ? 0.4 : 1)};
-    z-index: 3;
-    transition: opacity 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    &:active { cursor: grabbing; }
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: ${({ $top }) => $top}px;
+  height: ${({ $height }) => Math.max(20, $height)}px;
+  background: ${({ $bg, $isCalendarEvent, $isIgnored }) =>
+      $isIgnored
+          ? "rgba(180,180,180,0.18)"
+          : $isCalendarEvent
+          ? "rgba(58,123,213,0.12)"
+          : ($bg ?? "#C5AFFF")};
+  border: ${({ $isCalendarEvent, $isIgnored }) =>
+      $isIgnored
+          ? "1.5px dashed #bbb"
+          : $isCalendarEvent
+          ? "1.5px dashed #3a7bd5"
+          : "1.5px solid rgba(0,0,0,0.1)"};
+  color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
+      $isIgnored ? "#aaa" : $isCalendarEvent ? "#2a5ba8" : ($textColor ?? "white")};
+  border-radius: 0;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: ${({ $isCalendarEvent }) => $isCalendarEvent ? 600 : 300};
+  cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grab"};
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: ${({ $isDragging, $isIgnored }) => $isDragging ? 0.4 : $isIgnored ? 0.6 : 1};
+  z-index: ${({ $isIgnored, $isCalendarEvent }) =>
+      $isIgnored ? 1 : $isCalendarEvent ? 2 : 4};
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  &:active { cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grabbing"}; }
 `;
 
 const DeleteBtn = styled.button<{ $textColor?: string }>`
-    flex-shrink: 0;
-    margin-left: 4px;
-    background: rgba(0,0,0,0.12);
-    border: none;
-    color: ${({ $textColor }) => $textColor ?? "white"};
-    border-radius: 4px;
-    font-size: 9px;
-    line-height: 1;
-    padding: 1px 3px;
-    cursor: pointer;
-    &:hover { background: rgba(0,0,0,0.25); }
+  flex-shrink: 0;
+  margin-left: 4px;
+  background: rgba(0,0,0,0.12);
+  border: none;
+  color: ${({ $textColor }) => $textColor ?? "white"};
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1;
+  padding: 1px 3px;
+  cursor: pointer;
+  &:hover { background: rgba(0,0,0,0.25); }
 `;
 
 const Tooltip = styled.div`
-    position: fixed;
-    z-index: 9999;
-    background: #1e1e2e;
-    color: #f0f0f0;
-    border-radius: 8px;
-    padding: 10px 13px;
-    min-width: 180px;
-    max-width: 280px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
-    pointer-events: none;
+  position: fixed;
+  z-index: 9999;
+  background: #1e1e2e;
+  color: #f0f0f0;
+  border-radius: 8px;
+  padding: 10px 13px;
+  min-width: 180px;
+  max-width: 280px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  pointer-events: none;
 `;
 
 const TooltipTitle = styled.div`
-    font-size: 13px;
-    font-weight: 700;
-    margin-bottom: 4px;
-    word-break: break-word;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  word-break: break-word;
 `;
 
 const TooltipDesc = styled.div`
-    font-size: 11px;
-    color: #b0b8c8;
-    margin-bottom: 6px;
-    white-space: pre-wrap;
-    word-break: break-word;
+  font-size: 11px;
+  color: #b0b8c8;
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
 `;
 
 const TooltipTime = styled.div`
-    font-size: 11px;
-    color: #8899aa;
-    font-weight: 600;
+  font-size: 11px;
+  color: #8899aa;
+  font-weight: 600;
 `;
 
-function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: (id: string) => void }) {
+function DraggableBlock({ block, onDelete, readOnly }: { block: ScheduleBlock; onDelete?: (id: string) => void; readOnly?: boolean }) {
     const startMins = timeToMinutes(block.start) - GRID_START * 60;
     const duration = timeToMinutes(block.end) - timeToMinutes(block.start);
     const top = (startMins / 60) * HOUR_HEIGHT;
@@ -218,9 +232,13 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
 
     const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
+    const isCalendarEvent = block.isCalendarEvent ?? false;
+    const isIgnored = block.isIgnored ?? false;
+
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: block.id,
         data: { block },
+        disabled: isCalendarEvent,
     });
 
     const bg = block.color;
@@ -231,22 +249,33 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
         <>
             <BlockEl
                 ref={setNodeRef}
-                style={{ transform: CSS.Translate.toString(transform) }}
+                style={{
+                    transform: isCalendarEvent ? undefined : CSS.Translate.toString(transform),
+                    ...(isCalendarEvent && readOnly ? { cursor: "default" } : {}),
+                }}
                 $top={top}
                 $height={height}
                 $isDragging={isDragging}
                 $bg={bg}
                 $textColor={textColor}
+                $isCalendarEvent={isCalendarEvent}
+                $isIgnored={isIgnored}
                 onMouseEnter={(e) => { if (!isDragging) setTooltipPos({ x: e.clientX, y: e.clientY }); }}
                 onMouseMove={(e) => { if (!isDragging) setTooltipPos({ x: e.clientX, y: e.clientY }); }}
                 onMouseLeave={() => setTooltipPos(null)}
-                {...listeners}
-                {...attributes}
+                onClick={isCalendarEvent && onDelete && !readOnly ? () => onDelete(block.id) : undefined}
+                {...(isCalendarEvent ? {} : listeners)}
+                {...(isCalendarEvent ? {} : attributes)}
             >
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    textDecoration: isIgnored ? "line-through" : "none",
+                }}>
                     {block.title}
                 </span>
-                {onDelete && (
+                {onDelete && !isCalendarEvent && !readOnly && (
                     <DeleteBtn
                         $textColor={textColor}
                         onPointerDown={(e) => e.stopPropagation()}
@@ -259,9 +288,18 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
 
             {tooltipPos && !isDragging && createPortal(
                 <Tooltip style={{ top: tooltipPos.y + 14, left: tooltipPos.x + 14 }}>
-                    <TooltipTitle>{block.title}</TooltipTitle>
+                    <TooltipTitle style={{ textDecoration: isIgnored ? "line-through" : "none" }}>
+                        {block.title}
+                    </TooltipTitle>
                     {block.description && <TooltipDesc>{block.description}</TooltipDesc>}
                     <TooltipTime>{block.start} – {block.end}</TooltipTime>
+                    {isCalendarEvent && (
+                        <div style={{ fontSize: 10, color: "#7a96b0", marginTop: 4 }}>
+                            {isIgnored
+                                ? "Excluded — tasks may overlap this slot. Click to re-include."
+                                : "Click to exclude from scheduling."}
+                        </div>
+                    )}
                 </Tooltip>,
                 document.body
             )}
@@ -270,14 +308,15 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
 }
 
 function DroppableDay({
-                          date,
-                          label,
-                          isToday,
-                          blocks,
-                          lightBg,
-                          onDelete,
-                          hideHeader,
-                      }: {
+    date,
+    label,
+    isToday,
+    blocks,
+    lightBg,
+    onDelete,
+    hideHeader,
+    readOnly,
+}: {
     date: string;
     label: string;
     isToday: boolean;
@@ -285,6 +324,7 @@ function DroppableDay({
     lightBg?: boolean;
     onDelete?: (id: string) => void;
     hideHeader?: boolean;
+    readOnly?: boolean;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id: date });
     const hourCount = GRID_END - GRID_START;
@@ -301,7 +341,7 @@ function DroppableDay({
                     <HourLine key={i} $index={i} $lightBg={lightBg} />
                 ))}
                 {blocks.map((b) => (
-                    <DraggableBlock key={b.id} block={b} onDelete={onDelete} />
+                    <DraggableBlock key={b.id} block={b} onDelete={onDelete} readOnly={readOnly} />
                 ))}
             </DayBody>
         </DayCol>
@@ -311,23 +351,23 @@ function DroppableDay({
 type Props = {
     blocks: ScheduleBlock[];
     onBlocksChange: (blocks: ScheduleBlock[]) => void;
+    onBlockDelete?: (id: string) => void;  // optional custom delete handler (e.g. for calendar events)
     lightBg?: boolean;
     readOnly?: boolean;
     enabledDays?: string[];
     hideHeaders?: boolean;
     scrollToHour?: number;
-
 };
 
-export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, readOnly, enabledDays, hideHeaders, scrollToHour }: Props) {
+export default function DraggableWeekGrid({ blocks, onBlocksChange, onBlockDelete, lightBg, readOnly, enabledDays, hideHeaders, scrollToHour }: Props) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Default scroll to 6am on mount
+    // Default scroll to specified hour (or 6am) on mount
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = (scrollToHour ?? 6) * HOUR_HEIGHT;
         }
-    }, []);
+    }, [scrollToHour]);
 
     const allWeekDays = getWeekDays();
     const weekDays = enabledDays
@@ -344,7 +384,19 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
     const sensors = useSensors(mouseSensor, touchSensor);
 
     function handleDelete(id: string) {
-        onBlocksChange(blocks.filter((b) => b.id !== id));
+        const block = blocks.find((b) => b.id === id);
+        if (block?.isCalendarEvent) {
+            // Calendar toggle always allowed — route through custom handler or toggle in-place
+            if (onBlockDelete) {
+                onBlockDelete(id);
+            }
+        } else if (!readOnly) {
+            if (onBlockDelete) {
+                onBlockDelete(id);
+            } else {
+                onBlocksChange(blocks.filter((b) => b.id !== id));
+            }
+        }
     }
 
     function handleDragEnd(event: DragEndEvent) {
@@ -365,6 +417,7 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
 
         const hasOverlap = blocks.some((b) => {
             if (b.id === block.id || b.date !== newDate) return false;
+            if (b.isCalendarEvent && b.isIgnored) return false; // can overlap greyed-out events
             const bStart = timeToMinutes(b.start);
             const bEnd = timeToMinutes(b.end);
             return newStartMins < bEnd && bStart < newEndMins;
@@ -375,11 +428,11 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
             blocks.map((b) =>
                 b.id === block.id
                     ? {
-                        ...b,
-                        start: minutesToTime(newStartMins),
-                        end: minutesToTime(newStartMins + duration),
-                        date: newDate,
-                    }
+                          ...b,
+                          start: minutesToTime(newStartMins),
+                          end: minutesToTime(newStartMins + duration),
+                          date: newDate,
+                      }
                     : b
             )
         );
@@ -404,8 +457,9 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
                             isToday={day.isToday}
                             blocks={blocks.filter((b) => b.date === day.date)}
                             lightBg={lightBg}
-                            onDelete={readOnly ? undefined : handleDelete}
+                            onDelete={handleDelete}
                             hideHeader={hideHeaders}
+                            readOnly={readOnly}
                         />
                     ))}
                 </DaysContainer>

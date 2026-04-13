@@ -44,6 +44,17 @@ class CalendarRepository:
         return _row_to_task(response.data[0]) #select all tasks from the supabase table where the task_id matches the given id (from top)
         # if there isnt anything found, return None, otherwise, convert first result to a Task object
 
+    def get_tasks_by_ids(self, task_ids: list[str]) -> list[Task]:
+        response = (
+            supabase.table(self.TABLE)
+            .select("*")
+            .in_("id", task_ids)
+            .execute()
+        )
+        if not response.data:
+            return []
+        return [_row_to_task(row) for row in response.data]
+
     def get_tasks_by_user(self, user_id: str) -> list[Task]:
         response = (
             supabase.table(self.TABLE)

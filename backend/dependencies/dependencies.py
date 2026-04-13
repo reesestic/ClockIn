@@ -32,7 +32,6 @@ api_key = os.getenv("OPENAI_API_KEY")
 # Instances
 openai_service = AIService(api_key)
 
-
 task_repository = TaskRepository(supabase)
 task_service = TaskService(task_repository)
 

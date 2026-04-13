@@ -173,7 +173,7 @@ export default function SettingsPage() {
                         <BeeIcon />
                     </AvatarWrapper>
                     <UserName>{user?.email?.split("@")[0] ?? "User"}</UserName>
-                    <UserSub>@{user?.username ?? "username"}</UserSub>
+                    <UserSub>(username)</UserSub>
                 </ProfileBox>
 
                 <Divider />

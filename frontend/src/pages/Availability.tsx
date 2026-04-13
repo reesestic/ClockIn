@@ -133,21 +133,31 @@ export default function Availability() {
     const [statusLoading, setStatusLoading] = useState(true);
 
     const { user } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        getGoogleStatus()
+            .then((data) => {
+                setIsConnected(data.connected);
+                setSyncOn(data.connected);
+            })
+            .catch(() => {})
+            .finally(() => setStatusLoading(false));
+    }, []);
 
     async function handleToggleGoogleSync() {
         if (!isConnected) {
+            // Redirect to Google OAuth — page will reload on return
             startGoogleLogin(user!.id);
             return;
         }
 
         if (syncOn) {
             const confirmed = window.confirm(
-                "Remove all Google Calendar events from your schedule?"
+                "Disconnect Google Calendar? This will remove all synced events from your schedule."
             );
             if (!confirmed) return;
-
             await disconnectGoogleCalendar();
-
             setSyncOn(false);
             setIsConnected(false);
         } else {
@@ -155,20 +165,6 @@ export default function Availability() {
             setSyncOn(true);
         }
     }
-
-    const navigate = useNavigate();
-
-
-    useEffect(() => {
-        async function loadStatus() {
-            const data = await getGoogleStatus();
-            console.log("google status:", data);  // check this
-            setIsConnected(data.connected);
-            setSyncOn(data.connected);
-            setStatusLoading(false);
-        }
-        loadStatus();
-    }, []);
 
     return (
         <Page>
@@ -190,12 +186,19 @@ export default function Availability() {
 
                 {/* Row 2 — Sync Google Calendar */}
                 <SettingRow>
-                    <SettingLabel>Sync Google Calendar</SettingLabel>
+                    <SettingLabel>
+                        Sync Google Calendar
+                        {isConnected && (
+                            <span style={{ marginLeft: 8, fontSize: "0.75rem", color: "#4a90d9" }}>
+                                Connected
+                            </span>
+                        )}
+                    </SettingLabel>
                     <Toggle
                         $on={syncOn}
                         onClick={handleToggleGoogleSync}
                         disabled={statusLoading}
-                        style={{ opacity: statusLoading ? 0.4 : 1 }}
+                        style={{ opacity: statusLoading ? 0.4 : 1, cursor: statusLoading ? "not-allowed" : "pointer" }}
                     />
                 </SettingRow>
 

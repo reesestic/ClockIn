@@ -17,9 +17,12 @@ class BusyTimesRepository:
         result = (
             self.supabase
             .table("BusyTimes")
-            .insert({ "user_id": user_id, **data })
+            .insert({"user_id": user_id, **data})
             .execute()
         )
+        if not result.data:
+            print(f"[BusyTimesRepo] Insert returned no data for: {data.get('title')} — possible RLS or constraint violation")
+            return None
         return result.data[0]
 
     def update(self, user_id, busy_time_id: str, data: dict):

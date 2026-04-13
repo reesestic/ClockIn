@@ -57,14 +57,41 @@ class ScheduleRepository:
         }).execute()
         return response.data[0]
 
+    def clear_schedules_for_user(self, user_id: UUID) -> None:
+        supabase.table("schedules").delete().eq("user_id", str(user_id)).execute()
+
     def get_schedules_for_user(self, user_id: UUID) -> list[dict]:
         response = (
             supabase.table("schedules")
             .select("*")
             .eq("user_id", str(user_id))
+            .order("created_at", desc=True)
             .execute()
         )
-        return response.data
+        # Deduplicate by task_id — keep only the most recent row per task
+        seen: set = set()
+        unique: list = []
+        for row in response.data:
+            tid = row.get("task_id")
+            if tid not in seen:
+                seen.add(tid)
+                unique.append(row)
+        rows = unique
+        # Enrich with task titles via a single batch lookup
+        task_ids = list({r["task_id"] for r in rows if r.get("task_id")})
+        if task_ids:
+            tasks_resp = (
+                supabase.table("Tasks")
+                .select("id, title, description")
+                .in_("id", task_ids)
+                .execute()
+            )
+            task_map = {t["id"]: t for t in tasks_resp.data}
+            for row in rows:
+                task = task_map.get(row["task_id"], {})
+                row["title"] = task.get("title", "")
+                row["description"] = task.get("description")
+        return rows
 
     def get_behavior_events_ordered(self, user_id: UUID) -> list[dict]:
         response = (
@@ -93,11 +120,13 @@ class ScheduleRepository:
         }
 
     def save_perceptron_weights(self, user_id: UUID, weights: dict) -> None:
+        # Only persist the 3 base features — promoted feature weights are cached in-memory
+        # on ScheduleService._promoted_weights (keyed by user_id).
         supabase.table("perceptron_weights").upsert({
             "user_id": str(user_id),
-            "priority": weights["priority"],
-            "urgency": weights["urgency"],
-            "duration_fit": weights["duration_fit"],
+            "priority": weights.get("priority", 0.4),
+            "urgency": weights.get("urgency", 0.4),
+            "duration_fit": weights.get("duration_fit", 0.2),
             "updated_at": datetime.utcnow().isoformat(),
         }, on_conflict="user_id").execute()
 
@@ -126,6 +155,19 @@ class ScheduleRepository:
         for the required SQL setup).
         """
         supabase.rpc("promote_latent_column", {"col_name": key}).execute()
+
+    def get_promoted_keys(self) -> list[str]:
+        """Return all latent keys that have been promoted to real columns."""
+        try:
+            response = (
+                supabase.table("latent_key_stats")
+                .select("key")
+                .eq("promoted", True)
+                .execute()
+            )
+            return [row["key"] for row in response.data]
+        except Exception:
+            return []
 
     def get_active_user_ids(self) -> list[str]:
         """Returns user IDs that have at least one behavior event."""
