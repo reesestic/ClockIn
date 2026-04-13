@@ -5,9 +5,9 @@ import { useState, useEffect } from "react";
 import BusyTimeItem from "../components/profileComponents/BusyTimeItem";
 import BusyTimeModal from "../components/profileComponents/BusyTimeModal";
 import type { BusyTimeData } from "../components/profileComponents/BusyTimeCard";
-import { formatTime, timeValueToISO, isoToTimeValue } from "../components/profileComponents/BusyTimeCard";
 import { getBusyTimes, createBusyTime, updateBusyTime, deleteBusyTime } from "../api/busyTimesApi";
 import type { BusyTimeRecord } from "../api/busyTimesApi";
+import {formatTime, isoToTimeValue, timeValueToISO} from "../utils/busyTimeUtils.ts";
 
 /* ── Types ───────────────────────── */
 
@@ -267,8 +267,12 @@ export default function BusyTimes() {
     async function handleDuplicate(id: string) {
         const original = busyTimes.find(b => b.id === id);
         if (!original) return;
-        const { id: _, ...rest } = original;
-        const payload = localToPayload({ ...rest, title: `${original.title} (copy)` });
+        const payload = localToPayload({
+            title: `${original.title} (copy)`,
+            start: original.start,
+            end: original.end,
+            days: original.days,
+        });
         try {
             const created = await createBusyTime(payload);
             setBusyTimes(prev => [...prev, recordToLocal(created)]);
