@@ -1,8 +1,8 @@
 import { createContext, useState, type ReactNode } from "react";
-import type {TutorialStep} from "../types/TutorialStep.ts";
-import type {TutorialContextType} from "../types/TutorialContextType.ts";
+import type { TutorialStep } from "../types/TutorialStep.ts";
+import type { TutorialContextType } from "../types/TutorialContextType.ts";
 
-
+// eslint-disable-next-line react-refresh/only-export-components
 export const TutorialContext = createContext<TutorialContextType | null>(null);
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
