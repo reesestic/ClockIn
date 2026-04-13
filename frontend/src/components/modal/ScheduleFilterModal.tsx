@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import type { Preference, ScheduleFilters } from "../../types/ScheduleFilters";
 import type { Schedule } from "../../types/Schedule";
@@ -44,7 +44,6 @@ function formatDueDate(due: string | null | undefined): string | null {
     }
 }
 
-/** Convert synced Google Calendar BusyTimes into ScheduleBlocks for the grid. */
 function busyTimesToBlocks(busyTimes: BusyTimeRecord[], allowedDates: string[]): ScheduleBlock[] {
     const DAY_ABBR: Record<number, string> = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
     const blocks: ScheduleBlock[] = [];
@@ -72,7 +71,6 @@ function busyTimesToBlocks(busyTimes: BusyTimeRecord[], allowedDates: string[]):
     return blocks;
 }
 
-/** Extract the BusyTime ID from a calendar block ID. */
 function calBlockToBusyTimeId(blockId: string): string | null {
     if (!blockId.startsWith("cal:")) return null;
     return blockId.split(":")[1] ?? null;
@@ -450,7 +448,8 @@ function ToggleFilter({
 }
 
 export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, userId }: Props) {
-    const weekDays = getWeekDays();
+    // Memoized so loadCalendarBlocks gets a stable reference to weekDays
+    const weekDays = useMemo(() => getWeekDays(), []);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
     const [allowedDays, setAllowedDays] = useState<string[]>(weekDays.map((d) => d.date));
@@ -465,7 +464,6 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         difficulty: "none",
     });
 
-    // All blocks on the grid: calendar events + generated task blocks
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
     const [hasCalendarEvents, setHasCalendarEvents] = useState(false);
     const [isGoogleConnected, setIsGoogleConnected] = useState(false);
@@ -476,7 +474,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
 
     const prevBlocksRef = useRef<ScheduleBlock[]>([]);
 
-    function loadCalendarBlocks() {
+    const loadCalendarBlocks = useCallback(() => {
         const allowedDates = weekDays.map((d) => d.date);
         const savedIgnored: string[] = JSON.parse(
             localStorage.getItem(`clockin_ignored_cal:${userId}`) ?? "[]"
@@ -491,24 +489,23 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 return btId && savedIgnored.includes(btId) ? { ...b, isIgnored: true } : b;
             });
             console.log("[CalendarSync] Resulting calendar blocks:", calBlocks);
-            // Preserve existing task blocks, replace calendar blocks
             setBlocks((prev) => {
                 const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
                 return [...calBlocks, ...taskBlocks];
             });
             setHasCalendarEvents(true);
         });
-    }
+    }, [weekDays, userId]);
 
     // Load Google Calendar events onto the grid on mount
     useEffect(() => {
         getGoogleStatus()
             .then((s) => setIsGoogleConnected(s.connected))
             .catch(() => {});
-        loadCalendarBlocks().catch((e) => {
+        loadCalendarBlocks().catch((e: unknown) => {
             console.error("[CalendarSync] Failed to load busy times:", e);
         });
-    }, []);
+    }, [loadCalendarBlocks]);
 
     async function handleResync() {
         setSyncing(true);
@@ -523,7 +520,6 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         }
     }
 
-    // When allowedDays changes, re-filter calendar blocks to only show enabled days
     useEffect(() => {
         setBlocks((prev) => {
             const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
@@ -560,7 +556,6 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         setFilters((prev) => ({ ...prev, [key]: value }));
     }
 
-    /** Derive ignored BusyTime IDs from blocks that are currently marked ignored. */
     function getIgnoredBusyTimeIds(): string[] {
         const ids = new Set<string>();
         for (const b of blocks) {
@@ -583,11 +578,6 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         localStorage.setItem(`clockin_ignored_cal:${userId}`, JSON.stringify(Array.from(ids)));
     }
 
-    /**
-     * Toggle a calendar block between ignored (greyed out) and active.
-     * All blocks for the same BusyTime are toggled together.
-     * Task blocks are removed outright.
-     */
     function handleBlockDelete(blockId: string) {
         const busyTimeId = calBlockToBusyTimeId(blockId);
         if (busyTimeId) {
@@ -604,7 +594,6 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 return updated;
             });
         } else {
-            // Regular task block — remove it
             setBlocks((prev) => prev.filter((b) => b.id !== blockId));
         }
     }
@@ -628,12 +617,10 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 userId,
                 getIgnoredBusyTimeIds()
             );
-            // Assign task colors
             const coloredTaskBlocks = result.blocks.map((b) => ({
                 ...b,
                 color: getTaskColor(b.task_id ?? "").bg,
             }));
-            // Keep calendar blocks that are still on the grid, add fresh task blocks
             const calBlocks = blocks.filter((b) => b.isCalendarEvent);
             const newBlocks = [...calBlocks, ...coloredTaskBlocks];
             const coloredSchedule = { ...result, blocks: newBlocks };
@@ -662,7 +649,8 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         if (movedBlock) {
             const old = prev.find((b) => b.id === movedBlock.id)!;
             if (old.task_id) {
-                rejectBlock(old.task_id, `${old.date}T${old.start}:00`, userId).catch(console.error);
+                rejectBlock(old.task_id, `${old.date}T${old.start}:00`, userId)
+                    .catch((err: unknown) => console.error(err));
             }
         }
         prevBlocksRef.current = newBlocks;
@@ -671,11 +659,10 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
 
     async function handleConfirm() {
         if (!schedule) return;
-        // Only save task blocks — calendar events are already in Google Calendar
         const taskBlocks = blocks.filter((b) => !b.isCalendarEvent);
         if (taskBlocks.length === 0) return;
         const confirmed = { ...schedule, blocks };
-        await confirmSchedule(taskBlocks, userId).catch(console.error);
+        await confirmSchedule(taskBlocks, userId).catch((err: unknown) => console.error(err));
         await Promise.all(
             taskBlocks
                 .filter((b) => b.task_id)
@@ -685,7 +672,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                         `${b.date}T${b.start}:00`,
                         `${b.date}T${b.end}:00`,
                         userId
-                    ).catch(console.error)
+                    ).catch((err: unknown) => console.error(err))
                 )
         );
         onConfirm(confirmed);
