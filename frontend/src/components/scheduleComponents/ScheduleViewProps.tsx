@@ -10,4 +10,8 @@ export type ScheduleViewProps = {
     onDoneEditing?: () => void;
     onBlocksChange?: (blocks: ScheduleBlock[]) => void;
     isLocked?: boolean;
+    calendarMode?: "off" | "active" | "all";
+    onSetCalendarMode?: (mode: "off" | "active" | "all") => void;
+    hasGoogleCalendar?: boolean;
+    onCalendarBlockToggle?: (blockId: string) => void;
 }

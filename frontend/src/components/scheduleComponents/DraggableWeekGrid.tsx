@@ -134,32 +134,46 @@ const BlockEl = styled.div<{
     $isDragging: boolean;
     $bg?: string;
     $textColor?: string;
+    $isCalendarEvent?: boolean;
+    $isIgnored?: boolean;
 }>`
   position: absolute;
   left: 1px;
   right: 1px;
   top: ${({ $top }) => $top}px;
   height: ${({ $height }) => Math.max(20, $height)}px;
-  background: ${({ $bg }) => $bg ?? "#C5AFFF"};
-  border: 1.5px solid rgba(0, 0, 0, 0.1);
-  color: ${({ $textColor }) => $textColor ?? "white"};
+  background: ${({ $bg, $isCalendarEvent, $isIgnored }) =>
+      $isIgnored
+          ? "rgba(180,180,180,0.18)"
+          : $isCalendarEvent
+          ? "rgba(58,123,213,0.12)"
+          : ($bg ?? "#C5AFFF")};
+  border: ${({ $isCalendarEvent, $isIgnored }) =>
+      $isIgnored
+          ? "1.5px dashed #bbb"
+          : $isCalendarEvent
+          ? "1.5px dashed #3a7bd5"
+          : "1.5px solid rgba(0,0,0,0.1)"};
+  color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
+      $isIgnored ? "#aaa" : $isCalendarEvent ? "#2a5ba8" : ($textColor ?? "white")};
   border-radius: 0;
   padding: 2px 7px;
   font-size: 11px;
-  font-weight: 300;
-  cursor: grab;
+  font-weight: ${({ $isCalendarEvent }) => $isCalendarEvent ? 600 : 300};
+  cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grab"};
   user-select: none;
   box-sizing: border-box;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  opacity: ${({ $isDragging }) => ($isDragging ? 0.4 : 1)};
-  z-index: 3;
-  transition: opacity 0.1s;
+  opacity: ${({ $isDragging, $isIgnored }) => $isDragging ? 0.4 : $isIgnored ? 0.6 : 1};
+  z-index: ${({ $isIgnored, $isCalendarEvent }) =>
+      $isIgnored ? 1 : $isCalendarEvent ? 2 : 4};
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  &:active { cursor: grabbing; }
+  &:active { cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grabbing"}; }
 `;
 
 const DeleteBtn = styled.button<{ $textColor?: string }>`
@@ -210,7 +224,7 @@ const TooltipTime = styled.div`
   font-weight: 600;
 `;
 
-function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: (id: string) => void }) {
+function DraggableBlock({ block, onDelete, readOnly }: { block: ScheduleBlock; onDelete?: (id: string) => void; readOnly?: boolean }) {
     const startMins = timeToMinutes(block.start) - GRID_START * 60;
     const duration = timeToMinutes(block.end) - timeToMinutes(block.start);
     const top = (startMins / 60) * HOUR_HEIGHT;
@@ -218,9 +232,13 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
 
     const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
+    const isCalendarEvent = block.isCalendarEvent ?? false;
+    const isIgnored = block.isIgnored ?? false;
+
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: block.id,
         data: { block },
+        disabled: isCalendarEvent,
     });
 
     const bg = block.color;
@@ -231,22 +249,33 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
         <>
             <BlockEl
                 ref={setNodeRef}
-                style={{ transform: CSS.Translate.toString(transform) }}
+                style={{
+                    transform: isCalendarEvent ? undefined : CSS.Translate.toString(transform),
+                    ...(isCalendarEvent && readOnly ? { cursor: "default" } : {}),
+                }}
                 $top={top}
                 $height={height}
                 $isDragging={isDragging}
                 $bg={bg}
                 $textColor={textColor}
+                $isCalendarEvent={isCalendarEvent}
+                $isIgnored={isIgnored}
                 onMouseEnter={(e) => { if (!isDragging) setTooltipPos({ x: e.clientX, y: e.clientY }); }}
                 onMouseMove={(e) => { if (!isDragging) setTooltipPos({ x: e.clientX, y: e.clientY }); }}
                 onMouseLeave={() => setTooltipPos(null)}
-                {...listeners}
-                {...attributes}
+                onClick={isCalendarEvent && onDelete && !readOnly ? () => onDelete(block.id) : undefined}
+                {...(isCalendarEvent ? {} : listeners)}
+                {...(isCalendarEvent ? {} : attributes)}
             >
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    textDecoration: isIgnored ? "line-through" : "none",
+                }}>
                     {block.title}
                 </span>
-                {onDelete && (
+                {onDelete && !isCalendarEvent && !readOnly && (
                     <DeleteBtn
                         $textColor={textColor}
                         onPointerDown={(e) => e.stopPropagation()}
@@ -259,9 +288,18 @@ function DraggableBlock({ block, onDelete }: { block: ScheduleBlock; onDelete?: 
 
             {tooltipPos && !isDragging && createPortal(
                 <Tooltip style={{ top: tooltipPos.y + 14, left: tooltipPos.x + 14 }}>
-                    <TooltipTitle>{block.title}</TooltipTitle>
+                    <TooltipTitle style={{ textDecoration: isIgnored ? "line-through" : "none" }}>
+                        {block.title}
+                    </TooltipTitle>
                     {block.description && <TooltipDesc>{block.description}</TooltipDesc>}
                     <TooltipTime>{block.start} – {block.end}</TooltipTime>
+                    {isCalendarEvent && (
+                        <div style={{ fontSize: 10, color: "#7a96b0", marginTop: 4 }}>
+                            {isIgnored
+                                ? "Excluded — tasks may overlap this slot. Click to re-include."
+                                : "Click to exclude from scheduling."}
+                        </div>
+                    )}
                 </Tooltip>,
                 document.body
             )}
@@ -277,6 +315,7 @@ function DroppableDay({
     lightBg,
     onDelete,
     hideHeader,
+    readOnly,
 }: {
     date: string;
     label: string;
@@ -285,6 +324,7 @@ function DroppableDay({
     lightBg?: boolean;
     onDelete?: (id: string) => void;
     hideHeader?: boolean;
+    readOnly?: boolean;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id: date });
     const hourCount = GRID_END - GRID_START;
@@ -301,7 +341,7 @@ function DroppableDay({
                     <HourLine key={i} $index={i} $lightBg={lightBg} />
                 ))}
                 {blocks.map((b) => (
-                    <DraggableBlock key={b.id} block={b} onDelete={onDelete} />
+                    <DraggableBlock key={b.id} block={b} onDelete={onDelete} readOnly={readOnly} />
                 ))}
             </DayBody>
         </DayCol>
@@ -311,21 +351,23 @@ function DroppableDay({
 type Props = {
     blocks: ScheduleBlock[];
     onBlocksChange: (blocks: ScheduleBlock[]) => void;
+    onBlockDelete?: (id: string) => void;  // optional custom delete handler (e.g. for calendar events)
     lightBg?: boolean;
     readOnly?: boolean;
     enabledDays?: string[];
     hideHeaders?: boolean;
+    scrollToHour?: number;
 };
 
-export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, readOnly, enabledDays, hideHeaders }: Props) {
+export default function DraggableWeekGrid({ blocks, onBlocksChange, onBlockDelete, lightBg, readOnly, enabledDays, hideHeaders, scrollToHour }: Props) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Default scroll to 6am on mount
+    // Default scroll to specified hour (or 6am) on mount
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = 6 * HOUR_HEIGHT;
+            scrollRef.current.scrollTop = (scrollToHour ?? 6) * HOUR_HEIGHT;
         }
-    }, []);
+    }, [scrollToHour]);
 
     const allWeekDays = getWeekDays();
     const weekDays = enabledDays
@@ -342,7 +384,19 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
     const sensors = useSensors(mouseSensor, touchSensor);
 
     function handleDelete(id: string) {
-        onBlocksChange(blocks.filter((b) => b.id !== id));
+        const block = blocks.find((b) => b.id === id);
+        if (block?.isCalendarEvent) {
+            // Calendar toggle always allowed — route through custom handler or toggle in-place
+            if (onBlockDelete) {
+                onBlockDelete(id);
+            }
+        } else if (!readOnly) {
+            if (onBlockDelete) {
+                onBlockDelete(id);
+            } else {
+                onBlocksChange(blocks.filter((b) => b.id !== id));
+            }
+        }
     }
 
     function handleDragEnd(event: DragEndEvent) {
@@ -363,6 +417,7 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
 
         const hasOverlap = blocks.some((b) => {
             if (b.id === block.id || b.date !== newDate) return false;
+            if (b.isCalendarEvent && b.isIgnored) return false; // can overlap greyed-out events
             const bStart = timeToMinutes(b.start);
             const bEnd = timeToMinutes(b.end);
             return newStartMins < bEnd && bStart < newEndMins;
@@ -402,8 +457,9 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, lightBg, rea
                             isToday={day.isToday}
                             blocks={blocks.filter((b) => b.date === day.date)}
                             lightBg={lightBg}
-                            onDelete={readOnly ? undefined : handleDelete}
+                            onDelete={handleDelete}
                             hideHeader={hideHeaders}
+                            readOnly={readOnly}
                         />
                     ))}
                 </DaysContainer>

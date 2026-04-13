@@ -102,7 +102,7 @@ def generate_schedule(body: GenerateScheduleRequest, user_id: UUID):
     if not body.task_ids:
         raise HTTPException(status_code=400, detail="No tasks selected")
     try:
-        result = schedule_service.build_schedule(str(user_id), body.task_ids, body.filters, body.allowed_days)
+        result = schedule_service.build_schedule(str(user_id), body.task_ids, body.filters, body.allowed_days, body.ignored_event_ids)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result  # {"scheduled": [...], "skipped": [...]}

@@ -4,4 +4,6 @@ export const API_ROUTES = {
     TASKS: "/api/tasks",
     SCHEDULE: "/api/schedule",
     TIMER: "/api/timer",
+    BUSY_TIMES: "/api/busy-times",
+    GOOGLE: "/api/google",
 };

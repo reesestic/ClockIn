@@ -1,10 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import type { Preference, ScheduleFilters } from "../../types/ScheduleFilters";
 import type { Schedule } from "../../types/Schedule";
 import type { ScheduleBlock } from "../../types/ScheduleBlock";
 import type { Task } from "../../types/Task";
 import { generateSchedule, confirmSchedule, acceptBlock, rejectBlock } from "../../api/scheduleApi";
+import { getBusyTimes } from "../../api/busyTimesApi";
+import type { BusyTimeRecord } from "../../api/busyTimesApi";
+import { syncGoogleCalendar, getGoogleStatus } from "../../api/googleApi";
 import DraggableWeekGrid from "../scheduleComponents/DraggableWeekGrid";
 
 const TASK_COLORS = [
@@ -39,6 +42,40 @@ function formatDueDate(due: string | null | undefined): string | null {
     } catch {
         return null;
     }
+}
+
+/** Convert synced Google Calendar BusyTimes into ScheduleBlocks for the grid. */
+function busyTimesToBlocks(busyTimes: BusyTimeRecord[], allowedDates: string[]): ScheduleBlock[] {
+    const DAY_ABBR: Record<number, string> = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+    const blocks: ScheduleBlock[] = [];
+
+    for (const bt of busyTimes) {
+        if (!bt.start_time || !bt.end_time) continue;
+
+        for (const date of allowedDates) {
+            const day = new Date(date + "T00:00");
+            const dayAbbr = DAY_ABBR[day.getDay()];
+
+            if (bt.days_of_week?.length > 0 && !bt.days_of_week.includes(dayAbbr)) continue;
+
+            blocks.push({
+                id: `cal:${bt.id}:${date}`,
+                title: bt.title,
+                date,
+                start: bt.start_time.slice(0, 5),
+                end: bt.end_time.slice(0, 5),
+                isCalendarEvent: true,
+            });
+        }
+    }
+
+    return blocks;
+}
+
+/** Extract the BusyTime ID from a calendar block ID. */
+function calBlockToBusyTimeId(blockId: string): string | null {
+    if (!blockId.startsWith("cal:")) return null;
+    return blockId.split(":")[1] ?? null;
 }
 
 type Props = {
@@ -320,6 +357,43 @@ const ErrorText = styled.div`
   flex-shrink: 0;
 `;
 
+const CalendarLegend = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #4a6580;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+`;
+
+const LegendDot = styled.div`
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(58,123,213,0.15);
+  border: 1.5px dashed #3a7bd5;
+  flex-shrink: 0;
+`;
+
+const ResyncBtn = styled.button<{ $syncing: boolean }>`
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #b0c8e0;
+  border-radius: 8px;
+  color: ${({ $syncing }) => ($syncing ? "#9aabb8" : "#3a7bd5")};
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  cursor: ${({ $syncing }) => ($syncing ? "not-allowed" : "pointer")};
+  transition: all 0.12s;
+  &:hover:not(:disabled) {
+    background: rgba(58,123,213,0.08);
+    border-color: #3a7bd5;
+  }
+`;
+
 const RightFooter = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -391,12 +465,74 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         difficulty: "none",
     });
 
-    const [schedule, setSchedule] = useState<Schedule | null>(null);
+    // All blocks on the grid: calendar events + generated task blocks
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
+    const [hasCalendarEvents, setHasCalendarEvents] = useState(false);
+    const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [schedule, setSchedule] = useState<Schedule | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const prevBlocksRef = useRef<ScheduleBlock[]>([]);
+
+    function loadCalendarBlocks() {
+        const allowedDates = weekDays.map((d) => d.date);
+        const savedIgnored: string[] = JSON.parse(
+            localStorage.getItem(`clockin_ignored_cal:${userId}`) ?? "[]"
+        );
+        return getBusyTimes().then((all) => {
+            console.log("[CalendarSync] All busy times from API:", all);
+            const googleEvents = all.filter((bt) => bt.source === "google");
+            console.log("[CalendarSync] Google events:", googleEvents);
+            if (googleEvents.length === 0) return;
+            const calBlocks = busyTimesToBlocks(googleEvents, allowedDates).map((b) => {
+                const btId = calBlockToBusyTimeId(b.id);
+                return btId && savedIgnored.includes(btId) ? { ...b, isIgnored: true } : b;
+            });
+            console.log("[CalendarSync] Resulting calendar blocks:", calBlocks);
+            // Preserve existing task blocks, replace calendar blocks
+            setBlocks((prev) => {
+                const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
+                return [...calBlocks, ...taskBlocks];
+            });
+            setHasCalendarEvents(true);
+        });
+    }
+
+    // Load Google Calendar events onto the grid on mount
+    useEffect(() => {
+        getGoogleStatus()
+            .then((s) => setIsGoogleConnected(s.connected))
+            .catch(() => {});
+        loadCalendarBlocks().catch((e) => {
+            console.error("[CalendarSync] Failed to load busy times:", e);
+        });
+    }, []);
+
+    async function handleResync() {
+        setSyncing(true);
+        setError(null);
+        try {
+            await syncGoogleCalendar();
+            await loadCalendarBlocks();
+        } catch {
+            setError("Failed to resync Google Calendar. Try again.");
+        } finally {
+            setSyncing(false);
+        }
+    }
+
+    // When allowedDays changes, re-filter calendar blocks to only show enabled days
+    useEffect(() => {
+        setBlocks((prev) => {
+            const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
+            const calBlocks = prev.filter(
+                (b) => b.isCalendarEvent && allowedDays.includes(b.date)
+            );
+            return [...calBlocks, ...taskBlocks];
+        });
+    }, [allowedDays]);
 
     function getTaskColor(taskId: string): { bg: string; text: string } {
         const idx = selectedTaskIds.indexOf(taskId);
@@ -424,6 +560,55 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         setFilters((prev) => ({ ...prev, [key]: value }));
     }
 
+    /** Derive ignored BusyTime IDs from blocks that are currently marked ignored. */
+    function getIgnoredBusyTimeIds(): string[] {
+        const ids = new Set<string>();
+        for (const b of blocks) {
+            if (b.isCalendarEvent && b.isIgnored) {
+                const btId = calBlockToBusyTimeId(b.id);
+                if (btId) ids.add(btId);
+            }
+        }
+        return Array.from(ids);
+    }
+
+    function saveIgnoredIds(updatedBlocks: ScheduleBlock[]) {
+        const ids = new Set<string>();
+        for (const b of updatedBlocks) {
+            if (b.isCalendarEvent && b.isIgnored) {
+                const btId = calBlockToBusyTimeId(b.id);
+                if (btId) ids.add(btId);
+            }
+        }
+        localStorage.setItem(`clockin_ignored_cal:${userId}`, JSON.stringify(Array.from(ids)));
+    }
+
+    /**
+     * Toggle a calendar block between ignored (greyed out) and active.
+     * All blocks for the same BusyTime are toggled together.
+     * Task blocks are removed outright.
+     */
+    function handleBlockDelete(blockId: string) {
+        const busyTimeId = calBlockToBusyTimeId(blockId);
+        if (busyTimeId) {
+            setBlocks((prev) => {
+                const currentlyIgnored = prev.find(
+                    (b) => b.id.startsWith(`cal:${busyTimeId}:`)
+                )?.isIgnored ?? false;
+                const updated = prev.map((b) =>
+                    b.isCalendarEvent && b.id.startsWith(`cal:${busyTimeId}:`)
+                        ? { ...b, isIgnored: !currentlyIgnored }
+                        : b
+                );
+                saveIgnoredIds(updated);
+                return updated;
+            });
+        } else {
+            // Regular task block — remove it
+            setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+        }
+    }
+
     async function doGenerate() {
         if (selectedTaskIds.length === 0) {
             setError("Select at least one task to schedule.");
@@ -437,16 +622,24 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         setError(null);
         try {
             const filtersWithDays: ScheduleFilters = { ...filters, allowed_days: allowedDays };
-            const result = await generateSchedule(selectedTaskIds, filtersWithDays, userId);
-            // Assign task colors to blocks
-            const coloredBlocks = result.blocks.map((b) => ({
+            const result = await generateSchedule(
+                selectedTaskIds,
+                filtersWithDays,
+                userId,
+                getIgnoredBusyTimeIds()
+            );
+            // Assign task colors
+            const coloredTaskBlocks = result.blocks.map((b) => ({
                 ...b,
                 color: getTaskColor(b.task_id ?? "").bg,
             }));
-            const coloredSchedule = { ...result, blocks: coloredBlocks };
+            // Keep calendar blocks that are still on the grid, add fresh task blocks
+            const calBlocks = blocks.filter((b) => b.isCalendarEvent);
+            const newBlocks = [...calBlocks, ...coloredTaskBlocks];
+            const coloredSchedule = { ...result, blocks: newBlocks };
             setSchedule(coloredSchedule);
-            setBlocks(coloredBlocks);
-            prevBlocksRef.current = coloredBlocks;
+            setBlocks(newBlocks);
+            prevBlocksRef.current = newBlocks;
             if (result.skipped?.length) {
                 setError(
                     `Could not find a slot for: ${result.skipped.join(", ")}. Try adjusting their due dates or duration.`
@@ -462,6 +655,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     function handleBlocksChange(newBlocks: ScheduleBlock[]) {
         const prev = prevBlocksRef.current;
         const movedBlock = newBlocks.find((nb) => {
+            if (nb.isCalendarEvent) return false;
             const old = prev.find((b) => b.id === nb.id);
             return old && (old.start !== nb.start || old.date !== nb.date);
         });
@@ -476,11 +670,14 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     }
 
     async function handleConfirm() {
-        if (!schedule || blocks.length === 0) return;
+        if (!schedule) return;
+        // Only save task blocks — calendar events are already in Google Calendar
+        const taskBlocks = blocks.filter((b) => !b.isCalendarEvent);
+        if (taskBlocks.length === 0) return;
         const confirmed = { ...schedule, blocks };
-        await confirmSchedule(blocks, userId).catch(console.error);
+        await confirmSchedule(taskBlocks, userId).catch(console.error);
         await Promise.all(
-            blocks
+            taskBlocks
                 .filter((b) => b.task_id)
                 .map((b) =>
                     acceptBlock(
@@ -497,6 +694,8 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
 
     const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!));
     const unselectedTasks = allTasks.filter((t) => !selectedTaskIds.includes(t.id!));
+    const hasTaskBlocks = blocks.some((b) => !b.isCalendarEvent);
+    const showGrid = blocks.length > 0;
 
     return (
         <Overlay onClick={onClose}>
@@ -570,7 +769,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 {/* ── Right panel ── */}
                 <RightPanel>
                     <RightTitle>Generated Schedule</RightTitle>
-                    <RightSubtitle>Select days for your new schedule</RightSubtitle>
+                    <RightSubtitle>Select days · click a calendar event to exclude it from scheduling</RightSubtitle>
 
                     <DayPillRow>
                         {weekDays.map((d) => (
@@ -585,29 +784,42 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                         ))}
                     </DayPillRow>
 
+                    {(hasCalendarEvents || isGoogleConnected) && (
+                        <CalendarLegend>
+                            <LegendDot />
+                            Google Calendar events — click to exclude from scheduling
+                            <ResyncBtn
+                                $syncing={syncing}
+                                disabled={syncing}
+                                onClick={handleResync}
+                            >
+                                {syncing ? "Syncing…" : "↺ Resync"}
+                            </ResyncBtn>
+                        </CalendarLegend>
+                    )}
+
                     {error && <ErrorText>{error}</ErrorText>}
 
                     <GridArea>
                         {loading ? (
                             <EmptyState>Generating your schedule…</EmptyState>
-                        ) : blocks.length > 0 ? (
+                        ) : showGrid ? (
                             <DraggableWeekGrid
                                 blocks={blocks}
                                 onBlocksChange={handleBlocksChange}
+                                onBlockDelete={handleBlockDelete}
                                 lightBg
                                 enabledDays={allowedDays}
                                 scrollToHour={7}
                             />
                         ) : (
                             <EmptyState>
-                                {selectedTaskIds.length === 0
-                                    ? "Add tasks and click Create."
-                                    : "Click Create to generate your schedule."}
+                                Add tasks and click Create to generate your schedule.
                             </EmptyState>
                         )}
                     </GridArea>
 
-                    {blocks.length > 0 && (
+                    {hasTaskBlocks && (
                         <RightFooter>
                             <DoneBtn onClick={handleConfirm}>Done ✓</DoneBtn>
                         </RightFooter>

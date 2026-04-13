@@ -8,6 +8,8 @@ from controllers.task_controller import router as task_router
 from controllers.auth_controller import router as auth_router
 from controllers.schedule_controller import router as schedule_router
 from controllers.timer_controller import router as timer_router
+from controllers.busy_times_controller import router as busy_times_router
+from controllers.google_controller import router as google_router
 from services.ml_service import MLService
 from services.feature_discovery_service import FeatureDiscoveryService
 from repositories.schedule_repository import ScheduleRepository
@@ -60,6 +62,8 @@ app.include_router(task_router)
 app.include_router(auth_router)
 app.include_router(schedule_router)
 app.include_router(timer_router)
+app.include_router(busy_times_router)
+app.include_router(google_router)
 
 @app.get("/")
 def root():

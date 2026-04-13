@@ -10,4 +10,6 @@ export type ScheduleBlock = {
     duration?: number;
     task_id?: string;
     color?: string;
+    isCalendarEvent?: boolean;  // Google Calendar events — non-draggable, shown on grid
+    isIgnored?: boolean;        // greyed out — excluded from scheduling but still visible
 };
