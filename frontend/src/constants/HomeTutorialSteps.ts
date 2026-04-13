@@ -7,7 +7,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         body: "Let's get familiar with the",
         highlight: "features before you begin.",
         modalPosition: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
-        beePosition: { top: "50%", right: "37%" },
+        beePosition: { top: "50%", right: "35%" },
     },
     {
         id: "sticky-notes",
