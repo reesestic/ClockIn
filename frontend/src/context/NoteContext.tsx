@@ -13,7 +13,11 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     const [notes, setNotes] = useState<Note[]>([]);
 
     useEffect(() => {
-        getNotes().then(setNotes).catch(console.error);
+        getNotes()
+            .then(setNotes)
+            .catch((err: unknown) => {
+                console.error(err);
+            });
     }, []);
 
     return (
