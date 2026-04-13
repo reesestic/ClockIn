@@ -1,6 +1,7 @@
 import type { ScheduleViewProps } from "./ScheduleViewProps";
 import ScheduleViewHeader from "./ScheduleViewHeader";
-import DraggableWeekGrid, { getWeekDays, TIME_COL_WIDTH } from "./DraggableWeekGrid";
+import { getWeekDays, TIME_COL_WIDTH } from "../../utils/weekGridUtils";
+import DraggableWeekGrid from "./DraggableWeekGrid.tsx";
 import styled from "styled-components";
 
 const Wrapper = styled.div`
