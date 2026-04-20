@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { PlantVisual } from "./PlantVisual";
 import { useEffect, useRef, useState } from "react";
 import { PLANT_CONFIG } from "../../types/PlantConfig";
-type PlantVariety = keyof typeof PLANT_CONFIG;
 
+type PlantVariety = keyof typeof PLANT_CONFIG;
 
 export default function PlantStageAnimator({
                                                variety,
@@ -15,22 +15,33 @@ export default function PlantStageAnimator({
     const [displayStage, setDisplayStage] = useState(stage);
     const [showSparkle, setShowSparkle] = useState(false);
 
+    const [isStageIncrease, setIsStageIncrease] = useState(false);
+    const [isNewPlant, setIsNewPlant] = useState(false);
+
     const prevStageRef = useRef(stage);
 
-    const config = PLANT_CONFIG[variety as keyof typeof PLANT_CONFIG];
+    const config = PLANT_CONFIG[variety];
     const maxStage = config?.stages.length ?? 1;
 
-    const prevStage = prevStageRef.current;
-
-    const isStageIncrease = stage > prevStage;
-    const isNewPlant = stage === 1 && prevStage !== 1;
-
-    const shouldSparkle =
-        (stage === 1 && prevStage === maxStage);          // reset to new plant
+    const [randomOffsets] = useState(() =>
+        Array.from({ length: 16 }).map(() => ({
+            x: 150 + Math.random() * 100,
+            y: 80 + Math.random() * 120,
+        }))
+    );
 
     useEffect(() => {
-        // 🔥 Growth timing
-        if (isStageIncrease) {
+        const prevStage = prevStageRef.current;
+
+        const increase = stage > prevStage;
+        const newPlant = stage === 1 && prevStage !== 1;
+        const sparkle = stage === 1 && prevStage === maxStage;
+
+        setIsStageIncrease(increase);
+        setIsNewPlant(newPlant);
+
+        // 🌱 Growth timing
+        if (increase) {
             setTimeout(() => {
                 setDisplayStage(stage);
             }, 120);
@@ -39,7 +50,7 @@ export default function PlantStageAnimator({
         }
 
         // ✨ Sparkle trigger
-        if (shouldSparkle) {
+        if (sparkle) {
             setShowSparkle(true);
 
             setTimeout(() => {
@@ -48,14 +59,7 @@ export default function PlantStageAnimator({
         }
 
         prevStageRef.current = stage;
-    }, [stage]);
-
-    const [randomOffsets] = useState(() =>
-        Array.from({ length: 16 }).map(() => ({
-            x: 150 + Math.random() * 100,
-            y: 80 + Math.random() * 120,
-        }))
-    );
+    }, [stage, maxStage]);
 
     return (
         <div style={container}>
@@ -90,7 +94,8 @@ export default function PlantStageAnimator({
             {showSparkle && (
                 <div style={sparkleContainer}>
                     {Array.from({ length: stage === maxStage ? 16 : 12 }).map((_, i) => {
-                        const angle = (i / 16) * Math.PI * 2; // full circle spread
+                        const angle = (i / 16) * Math.PI * 2;
+
                         const distanceX = Math.cos(angle) * randomOffsets[i].x;
                         const distanceY = Math.sin(angle) * randomOffsets[i].y;
 
@@ -100,13 +105,13 @@ export default function PlantStageAnimator({
                                 initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
                                 animate={{
                                     x: distanceX,
-                                    y: -distanceY, // upward bias
+                                    y: -distanceY,
                                     opacity: 0,
                                     scale: 0.6,
                                     rotate: 180,
                                 }}
                                 transition={{
-                                    duration: 1.1, // 👈 LONGER (was ~0.6)
+                                    duration: 1.1,
                                     ease: "easeOut",
                                 }}
                                 style={{
