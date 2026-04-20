@@ -811,7 +811,7 @@ export function StickyNoteHome() {
                         <ToastTop>
                             ✓ Sent {toast.count} task{toast.count !== 1 ? "s" : ""} to Task List!
                         </ToastTop>
-                        <ToastLink onClick={() => navigate(ROUTES.PLANNER)}>
+                        <ToastLink onClick={() => navigate(ROUTES.TASKS)}>
                             View My Tasks
                         </ToastLink>
                     </ToastWrapper>

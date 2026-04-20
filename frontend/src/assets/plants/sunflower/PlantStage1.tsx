@@ -2,7 +2,7 @@ import React from "react";
 
 type Props = React.SVGProps<SVGSVGElement>;
 
-export const PlantStage1 = React.memo(function PlantStage0(props: Props) {
+export const PlantStage1 = React.memo(function PlantStage1(props: Props) {
         return (
             <svg
                 viewBox="0 0 321 440"

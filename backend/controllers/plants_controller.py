@@ -15,3 +15,8 @@ async def grow_plant(body: dict, user=Depends(get_current_user)):
 async def get_active_plant(user=Depends(get_current_user)):
     user_id = user["id"]
     return await plants_service.get_active_plant(user_id)
+
+@router.get("/completed")
+async def get_completed_plants(user=Depends(get_current_user)):
+    user_id = user["id"]
+    return await plants_service.get_completed_counts(user_id)

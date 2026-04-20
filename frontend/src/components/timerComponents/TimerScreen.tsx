@@ -8,16 +8,24 @@ import type { TimerSession } from "../../types/TimerSession.ts";
 import digital7 from "../../assets/fonts/digital-7.ttf";
 import type { ScheduleBlock } from "../../types/ScheduleBlock.ts";
 import type { Task } from "../../types/Task.ts";
-import { getTask } from "../../api/taskApi.ts";
-import { fetchActivePlant, growPlant } from "../../api/plantApi.ts";
-import { PlantStage1, PlantStage2, PlantStage3, PlantStage4, PlantStage5 } from "../../assets/plants/sunflower";
+import { getTask, updateTaskStatus } from "../../api/taskApi.ts";
+import { fetchActivePlant, growPlant, fetchCompletedPlants  } from "../../api/plantApi.ts";
 import TaskEditable from "../taskComponents/TaskEditable.tsx";
+import { PLANT_CONFIG, type PlantVariety } from "../../types/PlantConfig.ts";
+import {PlantVisual} from "../plantComponents/PlantVisual.tsx";
+import PlantRevealSequence from "../plantComponents/PlantRevealSequence";
+import PlantStageAnimator from "../plantComponents/PlantStageAnimator.tsx";
 
 /* ─────────────────────────────────────────
    TYPES
 ───────────────────────────────────────── */
 
 type Status = "idle" | "running" | "paused";
+
+type PlantEarned = {
+    variety: string;
+    is_new: boolean;
+};
 
 interface LocationState {
     mode?: "task" | "free";
@@ -61,6 +69,7 @@ interface PersistedWorkflow {
 interface SummaryData {
     active_seconds?: number;
     plantsEarned?: number;
+    plantsEarnedList?: PlantEarned[];
     [key: string]: unknown;
 }
 
@@ -626,21 +635,18 @@ const SummarySubtitle = styled.p`
     margin-bottom: 1.5rem;
 `;
 
-const PlantDisplay = styled.div`
-    font-size: 3rem;
-    margin: 1.5rem 0;
-`;
-
 const PlantContainer = styled.div`
     position: absolute;
     bottom: 45px;
     left: 50%;
-    transform: translateX(-50%) scale(0.7);
-    width: clamp(80px, 14vw, 140px);
+    transform: translateX(-50%);
+    height: clamp(160px, 28vw, 280px);
+    width: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     z-index: 5;
     pointer-events: none;
-    transition: opacity 0.4s ease;
-    transform-origin: bottom center;
 `;
 
 const TimeBox = styled.div`
@@ -850,17 +856,6 @@ const StepEllipsis = styled.div`
 `;
 
 /* ─────────────────────────────────────────
-   PLANT HELPERS
-───────────────────────────────────────── */
-
-const STAGE_COMPONENTS = [PlantStage1, PlantStage2, PlantStage3, PlantStage4, PlantStage5];
-
-function PlantVisual({ stage }: { stage: number }) {
-    const Stage = STAGE_COMPONENTS[Math.min(Math.max(stage, 1), 5) - 1];
-    return <Stage />;
-}
-
-/* ─────────────────────────────────────────
    COMPONENT
 ───────────────────────────────────────── */
 
@@ -906,7 +901,9 @@ export default function TimerScreen() {
 
     // Plant state
     const [plantStage, setPlantStage] = useState(1);
-    const [plantsEarned, setPlantsEarned] = useState(0);
+    const [completedCounts, setCompletedCounts] = useState<Record<string, number>>({});
+    const [showReveal, setShowReveal] = useState(false);
+    const [plantVariety, setPlantVariety] = useState<PlantVariety | null>(null);
 
     // Workflow state
     const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
@@ -932,6 +929,14 @@ export default function TimerScreen() {
     const localPlantProgressRef = useRef(0);
     // Fix: initialize to 0, set real value in useEffect to avoid Date.now() during render
     const lastPlantSyncRef = useRef(0);
+    const midSessionEarnedRef = useRef<PlantEarned[]>([]);
+    const previousTaskStatusRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (currentTask?.status) {
+            previousTaskStatusRef.current = currentTask.status;
+        }
+    }, [currentTask]);
 
     useEffect(() => {
         lastPlantSyncRef.current = Date.now();
@@ -961,9 +966,17 @@ export default function TimerScreen() {
         const deltaSeconds = Math.floor((now - lastPlantSyncRef.current) / 1000);
         if (deltaSeconds <= 0) return;
         try {
+            // In syncPlantProgress, save last known variety
             const result = await growPlant(deltaSeconds);
-            console.log("🌿 growPlant result:", { deltaSeconds, result });
-            if (result?.plants_earned > 0) setPlantsEarned((prev: number) => prev + result.plants_earned);
+            if (result?.plants_earned_count > 0) {
+                // new plant earned — immediately show stage 1 of new variety
+                const last = result.plants_earned[result.plants_earned.length - 1];
+                if (last?.variety) {
+                    setPlantVariety(last.variety as PlantVariety);
+                    setPlantStage(1); // show immediately, don't wait
+                }
+            }
+// then update stage from result
             if (result?.stage != null) setPlantStage(result.stage);
             localPlantProgressRef.current = result.progress ?? 0;
             lastPlantSyncRef.current = now;
@@ -1029,16 +1042,23 @@ export default function TimerScreen() {
         async function loadActivePlant() {
             try {
                 const data = await fetchActivePlant();
+
                 console.log("🌱 Plant on mount:", data);
+
                 if (data?.progress_seconds != null) {
                     localPlantProgressRef.current = data.progress_seconds;
+
                     setPlantStage(data.stage ?? 1);
+
+                    if (data.variety && PLANT_CONFIG[data.variety as PlantVariety]) {
+                        setPlantVariety(data.variety as PlantVariety);
+                    }
                 }
             } catch (e) {
                 console.warn("Could not fetch active plant", e);
             }
         }
-        loadActivePlant();
+        void loadActivePlant();
 
         setIsOwner(owner);
         setStatus(timerStatus);
@@ -1117,9 +1137,16 @@ export default function TimerScreen() {
             setSessionElapsedSeconds(computeActiveSeconds(session, now));
 
             localPlantProgressRef.current += 1;
-            if (localPlantProgressRef.current % 30 === 0) {
+            // Edit this back to 30/60 seconds later
+            if (localPlantProgressRef.current % 10 === 0) {
                 const result = await syncPlantProgress();
                 if (result?.stage != null) setPlantStage(result.stage);
+                if (result?.plants_earned_count > 0) {
+                    midSessionEarnedRef.current = [
+                        ...midSessionEarnedRef.current,
+                        ...(result.plants_earned ?? []),
+                    ];
+                }
             }
 
             if (remaining <= 0) {
@@ -1289,6 +1316,7 @@ export default function TimerScreen() {
         session.activeTabId = TAB_ID;
         if (session.totalPausedMs == null) session.totalPausedMs = 0;
         lastPlantSyncRef.current = now;
+        midSessionEarnedRef.current = [];
         saveSession(session);
         setSeconds(totalSeconds);
         setStatus("running");
@@ -1357,7 +1385,6 @@ export default function TimerScreen() {
 
     async function confirmEndSession(taskCompleted?: boolean) {
         const session = loadSession();
-        await syncPlantProgress();
         if (!session) {
             setShowEndConfirm(false);
             setShowTaskComplete(false);
@@ -1365,14 +1392,50 @@ export default function TimerScreen() {
             return;
         }
         const now = Date.now();
+        const deltaSeconds = Math.floor((now - lastPlantSyncRef.current) / 1000);
+
+        let finalEarned: PlantEarned[] = [];
+        if (deltaSeconds > 0) {
+            try {
+                const syncResult = await growPlant(deltaSeconds);
+                finalEarned = syncResult?.plants_earned ?? [];
+                if (syncResult?.stage != null) setPlantStage(syncResult.stage);
+                if (finalEarned.length > 0) {
+                    const last = finalEarned[finalEarned.length - 1];
+                    if (last?.variety) setPlantVariety(last.variety as PlantVariety);
+                }
+            } catch (e) {
+                console.warn("Final plant sync failed", e);
+            }
+        }
+
+        const earnedList = [
+            ...midSessionEarnedRef.current,
+            ...finalEarned,
+        ];
+
         const result = await saveSessionToDB(session, now, taskCompleted ?? false);
+
+        if (currentTask?.id) {
+            if (taskCompleted) {
+                await updateTaskStatus(currentTask.id, "completed");
+            } else {
+                await updateTaskStatus(currentTask.id, previousTaskStatusRef.current ?? "to_do");
+            }
+        }
+
         clearAll();
+        midSessionEarnedRef.current = [];
         setStatus("idle");
         statusRef.current = "idle";
         setSeconds(0);
         setDigits("000000");
         if (result) {
-            setSummaryData({ ...result.session, plantsEarned });
+            setSummaryData({
+                ...result.session,
+                plantsEarned: earnedList.length,
+                plantsEarnedList: earnedList,
+            });
             setShowSummary(true);
         }
         setShowEndConfirm(false);
@@ -1400,6 +1463,22 @@ export default function TimerScreen() {
         statusRef.current = "idle";
         setSeconds(0);
         setDigits("000000");
+    }
+
+    async function handleOpenReveal() {
+        try {
+            const data = await fetchCompletedPlants();
+
+            const map: Record<string, number> = {};
+            data.forEach((p: any) => {
+                map[p.variety] = p.count;
+            });
+
+            setCompletedCounts(map);
+            setShowReveal(true);
+        } catch (e) {
+            console.error("Failed to fetch completed plants", e);
+        }
     }
 
     /* ─────────────────────────────────────
@@ -1475,7 +1554,20 @@ export default function TimerScreen() {
                         </Main>
 
                         <PlantContainer>
-                            <PlantVisual stage={plantStage} />
+                            {plantVariety ? (
+                                <PlantStageAnimator
+                                    variety={plantVariety}
+                                    stage={plantStage}
+                                />
+                            ) : (
+                                <div style={{
+                                    color: "rgba(255,255,255,0.6)",
+                                    fontSize: "0.9rem",
+                                    fontWeight: 600
+                                }}>
+                                    Loading...
+                                </div>
+                            )}
                         </PlantContainer>
 
                         {showSidebar && (
@@ -1631,14 +1723,80 @@ export default function TimerScreen() {
                         <SummaryCard>
                             <SummaryTitle>Good Job!</SummaryTitle>
 
-                            {summaryData?.plantsEarned != null && summaryData.plantsEarned > 0 && (
-                                <>
+                            {/* ================= PLANT SECTION ================= */}
+                            {(summaryData?.plantsEarned ?? 0) > 0 ? (() => {
+
+                                const earnedList = (summaryData?.plantsEarnedList as PlantEarned[]) ?? [];
+                                const lastPlant = earnedList[earnedList.length - 1];
+
+                                const variety: PlantVariety =
+                                    (lastPlant?.variety && PLANT_CONFIG[lastPlant.variety as PlantVariety])
+                                        ? (lastPlant.variety as PlantVariety)
+                                        : (plantVariety ?? "sunflower");
+
+                                const maxStage = PLANT_CONFIG[variety].stages.length;
+
+                                return (
+                                    <>
+                                        <SummarySubtitle>
+                                            You grew {summaryData?.plantsEarned ?? 0} plant{(summaryData?.plantsEarned ?? 0) > 1 ? "s" : ""}!
+                                        </SummarySubtitle>
+
+                                        <div style={{ margin: "1rem 0" }}>
+
+                                            {/* CENTERED PLANT */}
+                                            <div style={{
+                                                display: "flex",
+                                                justifyContent: "center",
+                                                marginBottom: "0.6rem"
+                                            }}>
+                                                <div style={{ transform: "scale(0.75)" }}>
+                                                    <PlantVisual
+                                                        variety={variety}
+                                                        stage={maxStage}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* CLEAN BUTTON */}
+                                            <div
+                                                onClick={handleOpenReveal}
+                                                style={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: "8px",
+                                                    marginTop: "0.4rem",
+                                                    padding: "8px 19px",
+                                                    borderRadius: "999px",
+                                                    fontSize: "1.05rem",
+                                                    fontWeight: 700,
+                                                    color: "#3A7BD5",
+                                                    background: "rgba(58,123,213,0.08)",
+                                                    cursor: "pointer"
+                                                }}
+                                            >
+                                                🌱 See what you grew
+                                            </div>
+
+                                        </div>
+                                    </>
+                                );
+                            })() : (() => {
+
+                                const progress = localPlantProgressRef.current;
+                                const safeVariety = plantVariety ?? "sunflower";
+                                const maxStage = PLANT_CONFIG[safeVariety].stages.length;
+                                const remaining = 30 * maxStage - progress;
+
+                                return (
                                     <SummarySubtitle>
-                                        You grew {summaryData.plantsEarned} plant{summaryData.plantsEarned > 1 ? "s" : ""}!
+                                        Your next plant will grow in {remaining}s 🌱
                                     </SummarySubtitle>
-                                    <PlantDisplay>{"🌱".repeat(summaryData.plantsEarned)}</PlantDisplay>
-                                </>
-                            )}
+                                );
+                            })()}
+
+                            {/* ================= TIMER ================= */}
 
                             <div style={{ fontSize: "0.85rem", marginTop: "1rem", color: "#333" }}>
                                 You studied for
@@ -1650,15 +1808,37 @@ export default function TimerScreen() {
                                 return <TimeBox>{h}:{m}:{s}</TimeBox>;
                             })()}
 
-                            <div style={{ display: "flex", justifyContent: "space-around", fontSize: "0.8rem", color: "#666", marginTop: "0.5rem" }}>
+                            <div style={{
+                                display: "flex",
+                                justifyContent: "space-around",
+                                fontSize: "0.8rem",
+                                color: "#666",
+                                marginTop: "0.5rem"
+                            }}>
                                 <span>hours</span><span>minutes</span><span>seconds</span>
                             </div>
 
+                            {/* ================= BUTTONS ================= */}
+
                             <ButtonStack>
-                                <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>Study Again</PrimaryBtn>
-                                <SecondaryBtn onClick={() => navigate(ROUTES.HOME)}>Leave Timer</SecondaryBtn>
+                                <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>
+                                    Study Again
+                                </PrimaryBtn>
+                                <SecondaryBtn onClick={() => navigate(ROUTES.HOME)}>
+                                    Leave Timer
+                                </SecondaryBtn>
                             </ButtonStack>
+
                         </SummaryCard>
+
+                        {/* ================= REVEAL MODAL ================= */}
+                        {showReveal && (
+                            <PlantRevealSequence
+                                plants={(summaryData?.plantsEarnedList as PlantEarned[]) ?? []}
+                                completedCounts={completedCounts}
+                                onClose={() => setShowReveal(false)}
+                            />
+                        )}
                     </Overlay>
                 )}
             </Outer>
