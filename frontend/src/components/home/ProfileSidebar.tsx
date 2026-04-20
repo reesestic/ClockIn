@@ -17,9 +17,6 @@ interface UserStats {
     day_streak: number;
 }
 
-/* ── Constants ───────────────────── */
-
-const SIDEBAR_WIDTH = 350;
 
 /* ── Styles ──────────────────────── */
 
@@ -34,7 +31,7 @@ const Panel = styled.div<{ $open: boolean }>`
     position: absolute;
     top: 0;
     left: 0;
-    width: ${SIDEBAR_WIDTH}px;
+    width: clamp(260px, 20vw, 340px);
     height: 100%;
     background: #F1F1F1;
     border-right: 6px solid #636363;
@@ -59,6 +56,26 @@ const PanelTitle = styled.div`
     margin-bottom: 20px;
     font-style: italic;
     font-weight: 700;
+`;
+
+const ScrollArea = styled.div`
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    /* 🔥 Hide scrollbar (Chrome, Safari) */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 🔥 Hide scrollbar (Firefox) */
+    scrollbar-width: none;
+
+    /* 🔥 Hide scrollbar (IE/Edge old) */
+    -ms-overflow-style: none;
 `;
 
 const ProfileBox = styled.div`
@@ -218,41 +235,44 @@ export default function ProfileSidebar({ open, onClose }: Props) {
 
                 <PanelTitle>Home</PanelTitle>
 
-                {/* Box 1 — Avatar + Name */}
-                <ProfileBox>
-                    <AvatarWrapper>
-                        <BeeIcon />
-                    </AvatarWrapper>
-                    <UserName>{user?.email?.split("@")[0] ?? "User"}</UserName>
-                    <UserSub>@{user?.username ?? "username"}</UserSub>
-                </ProfileBox>
+                <ScrollArea>
+                    {/* Box 1 — Avatar + Name */}
+                    <ProfileBox>
+                        <AvatarWrapper>
+                            <BeeIcon />
+                        </AvatarWrapper>
+                        <UserName>{user?.email?.split("@")[0] ?? "User"}</UserName>
+                        <UserSub>@{user?.username ?? "username"}</UserSub>
+                    </ProfileBox>
 
-                {/* Box 2 — Plants */}
-                <StatBox>
-                    <StatRow>
-                        <StatValue>{stats?.plants_grown ?? "--"}</StatValue>
-                        <LeavesIcon />
-                    </StatRow>
-                    <StatLabel>Total Plants Grown</StatLabel>
-                </StatBox>
+                    {/* Box 2 — Plants */}
+                    <StatBox>
+                        <StatRow>
+                            <StatValue>{stats?.plants_grown ?? "--"}</StatValue>
+                            <LeavesIcon />
+                        </StatRow>
+                        <StatLabel>Total Plants Grown</StatLabel>
+                    </StatBox>
 
-                {/* Box 3 — Hours */}
-                <StatBox>
-                    <StatRow>
-                        <StatValue>{stats?.total_hours ?? "--"}</StatValue>
-                        <TimerIcon />
-                    </StatRow>
-                    <StatLabel>Total Hours Worked</StatLabel>
-                </StatBox>
+                    {/* Box 3 — Hours */}
+                    <StatBox>
+                        <StatRow>
+                            <StatValue>{stats?.total_hours ?? "--"}</StatValue>
+                            <TimerIcon />
+                        </StatRow>
+                        <StatLabel>Total Hours Worked</StatLabel>
+                    </StatBox>
 
-                {/* Box 4 — Streak */}
-                <StatBox>
-                    <StatRow>
-                        <StatValue>{stats?.day_streak ?? "--"}</StatValue>
-                        <StreakIcon />
-                    </StatRow>
-                    <StatLabel>Day Study Streak</StatLabel>
-                </StatBox>
+                    {/* Box 4 — Streak */}
+                    <StatBox>
+                        <StatRow>
+                            <StatValue>{stats?.day_streak ?? "--"}</StatValue>
+                            <StreakIcon />
+                        </StatRow>
+                        <StatLabel>Day Study Streak</StatLabel>
+                    </StatBox>
+                </ScrollArea>
+
 
                 {/* Bottom links */}
                 <BottomSection>

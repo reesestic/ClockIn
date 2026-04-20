@@ -105,3 +105,20 @@ export async function splitTask(taskId: string, split: number): Promise<Task[]> 
     if (!response.ok) throw new Error("Failed to split task");
     return await response.json();
 }
+
+export async function updateTaskStatus( taskId: string, status: string): Promise<Task> {
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/update/status/${taskId}`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to update task status");
+    }
+
+    return await response.json();
+}

@@ -40,5 +40,12 @@ class TaskService:
         if original_id:
             self.TaskRepo.delete_task(original_id, user_id)
         return created_tasks
+
+    def update_task_status(self, task_id: str, status: str, user_id: str):
+        return self.TaskRepo.update_task(
+            task_id,
+            {"status": status},
+            user_id
+        )
         
         

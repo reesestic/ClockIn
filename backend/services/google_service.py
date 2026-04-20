@@ -30,8 +30,7 @@ class GoogleService:
             return {"error": "not connected"}
 
         events = self.repo.fetch_events(tokens)
-        print(f"[GoogleSync] Fetched {len(events)} events from Google Calendar")
-
+        print(f"[GoogleSync] Converted event for user {user_id}")
         busy_times = []
 
         for e in events:
@@ -49,7 +48,7 @@ class GoogleService:
                     "source": "google",
                 }
                 busy_times.append(bt)
-                print(f"[GoogleSync] Converted: {bt['title']} on {bt['days_of_week']} {bt['start_time']}–{bt['end_time']}")
+                print(f"[GoogleSync] Converted event for user {user_id}")
             except Exception as ex:
                 print(f"[GoogleSync] Error converting event '{e.get('summary')}': {ex}")
 
