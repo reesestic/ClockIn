@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlantVisual } from "./PlantVisual";
 import { PLANT_CONFIG } from "../../types/PlantConfig";
+type PlantVariety = keyof typeof PLANT_CONFIG;
 
 const rarityColors: Record<string, string> = {
     common: "#888888",
@@ -53,7 +54,7 @@ export default function PlantRevealSequence({
                 {/* PLANT */}
                 <div style={plantSection}>
                     <PlantVisual
-                        variety={current.variety as any}
+                        variety={current.variety as PlantVariety}
                         stage={config.stages.length}
                     />
                 </div>

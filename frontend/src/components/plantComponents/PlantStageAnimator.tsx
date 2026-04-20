@@ -2,12 +2,14 @@ import { motion } from "framer-motion";
 import { PlantVisual } from "./PlantVisual";
 import { useEffect, useRef, useState } from "react";
 import { PLANT_CONFIG } from "../../types/PlantConfig";
+type PlantVariety = keyof typeof PLANT_CONFIG;
+
 
 export default function PlantStageAnimator({
                                                variety,
                                                stage,
                                            }: {
-    variety: any;
+    variety: PlantVariety;
     stage: number;
 }) {
     const [displayStage, setDisplayStage] = useState(stage);
@@ -48,6 +50,13 @@ export default function PlantStageAnimator({
         prevStageRef.current = stage;
     }, [stage]);
 
+    const [randomOffsets] = useState(() =>
+        Array.from({ length: 16 }).map(() => ({
+            x: 150 + Math.random() * 100,
+            y: 80 + Math.random() * 120,
+        }))
+    );
+
     return (
         <div style={container}>
 
@@ -82,8 +91,8 @@ export default function PlantStageAnimator({
                 <div style={sparkleContainer}>
                     {Array.from({ length: stage === maxStage ? 16 : 12 }).map((_, i) => {
                         const angle = (i / 16) * Math.PI * 2; // full circle spread
-                        const distanceX = Math.cos(angle) * (150 + Math.random() * 100); // 👈 WIDER
-                        const distanceY = Math.sin(angle) * (80 + Math.random() * 120);  // 👈 TALLER
+                        const distanceX = Math.cos(angle) * randomOffsets[i].x;
+                        const distanceY = Math.sin(angle) * randomOffsets[i].y;
 
                         return (
                             <motion.div
