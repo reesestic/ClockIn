@@ -73,6 +73,11 @@ interface SummaryData {
     [key: string]: unknown;
 }
 
+type CompletedPlant = {
+    variety: string;
+    count: number;
+};
+
 /* ═══════════════════════════════════════════════════════
    SESSION ENGINE
 ═══════════════════════════════════════════════════════ */
@@ -1467,10 +1472,10 @@ export default function TimerScreen() {
 
     async function handleOpenReveal() {
         try {
-            const data = await fetchCompletedPlants();
+            const data: CompletedPlant[] = await fetchCompletedPlants();
 
             const map: Record<string, number> = {};
-            data.forEach((p: any) => {
+            data.forEach((p: CompletedPlant) => {
                 map[p.variety] = p.count;
             });
 
