@@ -246,13 +246,6 @@ function secondsToDigits(total: number): string {
     return `${h.toString().padStart(2, "0")}${m.toString().padStart(2, "0")}${s.toString().padStart(2, "0")}`;
 }
 
-function isValidDigits(digits: string): boolean {
-    const padded = digits.padStart(DIGIT_COUNT, "0");
-    const m = parseInt(padded.slice(2, 4), 10);
-    const s = parseInt(padded.slice(4, 6), 10);
-    return m <= 59 && s <= 59;
-}
-
 function formatDigits(digits: string): { h: string; mm: string; ss: string } {
     const padded = digits.padStart(DIGIT_COUNT, "0");
     return {
@@ -895,6 +888,7 @@ export default function TimerScreen() {
     const [seconds, setSeconds] = useState(0);
     const [status, setStatus] = useState<Status>("idle");
     const [isOwner, setIsOwner] = useState(true);
+    const [toast, setToast] = useState<string | null>(null);
 
     // UI state
     const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -1280,11 +1274,7 @@ export default function TimerScreen() {
     function handleKeyDown(e: React.KeyboardEvent) {
         if (status !== "idle") return;
         if (e.key >= "0" && e.key <= "9") {
-            setDigits(prev => {
-                const next = (prev + e.key).slice(-DIGIT_COUNT);
-                if (!isValidDigits(next)) return prev;
-                return next;
-            });
+            setDigits(prev => (prev + e.key).slice(-DIGIT_COUNT));
         } else if (e.key === "Backspace") {
             setDigits(prev => ("0" + prev).slice(0, DIGIT_COUNT));
         }
@@ -1304,7 +1294,23 @@ export default function TimerScreen() {
 
     function start() {
         ensureControl();
-        const totalSeconds = digitsToSeconds(digits);
+        const padded = digits.padStart(6, "0");
+        const h = parseInt(padded.slice(0, 2), 10);
+        const m = parseInt(padded.slice(2, 4), 10);
+        const s = parseInt(padded.slice(4, 6), 10);
+
+        if (m > 59 || s > 59 || h > 24 || (h === 0 && m === 0 && s === 0)) {
+            setToast("Invalid time entered!");
+
+            setTimeout(() => {
+                setToast(null);
+            }, 3000);
+
+            return;
+        }
+
+        const totalSeconds = h * 3600 + m * 60 + s;
+
         if (!totalSeconds) return;
         const now = Date.now();
         let session = loadSession();
@@ -1533,18 +1539,36 @@ export default function TimerScreen() {
                             {currentTask && <TaskLabel>{currentTask.title}</TaskLabel>}
 
                             {status === "idle" && (
-                                <TimerInputRow
-                                    ref={inputRef}
-                                    tabIndex={0}
-                                    onKeyDown={handleKeyDown}
-                                    onClick={() => inputRef.current?.focus()}
-                                >
-                                    <DigitGroup $active={digits.length >= 5}>{h}</DigitGroup>
-                                    <Colon>:</Colon>
-                                    <DigitGroup $active={digits.length >= 3 && digits.length < 5}>{mm}</DigitGroup>
-                                    <Colon>:</Colon>
-                                    <DigitGroup $active={digits.length < 3}>{ss}</DigitGroup>
-                                </TimerInputRow>
+                                <div style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center"
+                                }}>
+                                    <TimerInputRow
+                                        ref={inputRef}
+                                        tabIndex={0}
+                                        onKeyDown={handleKeyDown}
+                                        onClick={() => inputRef.current?.focus()}
+                                    >
+                                        <DigitGroup $active={digits.length >= 5}>{h}</DigitGroup>
+                                        <Colon>:</Colon>
+                                        <DigitGroup $active={digits.length >= 3 && digits.length < 5}>{mm}</DigitGroup>
+                                        <Colon>:</Colon>
+                                        <DigitGroup $active={digits.length < 3}>{ss}</DigitGroup>
+                                    </TimerInputRow>
+
+                                    <div style={{
+                                        fontSize: "1.3rem",
+                                        fontWeight: 600,              // 🔥 more bold
+                                        color: "rgba(255,255,255,0.85)", // 🔥 more visible
+                                        marginTop: "0.1rem",
+                                        marginBottom: "0.5rem",
+                                        textAlign: "center",
+                                        letterSpacing: "0.02em"
+                                    }}>
+                                        Click the digits and start typing to set a time!
+                                    </div>
+                                </div>
                             )}
 
                             {status !== "idle" && (
@@ -1845,6 +1869,26 @@ export default function TimerScreen() {
                             />
                         )}
                     </Overlay>
+                )}
+
+                {toast && (
+                    <div style={{
+                        position: "fixed",
+                        top: "10%",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        background: "#D45884",
+                        color: "white",
+                        padding: "0.7rem 1.4rem",
+                        borderRadius: "999px",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                        zIndex: 999,
+                        animation: "fadeInOut 3s ease"
+                    }}>
+                        {toast}
+                    </div>
                 )}
             </Outer>
         </>

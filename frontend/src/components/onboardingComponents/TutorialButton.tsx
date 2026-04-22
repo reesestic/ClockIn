@@ -48,7 +48,7 @@ export default function TutorialButton({ steps }: Props) {
     // Register this page's steps as soon as the component mounts
     useEffect(() => {
         setSteps(steps);
-    }, []);
+    }, [steps, setSteps]);
 
     return (
         <Btn onClick={start} title="How it works">

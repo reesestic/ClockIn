@@ -354,7 +354,7 @@ export default function TaskEditable({
         if (initialEditing) {
             setTimeout(() => titleRef.current?.focus(), 0);
         }
-    }, []);
+    }, [initialEditing]);
 
     const handleColorChange = (colorName: string) => {
         const updated = { ...local, color: colorName };

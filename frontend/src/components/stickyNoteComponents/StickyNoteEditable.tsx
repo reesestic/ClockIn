@@ -2,15 +2,12 @@ import StickyNoteFrame from "./StickyNoteFrame";
 import type { Note } from "../../types/Note";
 import styled from "styled-components";
 import { StickyNoteThemes } from "../../types/StickyNoteThemes";
-import React, { useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
+import { EditorContent, type Editor } from "@tiptap/react";
 
 const TitleInput = styled.input`
     font-size: 1.6rem;
     font-weight: 600;
-
-    margin: 0;
-    padding: 0;
-
     border: none;
     background: transparent;
 
@@ -19,80 +16,38 @@ const TitleInput = styled.input`
     }
 `;
 
-
-// 🔥 SCROLL CONTAINER (this replaces textarea scroll)
 const ContentWrapper = styled.div`
     flex: 1;
     min-height: 0;
-
     overflow-y: auto;
 
-    padding-right: 2.5rem;
-
-    /* hide scrollbar */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-
-    &::-webkit-scrollbar {
-        display: none;
-    }
-`;
-
-
-const ContentTextarea = styled.textarea`
-    font-size: 1.2rem;
-    line-height: 1.6;
-
-    width: 100%;
-    border: none;
-    resize: none;
-    background: transparent;
-
-    overflow: hidden;
-
-    word-break: break-word;
-
-    &:focus {
+    .ProseMirror {
         outline: none;
+        font-size: 1.2rem;
+        line-height: 1.6;
+        word-break: break-word;
     }
 `;
 
 type NoteProps = {
     note: Note;
+    editor: Editor | null;
     onChange: (title: string, content: string) => void;
     size?: "small" | "large";
 };
 
-
 export default function StickyNoteEditable({
                                                note,
+                                               editor,
                                                onChange,
                                                size = "small"
                                            }: NoteProps) {
 
     const titleRef = useRef<HTMLInputElement>(null);
-    const contentRef = useRef<HTMLTextAreaElement>(null);
 
-    // autofocus title
     useEffect(() => {
         titleRef.current?.focus();
     }, []);
-
-    // enter → jump to body
-    const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            contentRef.current?.focus();
-        }
-    };
-
-    // 🔥 auto-grow textarea
-    useEffect(() => {
-        if (contentRef.current) {
-            contentRef.current.style.height = "auto";
-            contentRef.current.style.height = contentRef.current.scrollHeight + "px";
-        }
-    }, [note.content]);
 
     return (
         <StickyNoteFrame
@@ -102,18 +57,12 @@ export default function StickyNoteEditable({
             <TitleInput
                 ref={titleRef}
                 value={note.title}
-                onChange={(e) => onChange(e.target.value, note.content)}
-                onKeyDown={handleTitleKeyDown}
+                onChange={(e) => onChange(e.target.value, editor?.getHTML() || "")}
                 placeholder="Add a title..."
             />
 
             <ContentWrapper>
-                <ContentTextarea
-                    ref={contentRef}
-                    value={note.content}
-                    onChange={(e) => onChange(note.title, e.target.value)}
-                    placeholder="Start writing..."
-                />
+                <EditorContent editor={editor} />
             </ContentWrapper>
 
         </StickyNoteFrame>

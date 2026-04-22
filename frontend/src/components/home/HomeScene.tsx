@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import PotObject from "./PotObject";
 import PlannerObject from "./PlannerObject";
@@ -35,31 +34,8 @@ const HomeBtn = styled.button<{ $open: boolean }>`
     transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
-/* 🌱 NEW: Garden entry (placeholder plant) */
-const GardenEntry = styled.div`
-    position: absolute;
-    top: 12%;
-    right: 16%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #6FCF97, #27AE60);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    opacity: 0.7;
-    cursor: pointer;
-    z-index: 150;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-        transform: translate(-50%, -50%) scale(1.08);
-        box-shadow: 0 12px 28px rgba(0,0,0,0.35);
-    }
-`;
-
 export default function HomeScene() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const navigate = useNavigate();
 
     return (
         <SceneWrapper>
@@ -77,11 +53,6 @@ export default function HomeScene() {
             <StickyNotesOnDeskObject />
             <TaskBookObject />
 
-            {/* 🌱 NEW: Clickable Garden Entry */}
-            <GardenEntry
-                onClick={() => navigate("/garden")}
-                title="Go to Garden"
-            />
 
             {/* Home button */}
             <HomeBtn

@@ -40,7 +40,7 @@ export default function StickyNoteViewOnly({note, onClick}: Props) {
             onClick={onClick}
             theme={StickyNoteThemes[note.color]}>
             <Title>{note.title}</Title>
-            <Content>{note.content}</Content>
+            <Content dangerouslySetInnerHTML={{ __html: note.content }} />
         </StickyNoteFrame>
     );
 }
