@@ -17,7 +17,7 @@ import StickyNoteOverlay from "../components/stickyNoteComponents/StickyNoteOver
 import { AddButton } from "../components/navigation/AddButton";
 import DraggableStickyNote from "../components/stickyNoteComponents/DraggableStickyNote.tsx";
 import DeleteConfirmModal from "../components/modal/DeleteConfirmModal.tsx";
-import CalendarDropZone from "../components/dropzones/CalendarDropZone.tsx";
+import TaskDropZone from "../components/dropzones/TaskDropZone.tsx";
 import TrashDropZone from "../components/dropzones/TrashDropZone.tsx";
 import type {StickyNoteColor} from "../types/StickyNoteThemes.ts";
 import styled, { keyframes } from "styled-components";
@@ -762,7 +762,7 @@ export function StickyNoteHome() {
 
                     <ActionColumn>
                         <div ref={calendarRef} style={{ display: "inline-flex" }}>
-                            <CalendarDropZone isHovered={hoveredZone === "calendar"} />
+                            <TaskDropZone isHovered={hoveredZone === "calendar"} />
                         </div>
                         <div ref={trashRef} style={{ display: "inline-flex" }}>
                             <TrashDropZone isHovered={hoveredZone === "trash"} />

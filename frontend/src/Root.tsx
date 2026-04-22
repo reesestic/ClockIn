@@ -34,7 +34,7 @@ export default function Root() {
                     element={<PlannerPage />}
                 />
 
-                <Route path="/garden" element={<GardenCarousel />} />
+                <Route path={ROUTES.GARDEN} element={<GardenCarousel />} />
 
                 {/*Timer routes*/}
                 <Route path={ROUTES.TIMER_ENTRY_PAGE} element={

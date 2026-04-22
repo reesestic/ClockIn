@@ -13,12 +13,16 @@ import styled from "styled-components";
 import type { Note } from "../../types/Note";
 import StickyNoteEditable from "./StickyNoteEditable.tsx";
 
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import { useEffect } from "react";
 
 const LargeIconButton = styled(IconButton)`
-  svg {
-    width: 35px;
-    height: 35px;
-  }
+    svg {
+        width: 35px;
+        height: 35px;
+    }
 `;
 
 const NoteAndMenuRow = styled.div`
@@ -36,7 +40,28 @@ type OverlayProps = {
     onColorChange: (noteId: string, color: StickyNoteColor) => void;
 };
 
-export default function StickyNoteOverlay({ note, onChange, onSave, onCancel, onColorChange }: OverlayProps) {
+export default function StickyNoteOverlay({
+                                              note,
+                                              onChange,
+                                              onSave,
+                                              onCancel,
+                                              onColorChange,
+                                          }: OverlayProps) {
+
+    const editor = useEditor({
+        extensions: [StarterKit, Underline],
+        content: note.content || "",
+        onUpdate: ({ editor }) => {
+            onChange(note.title, editor.getHTML());
+        },
+    });
+
+    useEffect(() => {
+        if (editor && note.content !== editor.getHTML()) {
+            editor.commands.setContent(note.content || "");
+        }
+    }, [note, editor]);
+
     return (
         <Overlay onClick={onCancel}>
             <OverlayContent onClick={(e) => e.stopPropagation()}>
@@ -44,11 +69,13 @@ export default function StickyNoteOverlay({ note, onChange, onSave, onCancel, on
                 <NoteAndMenuRow>
                     <StickyNoteEditable
                         note={note}
+                        editor={editor}
                         onChange={onChange}
                         size="large"
                     />
 
                     <StickyNoteMenu
+                        editor={editor}
                         noteId={note.id ?? undefined}
                         selectedColor={note.color}
                         onColorChange={onColorChange}

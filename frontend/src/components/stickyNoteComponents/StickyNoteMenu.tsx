@@ -115,6 +115,7 @@ const COLOR_OPTIONS: { color: StickyNoteColor; hex: string; label: string }[] = 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
+    editor: any; // TipTap editor
     noteId?: string;
     selectedColor?: StickyNoteColor;
     onColorChange?: (noteId: string, color: StickyNoteColor) => void;
@@ -122,14 +123,25 @@ type Props = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function StickyNoteMenu({ noteId, selectedColor, onColorChange }: Props) {
+export default function StickyNoteMenu({ editor, noteId, selectedColor, onColorChange }: Props) {
     return (
         <MenuContainer>
             <FormatRow>
-                <FormatButton title="Bold"><BoldLabel>B</BoldLabel></FormatButton>
-                <FormatButton title="Italic"><ItalicLabel>I</ItalicLabel></FormatButton>
-                <FormatButton title="Underline"><UnderlineLabel>U</UnderlineLabel></FormatButton>
-                <FormatButton title="Strikethrough"><StrikeLabel>S</StrikeLabel></FormatButton>
+                <FormatButton onClick={() => editor.chain().focus().toggleBold().run()}>
+                    <BoldLabel>B</BoldLabel>
+                </FormatButton>
+
+                <FormatButton onClick={() => editor.chain().focus().toggleItalic().run()}>
+                    <ItalicLabel>I</ItalicLabel>
+                </FormatButton>
+
+                <FormatButton onClick={() => editor.chain().focus().toggleUnderline().run()}>
+                    <UnderlineLabel>U</UnderlineLabel>
+                </FormatButton>
+
+                <FormatButton onClick={() => editor.chain().focus().toggleStrike().run()}>
+                    <StrikeLabel>S</StrikeLabel>
+                </FormatButton>
             </FormatRow>
 
             <Divider />

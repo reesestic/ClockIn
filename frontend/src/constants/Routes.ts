@@ -12,5 +12,6 @@ export const ROUTES = {
 
     AVAILABILITY: "/availability",
     BUSY_TIMES: "/busy-times",
-    SETTINGS: "/settings"
+    SETTINGS: "/settings",
+    GARDEN: "/garden",
 };
