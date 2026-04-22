@@ -1,5 +1,7 @@
 import styled from "styled-components";
 import type { StickyNoteColor } from "../../types/StickyNoteThemes";
+import type { Editor } from "@tiptap/react";
+
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -115,7 +117,7 @@ const COLOR_OPTIONS: { color: StickyNoteColor; hex: string; label: string }[] = 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
-    editor: any; // TipTap editor
+    editor: Editor;
     noteId?: string;
     selectedColor?: StickyNoteColor;
     onColorChange?: (noteId: string, color: StickyNoteColor) => void;

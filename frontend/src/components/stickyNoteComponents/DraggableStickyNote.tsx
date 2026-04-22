@@ -168,7 +168,7 @@ export default function DraggableStickyNote({
             document.addEventListener("mousemove", handleMouseMove);
             document.addEventListener("mouseup", handleMouseUp);
         },
-        [note, boardRef, dropZones, getHoveredZone, onDragEnd, onNoteClick, onDropZoneRelease]
+        [note, boardRef, getHoveredZone, onDragEnd, onNoteClick, onDropZoneRelease]
     );
 
     React.useEffect(() => {
