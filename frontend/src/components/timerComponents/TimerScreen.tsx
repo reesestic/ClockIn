@@ -15,6 +15,7 @@ import { PLANT_CONFIG, type PlantVariety } from "../../types/PlantConfig.ts";
 import {PlantVisual} from "../plantComponents/PlantVisual.tsx";
 import PlantRevealSequence from "../plantComponents/PlantRevealSequence";
 import PlantStageAnimator from "../plantComponents/PlantStageAnimator.tsx";
+import { usePlants } from "../../context/PlantContext";
 
 /* ─────────────────────────────────────────
    TYPES
@@ -1268,6 +1269,9 @@ export default function TimerScreen() {
         return () => window.removeEventListener("beforeunload", handleUnload);
     }, [currentTask]);
 
+    // for context of fetching plants
+    const { refetchPlants } = usePlants();
+
     /* ══════════════════════════════════════════
        DIGIT INPUT
     ══════════════════════════════════════════ */
@@ -1449,6 +1453,7 @@ export default function TimerScreen() {
             });
             setShowSummary(true);
         }
+        await refetchPlants();
         setShowEndConfirm(false);
         setShowTaskComplete(false);
     }

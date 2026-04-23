@@ -11,7 +11,7 @@ import TimerRouteGuard from "./components/timerComponents/TimerRouteGuard.tsx";
 import Settings from "./pages/Settings.tsx";
 import Availability from "./pages/Availability.tsx";
 import BusyTimes from "./pages/BusyTimes.tsx";
-import GardenCarousel from "./components/gardenComponents/GardenCarousel.tsx";
+import GardenScene from "./components/gardenComponents/GardenScene.tsx";
 
 
 export default function Root() {
@@ -34,7 +34,7 @@ export default function Root() {
                     element={<PlannerPage />}
                 />
 
-                <Route path={ROUTES.GARDEN} element={<GardenCarousel />} />
+                <Route path={ROUTES.GARDEN} element={<GardenScene />} />
 
                 {/*Timer routes*/}
                 <Route path={ROUTES.TIMER_ENTRY_PAGE} element={

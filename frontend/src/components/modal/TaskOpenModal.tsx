@@ -65,7 +65,7 @@ const CenterSection = styled.div`
 `;
 
 const Title = styled.h1`
-    font-size: 2.4rem;
+    font-size: 3rem;
     font-weight: 700;
     color: white;
     font-style: italic;
@@ -76,7 +76,7 @@ const Title = styled.h1`
 `;
 
 const Subtitle = styled.p`
-    font-size: 1.14rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: white;
     text-align: center;
@@ -92,7 +92,7 @@ const ButtonRow = styled.div`
 
 const SubRow = styled.div`
     display: flex;
-    gap: 1.8rem;
+    gap: 3rem;
     justify-content: center;
     margin-top: 0.9rem;
 `;
@@ -105,7 +105,7 @@ const ModeButton = styled.button<{ $yellow?: boolean }>`
     padding: 0.78rem 1.92rem;
     display: flex;
     align-items: center;
-    gap: 0.9rem;
+    gap: 1.3rem;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     backdrop-filter: blur(6px);
 
@@ -119,7 +119,7 @@ const ModeButton = styled.button<{ $yellow?: boolean }>`
 
 const ButtonLabel = styled.span`
     color: #4B94DB;
-    font-size: 1.14rem;
+    font-size: 1.8rem;
     font-weight: 700;
     transition: font-size 0.2s ease;
     white-space: nowrap;
@@ -136,7 +136,7 @@ const IconWrapper = styled.div`
 `;
 
 const SubText = styled.p`
-    font-size: 0.98rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: white;
     width: 204px;
@@ -167,7 +167,7 @@ export default function TaskOpenModal({ onFree, onTask }: Props) {
                             <IconWrapper>
                                 <FreeModeIcon/>
                             </IconWrapper>
-                            <ButtonLabel>Free Timer</ButtonLabel>
+                            <ButtonLabel>Open Timer</ButtonLabel>
                         </ModeButton>
 
                         <ModeButton $yellow onClick={onTask}>
