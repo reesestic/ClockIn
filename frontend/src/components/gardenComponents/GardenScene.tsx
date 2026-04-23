@@ -143,7 +143,7 @@ export default function GardenScene() {
 
     const onPointerDown = useCallback((e: React.PointerEvent) => {
         if ((e.target as HTMLElement).closest("a, button")) return;
-        drag.current = { active: true, startX: e.clientX, startOffset: offsetX };
+        drag.current = { active: true, startX: e.clientX, startOffset: offsetX, moved: false };
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }, [offsetX]);
 
