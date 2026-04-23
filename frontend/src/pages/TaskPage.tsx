@@ -9,6 +9,8 @@ import { getTasks, saveTask, deleteTask, updateTask, splitTask } from "../api/ta
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -313,6 +315,7 @@ export default function TaskPage() {
                     onCancel={() => setSplitTargetTask(null)}
                 />
             )}
+            <TutorialButton steps={TASKS_TUTORIAL_STEPS} />
         </PageWrapper>
     );
 }

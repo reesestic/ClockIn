@@ -11,18 +11,11 @@ import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 import TaskList from "../components/taskComponents/TaskList";
 import FreeModeIcon from "../components/icons/FreeModeIcon.tsx";
 import TaskModeIcon from "../components/icons/TaskModeIcon.tsx";
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import {TIMER_TUTORIAL_STEPS} from "../constants/TimerTutorialSteps.ts";
 
-const PageWrapper = styled.div`
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.2rem;
-`;
+// ── Background elements — must live OUTSIDE any transformed/filtered parent
+//    so that position:fixed children aren't trapped in a sub-stacking context ──
 
 const BackgroundSVG = styled(HomepageBlankIcon)`
     position: fixed;
@@ -39,6 +32,20 @@ const BackgroundOverlay = styled.div`
     inset: 0;
     z-index: 1;
     background: rgba(28, 77, 119, 0.5);
+`;
+
+// ── Page layout — no transform/filter here so fixed children escape freely ──
+
+const PageWrapper = styled.div`
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
 `;
 
 const PageBackButton = styled(BackButton)`
@@ -264,88 +271,94 @@ export default function TimerTaskSelectionPage() {
     }
 
     return (
-        <PageWrapper>
+        <>
+            {/* Moved outside PageWrapper so their filter/transform don't create
+                a sub-stacking context that traps position:fixed children */}
             <BackgroundSVG />
             <BackgroundOverlay />
-            <PageBackButton to={ROUTES.TIMER_ENTRY_PAGE} />
 
-            <ModalCard>
-                <ModalHeader>
-                    <ModalTitle>Pick a Task</ModalTitle>
-                    <ModalSubtitle $active={hasSelection}>
-                        {hasSelection ? `Selected: ${selectedTask.title}` : "Select a task to focus on"}
-                    </ModalSubtitle>
+            <PageWrapper>
+                <PageBackButton to={ROUTES.TIMER_ENTRY_PAGE} />
 
-                    <SearchRow>
-                        <SearchInput
-                            placeholder="Search tasks..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                        />
-                        <FilterSelect value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                            <option value="default">Sort: Default</option>
-                            <option value="importance">Sort: Importance</option>
-                            <option value="difficulty">Sort: Difficulty</option>
-                            <option value="duration">Sort: Duration</option>
-                            <option value="due_date">Sort: Due Date</option>
-                        </FilterSelect>
-                    </SearchRow>
-                </ModalHeader>
+                <ModalCard>
+                    <ModalHeader>
+                        <ModalTitle>Pick a Task</ModalTitle>
+                        <ModalSubtitle $active={hasSelection}>
+                            {hasSelection ? `Selected: ${selectedTask.title}` : "Select a task to focus on"}
+                        </ModalSubtitle>
 
-                <ModalBody>
-                    {scheduled.length > 0 && (
-                        <>
-                            <SectionLabel>Scheduled</SectionLabel>
+                        <SearchRow>
+                            <SearchInput
+                                placeholder="Search tasks..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                            />
+                            <FilterSelect value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                <option value="default">Sort: Default</option>
+                                <option value="importance">Sort: Importance</option>
+                                <option value="difficulty">Sort: Difficulty</option>
+                                <option value="duration">Sort: Duration</option>
+                                <option value="due_date">Sort: Due Date</option>
+                            </FilterSelect>
+                        </SearchRow>
+                    </ModalHeader>
+
+                    <ModalBody>
+                        {scheduled.length > 0 && (
+                            <>
+                                <SectionLabel>Scheduled</SectionLabel>
+                                <TaskList
+                                    tasks={scheduled}
+                                    mode="timer"
+                                    onSelectTask={handleSelectTask}
+                                    hideControls={true}
+                                    selectedTaskIds={selectedTask ? [selectedTask.id!] : []}
+                                />
+                            </>
+                        )}
+
+                        {other.length > 0 ? (
                             <TaskList
-                                tasks={scheduled}
+                                tasks={other}
                                 mode="timer"
                                 onSelectTask={handleSelectTask}
                                 hideControls={true}
                                 selectedTaskIds={selectedTask ? [selectedTask.id!] : []}
                             />
-                        </>
-                    )}
+                        ) : (
+                            <EmptyHint>No tasks found</EmptyHint>
+                        )}
+                    </ModalBody>
+                </ModalCard>
 
-                    {other.length > 0 ? (
-                        <TaskList
-                            tasks={other}
-                            mode="timer"
-                            onSelectTask={handleSelectTask}
-                            hideControls={true}
-                            selectedTaskIds={selectedTask ? [selectedTask.id!] : []}
-                        />
-                    ) : (
-                        <EmptyHint>No tasks found</EmptyHint>
-                    )}
-                </ModalBody>
-            </ModalCard>
+                {/* ── Action Buttons ── */}
+                <ActionRow>
+                    <ActionCol>
+                        <ActionButton $active={hasSelection} onClick={handleStart}>
+                            <IconWrapper>
+                                <FreeModeIcon/>
+                            </IconWrapper>
+                            <ActionLabel>Start</ActionLabel>
+                        </ActionButton>
+                        <ActionSubText $active={hasSelection}>
+                            Regular Study Mode
+                        </ActionSubText>
+                    </ActionCol>
 
-            {/* ── Action Buttons ── */}
-            <ActionRow>
-                <ActionCol>
-                    <ActionButton $active={hasSelection} onClick={handleStart}>
-                        <IconWrapper>
-                            <FreeModeIcon/>
-                        </IconWrapper>
-                        <ActionLabel>Start</ActionLabel>
-                    </ActionButton>
-                    <ActionSubText $active={hasSelection}>
-                        Regular Study Mode
-                    </ActionSubText>
-                </ActionCol>
+                    <ActionCol>
+                        <ActionButton $yellow $active={hasSelection} onClick={handleAutomate}>
+                            <IconWrapper>
+                                <TaskModeIcon />
+                            </IconWrapper>
+                            <ActionLabel>Atomize</ActionLabel>
+                        </ActionButton>
+                        <ActionSubText $active={hasSelection}>
+                            Study with an AI-assisted breakdown!
+                        </ActionSubText>
+                    </ActionCol>
+                </ActionRow>
 
-                <ActionCol>
-                    <ActionButton $yellow $active={hasSelection} onClick={handleAutomate}>
-                        <IconWrapper>
-                            <TaskModeIcon />
-                        </IconWrapper>
-                        <ActionLabel>Atomize</ActionLabel>
-                    </ActionButton>
-                    <ActionSubText $active={hasSelection}>
-                        Study with an AI-assisted breakdown!
-                    </ActionSubText>
-                </ActionCol>
-            </ActionRow>
-        </PageWrapper>
+            </PageWrapper>
+        </>
     );
 }

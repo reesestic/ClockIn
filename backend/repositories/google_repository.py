@@ -2,6 +2,7 @@ import requests
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from urllib.parse import quote
 
 load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")

@@ -157,25 +157,31 @@ export default function TaskOpenModal({ onFree, onTask }: Props) {
             <BackgroundOverlay />
             <Content>
                 <TopSection>
-                    <Title>Your Timer</Title>
-                    <Subtitle>What kind of work will you do?</Subtitle>
+                    <div data-tutorial-id="timer-start">
+                        <Title>Your Timer</Title>
+                        <Subtitle>What kind of work will you do?</Subtitle>
+                    </div>
                 </TopSection>
 
                 <CenterSection>
                     <ButtonRow>
-                        <ModeButton onClick={onFree}>
-                            <IconWrapper>
-                                <FreeModeIcon/>
-                            </IconWrapper>
-                            <ButtonLabel>Free Timer</ButtonLabel>
-                        </ModeButton>
+                        <div data-tutorial-id="free-timer">
+                            <ModeButton onClick={onFree}>
+                                <IconWrapper>
+                                    <FreeModeIcon/>
+                                </IconWrapper>
+                                <ButtonLabel>Free Timer</ButtonLabel>
+                            </ModeButton>
+                        </div>
 
-                        <ModeButton $yellow onClick={onTask}>
-                            <IconWrapper>
-                                <TaskModeIcon/>
-                            </IconWrapper>
-                            <ButtonLabel>Task Timer</ButtonLabel>
-                        </ModeButton>
+                        <div data-tutorial-id="task-timer">
+                            <ModeButton $yellow onClick={onTask}>
+                                <IconWrapper>
+                                    <TaskModeIcon/>
+                                </IconWrapper>
+                                <ButtonLabel>Task Timer</ButtonLabel>
+                            </ModeButton>
+                        </div>
                     </ButtonRow>
 
                     <SubRow>
