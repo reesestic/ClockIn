@@ -23,7 +23,15 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
-        refetchPlants().catch(console.error);
+        async function loadPlants() {
+            try {
+                await refetchPlants();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        loadPlants();
     }, []);
 
     return (
