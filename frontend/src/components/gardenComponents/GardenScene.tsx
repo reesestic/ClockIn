@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import styled from "styled-components";
 import { PLANT_SLOTS} from "./gardenData";
 import {ROUTES} from "../../constants/Routes.ts";
@@ -13,28 +13,24 @@ import GardenBonsai from "./GardenBonsai";
 import GardenCactus from "./GardenCactus";
 import BackButton from "../navigation/BackButton.tsx";
 
-// ─── Styled ───────────────────────────────────────────────────────────────────
-
 const Wrapper = styled.div`
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: #afdbff;
-  cursor: grab;
-  &:active { cursor: grabbing; }
-  user-select: none;
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: #afdbff;
+    cursor: grab;
+    &:active { cursor: grabbing; }
+    user-select: none;
+    overscroll-behavior: none;
 `;
 
 const PageBackButton = styled(BackButton)`
-  position: fixed;
-  top: 1.2rem;
-  left: 1rem;
-  z-index: 100;
+    position: fixed;
+    top: 1.2rem;
+    left: 1rem;
+    z-index: 100;
 `;
 
-//const fadeIn = keyframes`from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); }`;
-
-// ─── Plant viewBox dimensions (width × height) ───────────────────────────────
 const PLANT_VIEWBOXES: Record<PlantVariety, { w: number; h: number }> = {
     sunflower:   { w: 417,  h: 1257 },
     tulip:       { w: 267,  h: 763  },
@@ -53,20 +49,17 @@ const PLANT_COMPONENTS: Record<PlantVariety, () => React.ReactElement> = {
     cactus: GardenCactus,
 };
 
-// ─── Single plant slot rendered inside the main SVG ──────────────────────────
-
 interface PlantSlotSVGProps {
     slot: PlantSlot;
     state: PlantState;
     selected: boolean;
-    onSelect: () => void;
+    onSelect: (svgX: number, svgY: number) => void;
 }
 
 function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
     const vb = PLANT_VIEWBOXES[slot.variety];
     const PlantContent = PLANT_COMPONENTS[slot.variety];
 
-    // 👇 THIS is the correct scale calculation
     const renderH = 1024 * slot.scale;
     const scale = renderH / vb.h;
 
@@ -77,7 +70,7 @@ function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
                 scale(${scale})
                 translate(${-vb.w / 2}, ${-vb.h})
             `}
-            onClick={onSelect}
+            onClick={() => onSelect(slot.svgX, slot.svgY)}
             style={{
                 cursor: "pointer",
                 pointerEvents: "all",
@@ -85,48 +78,36 @@ function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
                     state === "empty" ? 0.15 :
                         state === "locked" ? 0.35 :
                             1,
-                filter: state === "owned" ? "none" : "grayscale(1)",
+                filter: selected
+                    ? "url(#outlineFilter)"
+                    : state === "owned" ? "none" : "grayscale(1)",
             }}
         >
-            {selected && (
-                <rect
-                    x={-vb.w / 2 - 20}
-                    y={-vb.h - 20}
-                    width={vb.w + 40}
-                    height={vb.h + 40}
-                    rx={16}
-                    fill="none"
-                    stroke="white"
-                    strokeWidth={10}
-                />
-            )}
-
             <PlantContent />
-
-            {state === "locked" && (
-                <g transform={`translate(-18, -${vb.h + 30})`}>
-                    <circle r={18} cx={18} cy={18} fill="rgba(0,0,0,0.45)" />
-                    <text x={18} y={23} textAnchor="middle" fontSize={18} fill="white">🔒</text>
-                </g>
-            )}
         </g>
     );
 }
-
-// ─── Main GardenScene ─────────────────────────────────────────────────────────
 
 const SVG_W = 4948;
 const SVG_H = 1024;
 
 export default function GardenScene() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; above: boolean } | null>(null);
     const [offsetX, setOffsetX] = useState(0);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const { plants: userPlants } = usePlants();
-    console.log("userPlants:", userPlants);
 
-    // continuous pan state
-    const drag = useRef({ active: false, startX: 0, startOffset: 0 });
+    const { plants: userPlants, countMap, firstGrownMap } = usePlants();
+
+    const formatDate = (iso: string) => {
+        const d = new Date(iso);
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${mm}/${dd}/${yy}`;
+    };
+
+    const drag = useRef({ active: false, startX: 0, startOffset: 0, moved: false });
 
     const getViewW = useCallback(() => {
         const el = wrapperRef.current;
@@ -137,41 +118,87 @@ export default function GardenScene() {
     const clampOffset = useCallback((v: number) => {
         const viewW = getViewW();
         const viewH = wrapperRef.current?.clientHeight ?? window.innerHeight;
-        // viewBox width = SVG_W * (viewH / SVG_H) scaled to fill height
         const vbW = SVG_W * (viewH / SVG_H);
         const maxOffset = Math.max(0, vbW - viewW);
-        // convert pixel offset to SVG units
         const svgUnitsPerPx = SVG_W / vbW;
         return Math.max(0, Math.min(v, maxOffset * svgUnitsPerPx));
     }, [getViewW]);
 
+    useEffect(() => {
+        const el = wrapperRef.current;
+        if (!el) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const viewH = el.clientHeight;
+            const vbW = SVG_W * (viewH / SVG_H);
+            const svgUnitsPerPx = SVG_W / vbW;
+            const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+            setOffsetX(prev => clampOffset(prev + delta * svgUnitsPerPx));
+        };
+
+        el.addEventListener("wheel", handleWheel, { passive: false });
+        return () => el.removeEventListener("wheel", handleWheel);
+    }, [clampOffset]);
+
     const onPointerDown = useCallback((e: React.PointerEvent) => {
-        drag.current = { active: true, startX: e.clientX, startOffset: offsetX };
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        const target = e.target as HTMLElement;
+        if (target.closest("a")) return;
+        drag.current = { active: true, startX: e.clientX, startOffset: offsetX, moved: false };
     }, [offsetX]);
 
     const onPointerMove = useCallback((e: React.PointerEvent) => {
         if (!drag.current.active) return;
         const dx = e.clientX - drag.current.startX;
+        if (Math.abs(dx) > 6) drag.current.moved = true;
+        if (!drag.current.moved) return;
         const viewH = wrapperRef.current?.clientHeight ?? window.innerHeight;
         const vbW = SVG_W * (viewH / SVG_H);
         const svgUnitsPerPx = SVG_W / vbW;
-        const newOffset = drag.current.startOffset - dx * svgUnitsPerPx;
-        setOffsetX(clampOffset(newOffset));
+        setOffsetX(clampOffset(drag.current.startOffset - dx * svgUnitsPerPx));
     }, [clampOffset]);
 
     const onPointerUp = useCallback(() => {
         drag.current.active = false;
+        drag.current.moved = false;
     }, []);
 
     const getState = (slot: PlantSlot): PlantState => {
-        if (!userPlants) return "empty";   // 👈 ADD THIS LINE
+        if (!userPlants) return "empty";
         if (userPlants[slot.variety]) return "owned";
         return "locked";
     };
 
-    const handleSelect = (id: string) => {
-        setSelectedId(prev => prev === id ? null : id);
+    const handleSelect = (id: string, svgX: number, svgY: number) => {
+        setSelectedId(prev => {
+            if (prev === id) {
+                setTooltipPos(null);
+                return null;
+            }
+
+            const el = wrapperRef.current;
+            if (el) {
+                const viewH = el.clientHeight;
+                const pxPerSvgUnit = viewH / SVG_H;
+
+                const slot = PLANT_SLOTS.find(s => s.id === id);
+                const renderedH = slot ? 1024 * slot.scale * pxPerSvgUnit : 0;
+
+                const screenX = (svgX - offsetX) * pxPerSvgUnit;
+
+                const screenBaseY = svgY * pxPerSvgUnit;
+                const screenTopY = screenBaseY - renderedH;
+                const isAboveHalf = screenTopY < viewH * 0.5;
+
+                setTooltipPos({
+                    x: screenX,
+                    y: isAboveHalf ? screenBaseY : screenTopY,
+                    above: !isAboveHalf,
+                });
+            }
+
+            return id;
+        });
     };
 
     const selectedSlot = PLANT_SLOTS.find(s => s.id === selectedId);
@@ -183,74 +210,72 @@ export default function GardenScene() {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onWheel={(e) => {
-                const viewH = wrapperRef.current?.clientHeight ?? window.innerHeight;
-                const vbW = SVG_W * (viewH / SVG_H);
-                const svgUnitsPerPx = SVG_W / vbW;
-
-                // 👇 USE deltaX instead of deltaY
-                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY)
-                    ? e.deltaX   // horizontal scroll (trackpad left/right)
-                    : e.deltaY;  // fallback for mouse wheel
-
-                setOffsetX(prev =>
-                    clampOffset(prev + delta * svgUnitsPerPx)
-                );
-            }}
+            onPointerLeave={onPointerUp}
         >
             <PageBackButton to={ROUTES.HOME} />
 
-            {/* Selected plant info pill */}
-            {selectedSlot && (
-                <div style={{
-                    position: "absolute",
-                    bottom: 32,
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "white",
-                    borderRadius: 32,
-                    padding: "10px 28px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    boxShadow: "0 4px 24px rgba(75,148,219,0.18)",
-                    zIndex: 50,
-                    animation: "fadeUp 0.2s ease",
-                }}>
-          <span style={{ fontSize: 20, fontWeight: 700, color: "#4B94DB" }}>
-            {selectedSlot.label}
-          </span>
-                    {selectedState === "locked" && (
-                        <span style={{
-                            fontSize: 12, fontWeight: 600, color: "#999",
-                            background: "#f0f0f0", borderRadius: 12, padding: "2px 10px"
-                        }}>
-              Not yet found
-            </span>
-                    )}
-                    {selectedState === "owned" && (
-                        <span style={{
-                            fontSize: 12, fontWeight: 600, color: "#3D9D8B",
-                            background: "#e8f7f0", borderRadius: 12, padding: "2px 10px"
-                        }}>
-              Growing ✓
-            </span>
-                    )}
-                    <button
-                        onClick={() => setSelectedId(null)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#bbb", fontSize: 18, lineHeight: 1 }}
-                    >×</button>
-                </div>
-            )}
+            {/* Tooltip */}
+            {selectedSlot && tooltipPos && (() => {
+                const screenH = wrapperRef.current?.clientHeight ?? window.innerHeight;
+                const offset = screenH * 0.04; // small gap between tooltip and plant edge
+                const top = tooltipPos.above
+                    ? tooltipPos.y - offset - 90   // 90 = approx tooltip height, sits above plant top
+                    : tooltipPos.y + offset;        // sits below plant base
 
-            {/* The single SVG — everything lives here */}
+                return (
+                    <div style={{
+                        position: "absolute",
+                        top,
+                        left: tooltipPos.x,
+                        transform: "translateX(-50%)",
+                        background: "white",
+                        borderRadius: 20,
+                        padding: "14px 36px 14px 20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        gap: 4,
+                        boxShadow: "0 4px 24px rgba(75,148,219,0.22)",
+                        zIndex: 50,
+                        animation: "fadeUp 0.2s ease",
+                        minWidth: 180,
+                        pointerEvents: "auto",
+                    }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: "#4B94DB" }}>
+                {selectedSlot.label}
+            </span>
+                        {selectedState === "locked" && (
+                            <span style={{ fontSize: 13, color: "#4B94DB", opacity: 0.5 }}>
+                    Not yet found 🔒
+                </span>
+                        )}
+                        {selectedState === "owned" && (
+                            <>
+                    <span style={{ fontSize: 13, color: "#4B94DB" }}>
+                        Grown <strong>{countMap[selectedSlot.variety] ?? 0}</strong> time{(countMap[selectedSlot.variety] ?? 0) !== 1 ? "s" : ""}
+                    </span>
+                                {firstGrownMap[selectedSlot.variety] && (
+                                    <span style={{ fontSize: 12, color: "#4B94DB", opacity: 0.6 }}>
+                            First grown {formatDate(firstGrownMap[selectedSlot.variety])}
+                        </span>
+                                )}
+                            </>
+                        )}
+                        <button
+                            onClick={() => { setSelectedId(null); setTooltipPos(null); }}
+                            style={{
+                                position: "absolute", top: 8, right: 10,
+                                background: "none", border: "none",
+                                cursor: "pointer", color: "#4B94DB",
+                                fontSize: 16, opacity: 0.4, lineHeight: 1,
+                            }}
+                        >×</button>
+                    </div>
+                );
+            })()}
+
             <svg
-                style={{
-                    width: "auto",
-                    height: "100%",
-                    transition: "none",
-                    display: "block",
-                }}
+                style={{ width: "auto", height: "100%", transition: "none", display: "block" }}
                 viewBox={`${offsetX} 0 ${SVG_W} ${SVG_H}`}
                 preserveAspectRatio="xMinYMid meet"
                 xmlns="http://www.w3.org/2000/svg"
@@ -287,8 +312,6 @@ export default function GardenScene() {
                     <clipPath id="gardenClip">
                         <rect width="4948" height="1024" fill="white"/>
                     </clipPath>
-
-                    {/* Outline filter for selected plant */}
                     <filter id="outlineFilter" x="-10%" y="-10%" width="120%" height="120%">
                         <feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expanded"/>
                         <feFlood floodColor="white" result="color"/>
@@ -299,25 +322,26 @@ export default function GardenScene() {
                         </feMerge>
                     </filter>
                 </defs>
+
                 <GardenBackground/>
+
                 {PLANT_SLOTS.map(slot => (
                     <PlantSlotSVG
                         key={slot.id}
                         slot={slot}
                         state={getState(slot)}
                         selected={selectedId === slot.id}
-                        onSelect={() => handleSelect(slot.id)}
+                        onSelect={(svgX, svgY) => handleSelect(slot.id, svgX, svgY)}
                     />
                 ))}
-
             </svg>
 
             <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
+                @keyframes fadeUp {
+                    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+                    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+            `}</style>
         </Wrapper>
     );
 }

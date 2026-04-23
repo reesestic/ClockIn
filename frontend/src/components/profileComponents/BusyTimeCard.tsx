@@ -51,6 +51,14 @@ const slideUp = keyframes`
     to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
+const shake = keyframes`
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-4px); }
+    40%       { transform: translateX(4px); }
+    60%       { transform: translateX(-3px); }
+    80%       { transform: translateX(3px); }
+`;
+
 /* ── Styles ──────────────────────── */
 
 const Container = styled.div`
@@ -63,16 +71,19 @@ const Container = styled.div`
     animation: ${slideUp} 0.2s ease;
 `;
 
-const TitleInput = styled.input`
+const TitleInput = styled.input<{ $error?: boolean }>`
     width: 100%;
     border: none;
-    background: #f0f0f0;
+    border-bottom: 2px solid ${({ $error }) => ($error ? "#e53935" : "transparent")};
+    background: ${({ $error }) => ($error ? "#fff5f5" : "#f0f0f0")};
     padding: 8px 10px;
     font-weight: bold;
     font-size: 1rem;
     outline: none;
     box-sizing: border-box;
+    transition: background 0.15s, border-color 0.15s;
     &:focus { background: #e8e8e8; }
+    &::placeholder { color: ${({ $error }) => ($error ? "#e57373" : "#aaa")}; }
 `;
 
 const Content = styled.div`
@@ -94,9 +105,11 @@ const RowHeader = styled.div`
     justify-content: space-between;
 `;
 
-const Label = styled.span`
+const Label = styled.span<{ $error?: boolean }>`
     font-size: 0.8rem;
-    color: #888;
+    color: ${({ $error }) => ($error ? "#e53935" : "#888")};
+    font-weight: ${({ $error }) => ($error ? "600" : "normal")};
+    transition: color 0.15s;
 `;
 
 const SmallBtn = styled.button`
@@ -110,11 +123,16 @@ const SmallBtn = styled.button`
     &:hover { text-decoration: underline; color: #333; }
 `;
 
-const TimeRow = styled.div`
+const TimeRow = styled.div<{ $error?: boolean }>`
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    padding: 4px 6px;
+    border-radius: 7px;
+    border: 1.5px solid ${({ $error }) => ($error ? "#e53935" : "transparent")};
+    background: ${({ $error }) => ($error ? "#fff5f5" : "transparent")};
+    transition: border-color 0.15s, background 0.15s;
 `;
 
 const SmallSelect = styled.select<{ $error?: boolean }>`
@@ -139,10 +157,15 @@ const ErrorMsg = styled.div`
     margin-top: 2px;
 `;
 
-const DaysRow = styled.div`
+const DaysRow = styled.div<{ $error?: boolean }>`
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    padding: 4px 6px;
+    border-radius: 7px;
+    border: 1.5px solid ${({ $error }) => ($error ? "#e53935" : "transparent")};
+    background: ${({ $error }) => ($error ? "#fff5f5" : "transparent")};
+    transition: border-color 0.15s, background 0.15s;
 `;
 
 const Day = styled.button<{ $selected: boolean }>`
@@ -179,6 +202,7 @@ const FooterLeft = styled.div`
 const FooterRight = styled.div`
     display: flex;
     gap: 8px;
+    align-items: center;
 `;
 
 const CancelBtn = styled.button`
@@ -218,20 +242,35 @@ const DuplicateBtn = styled.button`
     &:hover { border-color: #aaa; color: #333; }
 `;
 
+const SaveErrorMsg = styled.div<{ $visible: boolean; $shake: boolean }>`
+    font-size: 0.78rem;
+    color: #e53935;
+    font-weight: 600;
+    max-width: 220px;
+    text-align: right;
+    line-height: 1.3;
+    opacity: ${p => (p.$visible ? 1 : 0)};
+    transition: opacity 0.15s;
+    animation: ${p => (p.$shake ? shake : "none")} 0.35s ease;
+`;
+
 /* ── Sub-component: TimePicker ───── */
 
 interface TimePickerProps {
     value: TimeValue;
     onChange: (val: TimeValue) => void;
+    onBlur?: () => void;
+    highlightRow?: boolean;
     error?: boolean;
 }
 
-function TimePicker({ value, onChange, error }: TimePickerProps) {
+function TimePicker({ value, onChange, onBlur, highlightRow, error }: TimePickerProps) {
     return (
-        <TimeRow>
+        <TimeRow $error={highlightRow}>
             <SmallSelect
                 value={value.hour}
                 onChange={e => onChange({ ...value, hour: e.target.value })}
+                onBlur={onBlur}
                 $error={error}
             >
                 {HOURS.map(h => <option key={h}>{h}</option>)}
@@ -242,6 +281,7 @@ function TimePicker({ value, onChange, error }: TimePickerProps) {
             <SmallSelect
                 value={value.minute}
                 onChange={e => onChange({ ...value, minute: e.target.value })}
+                onBlur={onBlur}
                 $error={error}
             >
                 {MINUTES.map(m => <option key={m}>{m}</option>)}
@@ -250,6 +290,7 @@ function TimePicker({ value, onChange, error }: TimePickerProps) {
             <SmallSelect
                 value={value.ampm}
                 onChange={e => onChange({ ...value, ampm: e.target.value as "AM" | "PM" })}
+                onBlur={onBlur}
                 $error={error}
             >
                 <option>AM</option>
@@ -277,6 +318,15 @@ export default function BusyTimeCard({ initial, existingTimes, onSave, onCancel,
     const [end,   setEnd]   = useState<TimeValue>(initial?.end   ?? { hour: "7", minute: "00", ampm: "AM" });
     const [days,  setDays]  = useState<string[]>(initial?.days   ?? []);
 
+    // Track which fields have been "touched" (blurred at least once)
+    const [touched, setTouched] = useState({ title: false, start: false, end: false });
+
+    // Controls the shake animation on the save error message
+    const [saveShake, setSaveShake] = useState(false);
+
+    // Whether the user has attempted to save (triggers all-field validation display)
+    const [saveAttempted, setSaveAttempted] = useState(false);
+
     const titleRef = useRef<HTMLInputElement>(null);
     useEffect(() => { titleRef.current?.focus(); }, []);
 
@@ -284,12 +334,40 @@ export default function BusyTimeCard({ initial, existingTimes, onSave, onCancel,
     const overlapErrors = findOverlaps({ title, start, end, days }, existingTimes ?? [], initial?.title);
     const canSave       = title.trim().length > 0 && days.length > 0 && !timeError && overlapErrors.length === 0;
 
+    // Which fields are "visibly invalid" — only after touched or save attempted
+    const showTitleError = (touched.title || saveAttempted) && title.trim().length === 0;
+    // Time error highlights both start and end — either picker blurring is enough
+    const showTimeError  = (touched.start || touched.end || saveAttempted) && timeError;
+    const showDaysError  = saveAttempted && days.length === 0;
+
+    // Build the "missing required field" message for the save button
+    const missingFields: string[] = [];
+    if (title.trim().length === 0) missingFields.push("title");
+    if (days.length === 0) missingFields.push("days");
+    if (timeError) missingFields.push("valid end time");
+
+    const saveErrorText = saveAttempted && missingFields.length > 0
+        ? `Missing required: ${missingFields.join(", ")}`
+        : saveAttempted && overlapErrors.length > 0
+            ? "Fix overlap errors before saving"
+            : "";
+
+    function touch(field: keyof typeof touched) {
+        setTouched(prev => ({ ...prev, [field]: true }));
+    }
+
     function toggleDay(day: string) {
         setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
     }
 
     function handleSave() {
-        if (!canSave) return;
+        setSaveAttempted(true);
+        if (!canSave) {
+            // Trigger shake on error message
+            setSaveShake(false);
+            requestAnimationFrame(() => setSaveShake(true));
+            return;
+        }
         onSave({ title, start, end, days });
     }
 
@@ -305,27 +383,41 @@ export default function BusyTimeCard({ initial, existingTimes, onSave, onCancel,
         <Container>
             <TitleInput
                 ref={titleRef}
-                placeholder="Busy time title"
+                placeholder="Busy time title *"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 onKeyDown={handleTitleKeyDown}
+                onBlur={() => touch("title")}
+                $error={showTitleError}
             />
 
             <Content>
                 <Row>
-                    <Label>Start</Label>
-                    <TimePicker value={start} onChange={setStart} />
+                    <Label $error={showTimeError}>Start</Label>
+                    <TimePicker
+                        value={start}
+                        onChange={setStart}
+                        onBlur={() => touch("start")}
+                        highlightRow={showTimeError}
+                        error={showTimeError}
+                    />
                 </Row>
 
                 <Row>
-                    <Label>End</Label>
-                    <TimePicker value={end} onChange={setEnd} error={timeError} />
-                    {timeError && <ErrorMsg>End time must be after start time</ErrorMsg>}
+                    <Label $error={showTimeError}>End</Label>
+                    <TimePicker
+                        value={end}
+                        onChange={setEnd}
+                        onBlur={() => touch("end")}
+                        highlightRow={showTimeError}
+                        error={showTimeError}
+                    />
+                    {showTimeError && <ErrorMsg>End time must be after start time</ErrorMsg>}
                 </Row>
 
                 <Row>
                     <RowHeader>
-                        <Label>Days</Label>
+                        <Label $error={showDaysError}>Days {showDaysError ? "— select at least one" : ""}</Label>
                         <SmallBtn
                             type="button"
                             onClick={() => setDays(prev => prev.length === 7 ? [] : [...DAYS])}
@@ -333,7 +425,7 @@ export default function BusyTimeCard({ initial, existingTimes, onSave, onCancel,
                             {days.length === 7 ? "Clear all" : "Every day"}
                         </SmallBtn>
                     </RowHeader>
-                    <DaysRow>
+                    <DaysRow $error={showDaysError}>
                         {DAYS.map(d => (
                             <Day
                                 key={d}
@@ -362,6 +454,9 @@ export default function BusyTimeCard({ initial, existingTimes, onSave, onCancel,
                     )}
                 </FooterLeft>
                 <FooterRight>
+                    <SaveErrorMsg $visible={!!saveErrorText} $shake={saveShake}>
+                        {saveErrorText}
+                    </SaveErrorMsg>
                     <CancelBtn type="button" onClick={onCancel}>Cancel</CancelBtn>
                     <SaveBtn type="button" $disabled={!canSave} onClick={handleSave}>
                         Save

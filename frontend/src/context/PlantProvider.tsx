@@ -1,49 +1,45 @@
 import React, { useEffect, useState } from "react";
-import { fetchCompletedPlants } from "../api/plantApi";
+import { fetchCompletedPlants, fetchFirstGrownDates } from "../api/plantApi";
 import { PlantContext } from "./PlantContext";
 import type { UserPlants } from "../types/plantContextTypes";
 
 export function PlantProvider({ children }: { children: React.ReactNode }) {
-    const [plants, setPlants] = useState<UserPlants | null>(null);
+    const [plants, setPlants]           = useState<UserPlants | null>(null);
+    const [countMap, setCountMap]       = useState<Record<string, number>>({});
+    const [firstGrownMap, setFirstGrownMap] = useState<Record<string, string>>({});
 
-    async function refetchPlants() {
+    async function loadPlants() {
         try {
-            const data = await fetchCompletedPlants();
+            const [completed, firstGrown] = await Promise.all([
+                fetchCompletedPlants(),
+                fetchFirstGrownDates(),
+            ]);
 
             const map: UserPlants = {};
-            data.forEach((p: { variety: string }) => {
+            const counts: Record<string, number> = {};
+            completed.forEach((p: { variety: string; count: number }) => {
                 map[p.variety] = true;
+                counts[p.variety] = p.count;
+            });
+
+            const dates: Record<string, string> = {};
+            firstGrown.forEach((p: { variety: string; first_grown: string }) => {
+                dates[p.variety] = p.first_grown;
             });
 
             setPlants(map);
+            setCountMap(counts);
+            setFirstGrownMap(dates);
         } catch (e) {
             console.error("Failed to load plants", e);
             setPlants({});
         }
     }
 
-    useEffect(() => {
-        async function loadPlants() {
-            try {
-                const data = await fetchCompletedPlants();
-
-                const map: UserPlants = {};
-                data.forEach((p: { variety: string }) => {
-                    map[p.variety] = true;
-                });
-
-                setPlants(map);
-            } catch (e) {
-                console.error("Failed to load plants", e);
-                setPlants({});
-            }
-        }
-
-        loadPlants();
-    }, []);
+    useEffect(() => { loadPlants(); }, []);
 
     return (
-        <PlantContext.Provider value={{ plants, refetchPlants }}>
+        <PlantContext.Provider value={{ plants, countMap, firstGrownMap, refetchPlants: loadPlants }}>
             {children}
         </PlantContext.Provider>
     );
