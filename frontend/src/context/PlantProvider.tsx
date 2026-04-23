@@ -25,9 +25,17 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         async function loadPlants() {
             try {
-                await refetchPlants();
+                const data = await fetchCompletedPlants();
+
+                const map: UserPlants = {};
+                data.forEach((p: { variety: string }) => {
+                    map[p.variety] = true;
+                });
+
+                setPlants(map);
             } catch (e) {
-                console.error(e);
+                console.error("Failed to load plants", e);
+                setPlants({});
             }
         }
 
