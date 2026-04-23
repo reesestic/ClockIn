@@ -1,31 +1,34 @@
 import styled from "styled-components";
 import type { StickyNoteColor } from "../../types/StickyNoteThemes";
 import type { Editor } from "@tiptap/react";
-
+import { useState } from "react";
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 const MenuContainer = styled.div`
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
 
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 10px;
-    box-shadow:
-            0 4px 16px rgba(0, 0, 0, 0.12),
-            0 1px 4px rgba(0, 0, 0, 0.08);
 
-    overflow: hidden;
-    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+
+    box-shadow:
+            0 6px 20px rgba(0, 0, 0, 0.15),
+            0 2px 6px rgba(0, 0, 0, 0.08);
+
+    padding: 8px 10px;
+    gap: 6px;
+
+    min-width: 260px;
 `;
 
 const Divider = styled.div`
     height: 1px;
-    background: rgba(0, 0, 0, 0.08);
-    margin: 0 8px;
+    background: rgba(0, 0, 0, 0.1);
 `;
 
 // ─── Format Row ───────────────────────────────────────────────────────────────
@@ -33,85 +36,89 @@ const Divider = styled.div`
 const FormatRow = styled.div`
     display: flex;
     flex-direction: row;
-    align-items: stretch;
+    align-items: center;
 `;
 
-const FormatButton = styled.button`
+const FormatButton = styled.button<{ active?: boolean }>`
     flex: 1;
-    padding: 7px 12px;
+    padding: 8px 0;
     border: none;
-    background: transparent;
+    background: ${({ active }) =>
+            active ? "rgba(0, 0, 0, 0.18)" : "transparent"};
     cursor: pointer;
-    font-size: 13px;
+
+    font-size: 16px;
     font-weight: 600;
-    color: rgba(0, 0, 0, 0.7);
+    color: rgba(0, 0, 0, 0.75);
+
     transition: background 0.12s ease;
-    line-height: 1;
 
     &:hover {
-        background: rgba(0, 0, 0, 0.07);
+        background: ${({ active }) =>
+                active ? "rgba(0,0,0,0.22)" : "rgba(0,0,0,0.07)"};
     }
 
     &:active {
-        background: rgba(0, 0, 0, 0.13);
+        background: rgba(0,0,0,0.25);
     }
 
     & + & {
         border-left: 1px solid rgba(0, 0, 0, 0.08);
     }
+
+    border-radius: 14px;
 `;
 
 const BoldLabel = styled.span`font-weight: 700;`;
-const ItalicLabel = styled.span`font-style: italic; font-weight: 500;`;
+const ItalicLabel = styled.span`font-style: italic;`;
 const UnderlineLabel = styled.span`text-decoration: underline;`;
 const StrikeLabel = styled.span`text-decoration: line-through;`;
 
-// ─── Color Row ────────────────────────────────────────────────────────────────
+// ─── Colors ───────────────────────────────────────────────────────────────────
 
 const ColorRow = styled.div`
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: 8px;
+    padding-top: 4px;
 `;
 
 const ColorLabel = styled.span`
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: rgba(0, 0, 0, 0.5);
-    margin-right: 2px;
-    white-space: nowrap;
+    margin-right: 4px;
 `;
 
 const ColorSwatch = styled.button<{ color: string; selected?: boolean }>`
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: ${({ color }) => color};
+
     border: ${({ selected }) =>
-            selected ? "2px solid rgba(0,0,0,0.5)" : "2px solid transparent"};
+            selected ? "2px solid rgba(0,0,0,0.6)" : "2px solid transparent"};
+
     cursor: pointer;
     padding: 0;
-    transition: transform 0.1s ease, border-color 0.1s ease;
-    flex-shrink: 0;
+
+    transition: transform 0.1s ease, border 0.1s ease;
 
     &:hover {
         transform: scale(1.2);
-        border-color: rgba(0, 0, 0, 0.3);
+        border-color: rgba(0,0,0,0.3);
     }
 `;
 
-// ─── Colors ───────────────────────────────────────────────────────────────────
-
-const COLOR_OPTIONS: { color: StickyNoteColor; hex: string; label: string }[] = [
-    { color: "red",    hex: "#FFAFB1", label: "Red" },
-    { color: "orange", hex: "#F6C98A", label: "Orange" },
-    { color: "yellow", hex: "#FFF59A", label: "Yellow" },
-    { color: "green",  hex: "#C0E8AA", label: "Green" },
-    { color: "blue",   hex: "#AFDBFF", label: "Blue" },
-    { color: "purple", hex: "#C5AFFF", label: "Purple" },
-    { color: "pink",   hex: "#FFC7E8", label: "Pink" },
+const COLORS = [
+    { color: "red", hex: "#FFAFB1" },
+    { color: "orange", hex: "#F6C98A" },
+    { color: "yellow", hex: "#FFF59A" },
+    { color: "green", hex: "#C0E8AA" },
+    { color: "blue", hex: "#AFDBFF" },
+    { color: "purple", hex: "#C5AFFF" },
+    { color: "pink", hex: "#FFC7E8" },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -125,23 +132,67 @@ type Props = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function StickyNoteMenu({ editor, noteId, selectedColor, onColorChange }: Props) {
+export default function StickyNoteMenu({
+                                           editor,
+                                           noteId,
+                                           selectedColor,
+                                           onColorChange,
+                                       }: Props) {
+
+    const [mode, setMode] = useState<
+        null | "bold" | "italic" | "underline" | "strike"
+    >(null);
+
+    const handleClick = (type: "bold" | "italic" | "underline" | "strike") => {
+        const hasSelection =
+            editor.state.selection.from !== editor.state.selection.to;
+
+        const chain = editor.chain().focus();
+
+        // ✅ CASE 1: selection → normal formatting
+        if (hasSelection) {
+            if (type === "bold") chain.toggleBold();
+            if (type === "italic") chain.toggleItalic();
+            if (type === "underline") chain.toggleUnderline();
+            if (type === "strike") chain.toggleStrike();
+
+            chain.run();
+            return;
+        }
+
+        // ✅ CASE 2/3/4: mode logic
+        if (mode === type) {
+            setMode(null);
+            return;
+        }
+
+        setMode(type);
+
+        // 🔥 CRITICAL FIX: apply immediately so first letter is correct
+        if (type === "bold") chain.setBold();
+        if (type === "italic") chain.setItalic();
+        if (type === "underline") chain.setUnderline();
+        if (type === "strike") chain.setStrike();
+
+        chain.run();
+    };
+
     return (
         <MenuContainer>
             <FormatRow>
-                <FormatButton onClick={() => editor.chain().focus().toggleBold().run()}>
+                <FormatButton active={mode === "bold"} onClick={() => handleClick("bold")}>
                     <BoldLabel>B</BoldLabel>
                 </FormatButton>
 
-                <FormatButton onClick={() => editor.chain().focus().toggleItalic().run()}>
+                <FormatButton active={mode === "italic"} onClick={() => handleClick("italic")}>
                     <ItalicLabel>I</ItalicLabel>
                 </FormatButton>
 
-                <FormatButton onClick={() => editor.chain().focus().toggleUnderline().run()}>
+                <FormatButton active={mode === "underline"} onClick={() => handleClick("underline")}>
                     <UnderlineLabel>U</UnderlineLabel>
                 </FormatButton>
 
-                <FormatButton onClick={() => editor.chain().focus().toggleStrike().run()}>
+                <FormatButton active={mode === "strike"} onClick={() => handleClick("strike")}>
                     <StrikeLabel>S</StrikeLabel>
                 </FormatButton>
             </FormatRow>
@@ -150,13 +201,14 @@ export default function StickyNoteMenu({ editor, noteId, selectedColor, onColorC
 
             <ColorRow>
                 <ColorLabel>Color</ColorLabel>
-                {COLOR_OPTIONS.map(({ color, hex, label }) => (
+                {COLORS.map(({ color, hex }) => (
                     <ColorSwatch
                         key={color}
                         color={hex}
                         selected={selectedColor === color}
-                        title={label}
-                        onClick={() => onColorChange?.(noteId ?? "", color)}
+                        onClick={() =>
+                            onColorChange?.(noteId ?? "", color as StickyNoteColor)
+                        }
                     />
                 ))}
             </ColorRow>

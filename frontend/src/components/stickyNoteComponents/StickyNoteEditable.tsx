@@ -20,12 +20,15 @@ const ContentWrapper = styled.div`
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    padding-top: 6px;
 
     .ProseMirror {
         outline: none;
         font-size: 1.2rem;
         line-height: 1.6;
         word-break: break-word;
+        min-height: 120px;
+        cursor: text;
     }
 `;
 
@@ -58,6 +61,12 @@ export default function StickyNoteEditable({
                 ref={titleRef}
                 value={note.title}
                 onChange={(e) => onChange(e.target.value, editor?.getHTML() || "")}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        editor?.commands.focus("end");
+                    }
+                }}
                 placeholder="Add a title..."
             />
 
