@@ -11,6 +11,8 @@ import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 import NightHomepageIcon from "../components/icons/NightHomepageIcon";
 import { useTheme } from "../context/ThemeContext";
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -335,6 +337,7 @@ export default function TaskPage() {
                     onCancel={() => setSplitTargetTask(null)}
                 />
             )}
+            <TutorialButton steps={TASKS_TUTORIAL_STEPS} />
         </PageWrapper>
     );
 }

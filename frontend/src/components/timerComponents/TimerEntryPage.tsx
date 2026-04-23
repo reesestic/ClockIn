@@ -3,6 +3,8 @@ import TaskOpenModal from "../modal/TaskOpenModal.tsx"
 import styled from "styled-components";
 import BackButton from "../navigation/BackButton.tsx";
 import { ROUTES } from "../../constants/Routes.ts";
+import {TIMER_TUTORIAL_STEPS} from "../../constants/TimerTutorialSteps.ts";
+import TutorialButton from "../onboardingComponents/TutorialButton.tsx";
 
 const PageBackButton = styled(BackButton)`
     position: absolute;
@@ -27,6 +29,7 @@ export default function TimerEntryPage() {
                     navigate(ROUTES.TIMER_TASK_SELECTION_PAGE)
                 }
             />
+            <TutorialButton steps={TIMER_TUTORIAL_STEPS} />
         </>
     );
 }
