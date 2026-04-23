@@ -93,7 +93,7 @@ const SVG_H = 1024;
 
 export default function GardenScene() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; above: boolean } | null>(null);
+    const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; above: boolean; screenH: number } | null>(null);
     const [offsetX, setOffsetX] = useState(0);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -194,6 +194,7 @@ export default function GardenScene() {
                     x: screenX,
                     y: isAboveHalf ? screenBaseY : screenTopY,
                     above: !isAboveHalf,
+                    screenH: viewH,
                 });
             }
 
@@ -216,7 +217,7 @@ export default function GardenScene() {
 
             {/* Tooltip */}
             {selectedSlot && tooltipPos && (() => {
-                const screenH = wrapperRef.current?.clientHeight ?? window.innerHeight;
+                const screenH = tooltipPos.screenH;
                 const offset = screenH * 0.04; // small gap between tooltip and plant edge
                 const top = tooltipPos.above
                     ? tooltipPos.y - offset - 90   // 90 = approx tooltip height, sits above plant top
