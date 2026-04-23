@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from "react";
 import styled from "styled-components";
 import { PLANT_SLOTS} from "./gardenData";
 import {ROUTES} from "../../constants/Routes.ts";
-import { usePlants } from "../../context/PlantContext";
+import { usePlants } from "../../context/usePlants.ts";
 import type { PlantSlot, PlantState, PlantVariety } from "./gardenData";
 import GardenBackground from "./GardenBackground";
 import GardenSunflower from "./GardenSunflower";
