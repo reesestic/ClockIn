@@ -35,3 +35,9 @@ export async function fetchCompletedPlants(): Promise<{ variety: string; count: 
     if (!res.ok) throw new Error("Failed");
     return res.json();
 }
+
+export async function fetchFirstGrownDates(): Promise<{ variety: string; first_grown: string }[]> {
+    const res = await authFetch(`${BASE}/first-grown`);
+    if (!res.ok) throw new Error("Failed");
+    return res.json();
+}

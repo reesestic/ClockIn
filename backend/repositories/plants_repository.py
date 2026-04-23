@@ -125,3 +125,27 @@ class PlantsRepository:
             {"variety": variety, "count": count}
             for variety, count in counts.items()
         ]
+
+    def get_first_grown_dates(self, user_id: str) -> list[dict]:
+        """Returns the earliest completed_at per variety for this user."""
+        result = (
+            self.supabase.table("Plants")
+            .select("variety, completed_at")
+            .eq("user_id", user_id)
+            .eq("is_active", False)
+            .not_.is_("completed_at", "null")
+            .order("completed_at", desc=False)
+            .execute()
+        )
+
+        if not result.data:
+            return []
+
+        # Keep only the first (oldest) completed_at per variety
+        seen = {}
+        for row in result.data:
+            v = row["variety"]
+            if v not in seen:
+                seen[v] = row["completed_at"]
+
+        return [{"variety": v, "first_grown": ts} for v, ts in seen.items()]

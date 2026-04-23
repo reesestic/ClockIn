@@ -70,3 +70,6 @@ class PlantsService:
 
     async def get_completed_counts(self, user_id: str):
         return self.repo.get_completed_counts_grouped(user_id)
+
+    async def get_first_grown_dates(self, user_id: str):
+        return self.repo.get_first_grown_dates(user_id)

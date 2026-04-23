@@ -21,6 +21,15 @@ const ContentWrapper = styled.div`
     min-height: 0;
     overflow-y: auto;
     padding-top: 6px;
+    padding-right: 47px;
+
+    /* 🔥 Hide scrollbar */
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE */
+
+    &::-webkit-scrollbar {
+        display: none;            /* Chrome/Safari */
+    }
 
     .ProseMirror {
         outline: none;
