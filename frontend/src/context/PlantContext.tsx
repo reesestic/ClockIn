@@ -1,9 +1,9 @@
 import React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { fetchCompletedPlants } from "../api/plantApi";
 import type { UserPlants, PlantContextType } from "../types/plantContextTypes.ts";
 
-const PlantContext = createContext<PlantContextType | null>(null);
+export const PlantContext = createContext<PlantContextType | null>(null);
 
 export function PlantProvider({ children }: { children: React.ReactNode }) {
     const [plants, setPlants] = useState<UserPlants | null>(null);
@@ -36,10 +36,4 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
             {children}
         </PlantContext.Provider>
     );
-}
-
-export function usePlants() {
-    const ctx = useContext(PlantContext);
-    if (!ctx) throw new Error("usePlants must be used within PlantProvider");
-    return ctx;
 }

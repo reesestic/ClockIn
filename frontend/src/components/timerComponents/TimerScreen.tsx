@@ -15,7 +15,7 @@ import { PLANT_CONFIG, type PlantVariety } from "../../types/PlantConfig.ts";
 import {PlantVisual} from "../plantComponents/PlantVisual.tsx";
 import PlantRevealSequence from "../plantComponents/PlantRevealSequence";
 import PlantStageAnimator from "../plantComponents/PlantStageAnimator.tsx";
-import { usePlants } from "../../context/PlantContext";
+import { usePlants } from "../../context/usePlants.ts";
 
 /* ─────────────────────────────────────────
    TYPES
@@ -988,7 +988,7 @@ export default function TimerScreen() {
 
     useEffect(() => {
         function handleVisibilityChange() {
-            if (document.hidden) syncPlantProgress();
+            if (document.hidden) void syncPlantProgress();
         }
         window.addEventListener("beforeunload", syncPlantProgress);
         document.addEventListener("visibilitychange", handleVisibilityChange);
