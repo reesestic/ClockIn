@@ -65,11 +65,16 @@ const DaysContainer = styled.div`
   min-width: 0;
 `;
 
-const DayCol = styled.div<{ $isOver: boolean; $lightBg?: boolean }>`
+const DayCol = styled.div<{ $isOver: boolean; $lightBg?: boolean; $isEnabled?: boolean }>`
   flex: 1;
   min-width: 80px;
   border-left: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8e8e8" : "#ebebeb")};
-  background: ${({ $isOver }) => ($isOver ? "rgba(58,123,213,0.04)" : "transparent")};
+  background: ${({ $isOver, $lightBg, $isEnabled }) =>
+      $isOver
+          ? "#e8f0fb"
+          : $lightBg
+          ? ($isEnabled ? "#ffffff" : "#f0f0f0")
+          : "transparent"};
   transition: background 0.1s;
 `;
 
@@ -146,10 +151,10 @@ const BlockEl = styled.div<{
           : "1.5px solid rgba(0,0,0,0.1)"};
   color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
       $isIgnored ? "#aaa" : $isCalendarEvent ? "#2a5ba8" : ($textColor ?? "white")};
-  border-radius: 0;
+  border-radius: 6px;
   padding: 2px 7px;
   font-size: 11px;
-  font-weight: ${({ $isCalendarEvent }) => $isCalendarEvent ? 600 : 300};
+  font-weight: 600;
   cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grab"};
   user-select: none;
   box-sizing: border-box;
@@ -301,6 +306,7 @@ function DroppableDay({
     date,
     label,
     isToday,
+    isEnabled,
     blocks,
     lightBg,
     onDelete,
@@ -310,6 +316,7 @@ function DroppableDay({
     date: string;
     label: string;
     isToday: boolean;
+    isEnabled?: boolean;
     blocks: ScheduleBlock[];
     lightBg?: boolean;
     onDelete?: (id: string) => void;
@@ -320,7 +327,7 @@ function DroppableDay({
     const hourCount = GRID_END - GRID_START;
 
     return (
-        <DayCol $isOver={isOver} $lightBg={lightBg}>
+        <DayCol $isOver={isOver} $lightBg={lightBg} $isEnabled={isEnabled}>
             {!hideHeader && (
                 <DayHeaderArea $lightBg={lightBg}>
                     {isToday ? <TodayPill>{label}</TodayPill> : <DayLabel>{label}</DayLabel>}
@@ -360,9 +367,7 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, onBlockDelet
     }, [scrollToHour]);
 
     const allWeekDays = getWeekDays();
-    const weekDays = enabledDays
-        ? allWeekDays.filter((d) => enabledDays.includes(d.date))
-        : allWeekDays;
+    const weekDays = allWeekDays;
     const hours = Array.from({ length: GRID_END - GRID_START }, (_, i) => GRID_START + i);
 
     const mouseSensor = useSensor(MouseSensor, {
@@ -445,6 +450,7 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, onBlockDelet
                             date={day.date}
                             label={day.label}
                             isToday={day.isToday}
+                            isEnabled={enabledDays ? enabledDays.includes(day.date) : false}
                             blocks={blocks.filter((b) => b.date === day.date)}
                             lightBg={lightBg}
                             onDelete={handleDelete}

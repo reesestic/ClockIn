@@ -9,15 +9,17 @@ import { getBusyTimes } from "../../api/busyTimesApi";
 import type { BusyTimeRecord } from "../../api/busyTimesApi";
 import { syncGoogleCalendar, getGoogleStatus } from "../../api/googleApi";
 import DraggableWeekGrid from "../scheduleComponents/DraggableWeekGrid";
+import { TIME_COL_WIDTH } from "../../utils/weekGridUtils";
+import { StickyNoteThemes } from "../../types/StickyNoteThemes";
 
 const TASK_COLORS = [
     { bg: "#FFF59A", text: "#1a1a1a" },
-    { bg: "#F6C98A", text: "#1a1a1a" },
+    { bg: "#4B94DB", text: "#1a1a1a" },
     { bg: "#FFAFB1", text: "#1a1a1a" },
-    { bg: "#FFC7E8", text: "#1a1a1a" },
     { bg: "#C0E8AA", text: "#1a1a1a" },
-    { bg: "#AFDBFF", text: "#1a1a1a" },
     { bg: "#C5AFFF", text: "#1a1a1a" },
+    { bg: "#F6C98A", text: "#1a1a1a" },
+    { bg: "#FFC7E8", text: "#1a1a1a" },
 ];
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -29,8 +31,7 @@ function getWeekDays() {
         d.setDate(today.getDate() + i);
         const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         const label = d.toLocaleDateString("en-US", { weekday: "short" });
-        const dayNum = d.getDate();
-        return { date, label, dayNum };
+        return { date, label };
     });
 }
 
@@ -83,337 +84,468 @@ type Props = {
     userId: string;
 };
 
-/* ── Overlay / Modal shell ── */
+// ── Overlay / Modal shell ──────────────────────────────────────────────────────
+
 const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 `;
 
 const Modal = styled.div`
-  display: flex;
-  width: min(1100px, 94vw);
-  height: min(780px, 90vh);
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    display: flex;
+    width: min(1200px, 94vw);
+    height: min(920px, 95vh);
+    border-radius: 9px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+    background: #ffffff;
 `;
 
-/* ── Left panel ── */
+// ── Left panel ─────────────────────────────────────────────────────────────────
+
 const LeftPanel = styled.div`
-  width: 300px;
-  flex-shrink: 0;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    width: 420px;
+    flex-shrink: 0;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid #f0f0f0;
 `;
 
-const LeftScroll = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px 20px 12px;
+const LeftHeader = styled.div`
+    padding: 24px 22px 0;
+    flex-shrink: 0;
+`;
+
+const HeaderRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
 `;
 
 const PanelTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 700;
-  font-style: italic;
-  margin: 0 0 14px 0;
-  color: #1a1a1a;
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0;
+    color: #1a1a1a;
+`;
+
+const AddTaskBtn = styled.button`
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #777;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    &:hover { color: #444; }
+`;
+
+const AddTaskPlus = styled.div`
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #4B94DB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    color: #ffffff;
+    flex-shrink: 0;
+`;
+
+// Task picker dropdown (stays open until explicitly closed)
+const PickerDropdown = styled.div`
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+`;
+
+const PickerHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid #f0f0f0;
+`;
+
+const PickerTitle = styled.span`
+    font-size: 11px;
+    font-weight: 700;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const PickerCloseBtn = styled.button`
+    background: none;
+    border: none;
+    color: #bbb;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    &:hover { color: #555; }
+`;
+
+const PickerList = styled.div`
+    max-height: 180px;
+    overflow-y: auto;
+`;
+
+const PickerItem = styled.button`
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #333;
+    font-family: inherit;
+    &:hover { background: #f7f7f7; }
+`;
+
+const PickerEmpty = styled.div`
+    padding: 12px;
+    font-size: 13px;
+    color: #bbb;
+    text-align: center;
+`;
+
+const LeftScroll = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 22px 12px;
+`;
+
+// Task card row: X sits OUTSIDE the colored card, to its left
+const TaskRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
 `;
 
 const TaskCard = styled.div<{ $bg: string }>`
-  border-radius: 10px;
-  margin-bottom: 8px;
-  background: ${({ $bg }) => $bg};
-  padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-`;
-
-const TaskCardInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const TaskCardTitle = styled.div`
-  font-size: 13px;
-  font-weight: 700;
-  color: #1a1a1a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const TaskCardDate = styled.div`
-  font-size: 11px;
-  color: #555;
-  margin-top: 3px;
+    flex: 1;
+    min-width: 0;
+    border-radius: 12px;
+    background: ${({ $bg }) => $bg};
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 `;
 
 const RemoveBtn = styled.button`
-  flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.12);
-  border: none;
-  color: #333;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  &:hover { background: rgba(0, 0, 0, 0.25); }
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.13);
+    border: none;
+    color: #444;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    &:hover { background: rgba(0, 0, 0, 0.25); }
 `;
 
-const AddTaskLink = styled.button`
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  padding: 4px 0;
-  margin-bottom: 4px;
-  &:hover { color: #333; }
+const TaskCardTitle = styled.div`
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
-const TaskPickerDropdown = styled.div`
-  background: #f9f9f9;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  margin-bottom: 8px;
-  max-height: 160px;
-  overflow-y: auto;
-`;
-
-const TaskPickerItem = styled.button`
-  width: 100%;
-  background: none;
-  border: none;
-  text-align: left;
-  padding: 8px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  color: #333;
-  &:hover { background: #f0f0f0; }
-  &:first-child { border-radius: 10px 10px 0 0; }
-  &:last-child { border-radius: 0 0 10px 10px; }
+const TaskCardDue = styled.div`
+    font-size: 12px;
+    color: #777;
+    flex-shrink: 0;
 `;
 
 const SectionDivider = styled.div`
-  height: 1px;
-  background: #eee;
-  margin: 16px 0 14px;
+    height: 1px;
+    background: #f0f0f0;
+    margin: 16px 0 14px;
+`;
+
+const FilterSectionTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin: 0 0 16px 0;
 `;
 
 const FilterRow = styled.div`
-  margin-bottom: 12px;
+    margin-bottom: 16px;
 `;
 
 const FilterLabel = styled.div`
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
 `;
 
-const TogglePair = styled.div`
-  display: flex;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e0e0e0;
+const PillGroup = styled.div`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 `;
 
-const ToggleBtn = styled.button<{ $active: boolean }>`
-  flex: 1;
-  padding: 7px 6px;
-  border: none;
-  background: ${({ $active }) => ($active ? "#1a1a1a" : "#fafafa")};
-  color: ${({ $active }) => ($active ? "white" : "#555")};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s;
-  &:not(:last-child) { border-right: 1px solid #e0e0e0; }
+const FilterPill = styled.button<{ $active: boolean }>`
+    padding: 3px 12px;
+    border-radius: 20px;
+    border: 1.5px solid ${({ $active }) => ($active ? "#1a1a1a" : "transparent")};
+    background: ${({ $active }) => ($active ? "#e8e8e8" : "#eeeeee")};
+    color: ${({ $active }) => ($active ? "#1a1a1a" : "#555")};
+    font-size: 13px;
+    font-weight: ${({ $active }) => ($active ? "700" : "500")};
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+    &:hover {
+        background: #e0e0e0;
+        color: #333;
+    }
 `;
 
 const LeftFooter = styled.div`
-  padding: 14px 20px;
-  border-top: 1px solid #eee;
+    padding: 14px 22px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: center;
 `;
 
 const CreateBtn = styled.button<{ $loading: boolean }>`
-  width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  background: ${({ $loading }) => ($loading ? "#ccc" : "#f5d94e")};
-  color: ${({ $loading }) => ($loading ? "#888" : "#1a1a1a")};
-  font-size: 14px;
-  font-weight: 800;
-  cursor: ${({ $loading }) => ($loading ? "not-allowed" : "pointer")};
-  transition: background 0.15s;
-  &:hover:not(:disabled) { background: #e8c84a; }
+    width: auto;
+    min-width: 160px;
+    padding: 11px 44px;
+    border-radius: 50px;
+    border: none;
+    background: ${({ $loading }) => ($loading ? "#e8e8e8" : "#FFF59A")};
+    color: ${({ $loading }) => ($loading ? "#aaa" : "#1a2035")};
+    font-size: 15px;
+    font-weight: 700;
+    cursor: ${({ $loading }) => ($loading ? "not-allowed" : "pointer")};
+    font-family: inherit;
+    transition: background 0.15s;
+    &:hover:not(:disabled) { background: #F6C98A; }
 `;
 
-/* ── Right panel ── */
+// ── Right panel ────────────────────────────────────────────────────────────────
+
 const RightPanel = styled.div`
-  flex: 1;
-  background: #d6e8f5;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 24px 20px 16px;
-  min-width: 0;
+    flex: 1;
+    background: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px 18px 12px;
+    min-width: 0;
 `;
 
 const RightTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
-  font-style: italic;
-  margin: 0 0 4px 0;
-  color: #1a1a1a;
-  flex-shrink: 0;
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: #1a1a1a;
+    text-align: center;
+    flex-shrink: 0;
 `;
 
 const RightSubtitle = styled.p`
-  font-size: 13px;
-  font-weight: 400;
-  font-style: italic;
-  color: #4a6580;
-  margin: 0 0 14px 0;
-  flex-shrink: 0;
+    font-size: 12px;
+    color: #999;
+    margin: 0 0 8px 0;
+    text-align: center;
+    flex-shrink: 0;
 `;
 
-const DayPillRow = styled.div`
-  display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
+// ── Aligned day pill row (sits above grid columns) ────────────────────────────
+
+const AlignedPillHeader = styled.div`
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+    overflow: hidden;
+`;
+
+const TimeColSpacer = styled.div`
+    width: ${TIME_COL_WIDTH}px;
+    flex-shrink: 0;
+`;
+
+const PillsWrapper = styled.div`
+    flex: 1;
+    display: flex;
+    min-width: 0;
+`;
+
+const DayPillCell = styled.div`
+    flex: 1;
+    min-width: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 `;
 
 const DayPill = styled.button<{ $selected: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 20px;
-  border: 2px solid ${({ $selected }) => ($selected ? "#3a7bd5" : "#b0c8e0")};
-  background: ${({ $selected }) => ($selected ? "#3a7bd5" : "transparent")};
-  color: ${({ $selected }) => ($selected ? "white" : "#4a6580")};
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.12s;
-  line-height: 1.3;
-  &:hover {
-    background: ${({ $selected }) => ($selected ? "#2e6abf" : "rgba(58,123,213,0.1)")};
-  }
-`;
-
-const DayPillNum = styled.span`
-  font-size: 13px;
-  font-weight: 800;
+    padding: 2px 10px;
+    border-radius: 20px;
+    border: 1.5px solid ${({ $selected }) => ($selected ? "#4B94DB" : "#d8d8d8")};
+    background: ${({ $selected }) => ($selected ? "#4B94DB" : "#ffffff")};
+    color: ${({ $selected }) => ($selected ? "#ffffff" : "#1a1a1a")};
+    font-size: 12px;
+    font-weight: 300;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+    white-space: nowrap;
+    &:hover {
+        background: ${({ $selected }) => ($selected ? "#2e6abf" : "#f5f5f5")};
+        border-color: ${({ $selected }) => ($selected ? "#2e6abf" : "#4B94DB")};
+    }
 `;
 
 const GridArea = styled.div`
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
 `;
 
 const EmptyState = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #7a96b0;
-  font-size: 14px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    font-size: 14px;
+    text-align: center;
 `;
 
 const ErrorText = styled.div`
-  color: #c0392b;
-  background: rgba(192,57,43,0.08);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  margin-bottom: 10px;
-  flex-shrink: 0;
+    color: #c0392b;
+    background: rgba(192, 57, 43, 0.07);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 `;
 
 const CalendarLegend = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #4a6580;
-  margin-bottom: 10px;
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 `;
 
 const LegendDot = styled.div`
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: rgba(58,123,213,0.15);
-  border: 1.5px dashed #3a7bd5;
-  flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(58, 123, 213, 0.12);
+    border: 1.5px dashed #4B94DB;
+    flex-shrink: 0;
 `;
 
 const ResyncBtn = styled.button<{ $syncing: boolean }>`
-  margin-left: auto;
-  flex-shrink: 0;
-  background: none;
-  border: 1px solid #b0c8e0;
-  border-radius: 8px;
-  color: ${({ $syncing }) => ($syncing ? "#9aabb8" : "#3a7bd5")};
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  cursor: ${({ $syncing }) => ($syncing ? "not-allowed" : "pointer")};
-  transition: all 0.12s;
-  &:hover:not(:disabled) {
-    background: rgba(58,123,213,0.08);
-    border-color: #3a7bd5;
-  }
+    margin-left: auto;
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid #d0d8e4;
+    border-radius: 8px;
+    color: ${({ $syncing }) => ($syncing ? "#aaa" : "#4B94DB")};
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    cursor: ${({ $syncing }) => ($syncing ? "not-allowed" : "pointer")};
+    font-family: inherit;
+    transition: all 0.12s;
+    &:hover:not(:disabled) {
+        background: rgba(58, 123, 213, 0.07);
+        border-color: #4B94DB;
+    }
 `;
 
 const RightFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 12px;
-  flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 12px;
+    flex-shrink: 0;
 `;
 
 const DoneBtn = styled.button`
-  padding: 10px 28px;
-  border-radius: 12px;
-  border: none;
-  background: #3a7bd5;
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background 0.15s;
-  &:hover { background: #2e6abf; }
+    padding: 4px 14px;
+    border-radius: 50px;
+    border: 2px solid rgba(58, 123, 213, 0.4);
+    background: #ffffff;
+    color: #1a2035;
+    font-size: 20px;
+    font-weight: 100;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &:hover {
+        border-color: #4B94DB;
+        background: rgba(58,123,213,0.05);
+    }
+    &:hover .done-check-circle {
+        background: #4B94DB;
+    }
 `;
 
-/* ── Filter toggle helper ── */
-function ToggleFilter({
+const DoneCheckCircle = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #AFDBFF;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    flex-shrink: 0;
+    transition: all 0.15s;
+`;
+
+// filter pill helper 
+
+function FilterToggle({
     label,
     optA,
     optB,
@@ -429,26 +561,27 @@ function ToggleFilter({
     return (
         <FilterRow>
             <FilterLabel>{label}</FilterLabel>
-            <TogglePair>
-                <ToggleBtn
+            <PillGroup>
+                <FilterPill
                     $active={value === optA.value}
                     onClick={() => onChange(value === optA.value ? "none" : optA.value)}
                 >
                     {optA.label}
-                </ToggleBtn>
-                <ToggleBtn
+                </FilterPill>
+                <FilterPill
                     $active={value === optB.value}
                     onClick={() => onChange(value === optB.value ? "none" : optB.value)}
                 >
                     {optB.label}
-                </ToggleBtn>
-            </TogglePair>
+                </FilterPill>
+            </PillGroup>
         </FilterRow>
     );
 }
 
+// Main Component 
+
 export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, userId }: Props) {
-    // Memoized so loadCalendarBlocks gets a stable reference to weekDays
     const weekDays = useMemo(() => getWeekDays(), []);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -480,15 +613,12 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
             localStorage.getItem(`clockin_ignored_cal:${userId}`) ?? "[]"
         );
         return getBusyTimes().then((all) => {
-            console.log("[CalendarSync] All busy times from API:", all);
             const googleEvents = all.filter((bt) => bt.source === "google");
-            console.log("[CalendarSync] Google events:", googleEvents);
             if (googleEvents.length === 0) return;
             const calBlocks = busyTimesToBlocks(googleEvents, allowedDates).map((b) => {
                 const btId = calBlockToBusyTimeId(b.id);
                 return btId && savedIgnored.includes(btId) ? { ...b, isIgnored: true } : b;
             });
-            console.log("[CalendarSync] Resulting calendar blocks:", calBlocks);
             setBlocks((prev) => {
                 const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
                 return [...calBlocks, ...taskBlocks];
@@ -497,10 +627,9 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         });
     }, [weekDays, userId]);
 
-    // Load Google Calendar events onto the grid on mount
     useEffect(() => {
         getGoogleStatus()
-            .then((s) => setIsGoogleConnected(s.connected))
+            .then((s: { connected: boolean }) => setIsGoogleConnected(s.connected))
             .catch(() => {});
         loadCalendarBlocks().catch((e: unknown) => {
             console.error("[CalendarSync] Failed to load busy times:", e);
@@ -520,26 +649,24 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         }
     }
 
-    useEffect(() => {
-        setBlocks((prev) => {
-            const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
-            const calBlocks = prev.filter(
-                (b) => b.isCalendarEvent && allowedDays.includes(b.date)
-            );
-            return [...calBlocks, ...taskBlocks];
-        });
-    }, [allowedDays]);
+    // Intentionally not filtering blocks by allowedDays — deselecting a day
+    // only affects scheduling (column dims) but all events stay visible.
 
     function getTaskColor(taskId: string): { bg: string; text: string } {
+        const task = allTasks.find((t) => t.id === taskId);
+        if (task?.color && StickyNoteThemes[task.color]) {
+            return { bg: StickyNoteThemes[task.color].background, text: "#1a1a1a" };
+        }
+        // fallback: index-based color
         const idx = selectedTaskIds.indexOf(taskId);
         return TASK_COLORS[idx % TASK_COLORS.length] ?? TASK_COLORS[0];
     }
 
+    // Add task to the TOP of the list; picker stays open
     function addTask(taskId: string) {
         if (!selectedTaskIds.includes(taskId)) {
-            setSelectedTaskIds((prev) => [...prev, taskId]);
+            setSelectedTaskIds((prev) => [taskId, ...prev]);
         }
-        setShowTaskPicker(false);
     }
 
     function removeTask(taskId: string) {
@@ -582,9 +709,8 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         const busyTimeId = calBlockToBusyTimeId(blockId);
         if (busyTimeId) {
             setBlocks((prev) => {
-                const currentlyIgnored = prev.find(
-                    (b) => b.id.startsWith(`cal:${busyTimeId}:`)
-                )?.isIgnored ?? false;
+                const currentlyIgnored =
+                    prev.find((b) => b.id.startsWith(`cal:${busyTimeId}:`))?.isIgnored ?? false;
                 const updated = prev.map((b) =>
                     b.isCalendarEvent && b.id.startsWith(`cal:${busyTimeId}:`)
                         ? { ...b, isIgnored: !currentlyIgnored }
@@ -649,8 +775,9 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         if (movedBlock) {
             const old = prev.find((b) => b.id === movedBlock.id)!;
             if (old.task_id) {
-                rejectBlock(old.task_id, `${old.date}T${old.start}:00`, userId)
-                    .catch((err: unknown) => console.error(err));
+                rejectBlock(old.task_id, `${old.date}T${old.start}:00`, userId).catch(
+                    (err: unknown) => console.error(err)
+                );
             }
         }
         prevBlocksRef.current = newBlocks;
@@ -658,11 +785,15 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     }
 
     async function handleConfirm() {
-        if (!schedule) return;
         const taskBlocks = blocks.filter((b) => !b.isCalendarEvent);
-        if (taskBlocks.length === 0) return;
+        if (!schedule || taskBlocks.length === 0) {
+            onClose();
+            return;
+        }
         const confirmed = { ...schedule, blocks };
-        await confirmSchedule(taskBlocks, userId).catch((err: unknown) => console.error(err));
+        await confirmSchedule(taskBlocks, userId).catch((err: unknown) =>
+            console.error(err)
+        );
         await Promise.all(
             taskBlocks
                 .filter((b) => b.task_id)
@@ -679,9 +810,15 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         onClose();
     }
 
+    const isSchedulable = (t: Task) =>
+        !!t.title?.trim() &&
+        !!t.due_date &&
+        !!t.task_duration && t.task_duration > 0;
+
     const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!));
-    const unselectedTasks = allTasks.filter((t) => !selectedTaskIds.includes(t.id!));
-    const hasTaskBlocks = blocks.some((b) => !b.isCalendarEvent);
+    const unselectedTasks = allTasks.filter(
+        (t) => !selectedTaskIds.includes(t.id!) && isSchedulable(t)
+    );
     const showGrid = blocks.length > 0;
 
     return (
@@ -689,58 +826,78 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
             <Modal onClick={(e) => e.stopPropagation()}>
                 {/* ── Left panel ── */}
                 <LeftPanel>
-                    <LeftScroll>
-                        <PanelTitle>Selected Tasks</PanelTitle>
+                    <LeftHeader>
+                        <HeaderRow>
+                            <PanelTitle>Selected Tasks</PanelTitle>
+                            <AddTaskBtn onClick={() => setShowTaskPicker((v) => !v)}>
+                                Add an existing task
+                                <AddTaskPlus>+</AddTaskPlus>
+                            </AddTaskBtn>
+                        </HeaderRow>
 
+                        {/* Picker stays open until user closes it */}
+                        {showTaskPicker && (
+                            <PickerDropdown>
+                                <PickerHeader>
+                                    <PickerTitle>Your tasks</PickerTitle>
+                                    <PickerCloseBtn onClick={() => setShowTaskPicker(false)}>
+                                        ✕
+                                    </PickerCloseBtn>
+                                </PickerHeader>
+                                <PickerList>
+                                    {unselectedTasks.length === 0 ? (
+                                        <PickerEmpty>All tasks added!</PickerEmpty>
+                                    ) : (
+                                        unselectedTasks.map((task) => (
+                                            <PickerItem
+                                                key={task.id}
+                                                onClick={() => addTask(task.id!)}
+                                            >
+                                                {task.title}
+                                            </PickerItem>
+                                        ))
+                                    )}
+                                </PickerList>
+                            </PickerDropdown>
+                        )}
+                    </LeftHeader>
+
+                    <LeftScroll>
                         {selectedTasks.map((task) => {
                             const color = getTaskColor(task.id!);
                             const due = formatDueDate(task.due_date);
                             return (
-                                <TaskCard key={task.id} $bg={color.bg}>
-                                    <TaskCardInfo>
-                                        <TaskCardTitle>{task.title}</TaskCardTitle>
-                                        {due && <TaskCardDate>Due {due}</TaskCardDate>}
-                                    </TaskCardInfo>
+                                <TaskRow key={task.id}>
                                     <RemoveBtn onClick={() => removeTask(task.id!)}>✕</RemoveBtn>
-                                </TaskCard>
+                                    <TaskCard $bg={color.bg}>
+                                        <TaskCardTitle>{task.title}</TaskCardTitle>
+                                        <TaskCardDue>Due: {due ?? "—"}</TaskCardDue>
+                                    </TaskCard>
+                                </TaskRow>
                             );
                         })}
 
-                        {showTaskPicker && unselectedTasks.length > 0 && (
-                            <TaskPickerDropdown>
-                                {unselectedTasks.map((task) => (
-                                    <TaskPickerItem key={task.id} onClick={() => addTask(task.id!)}>
-                                        {task.title}
-                                    </TaskPickerItem>
-                                ))}
-                            </TaskPickerDropdown>
-                        )}
-
-                        <AddTaskLink onClick={() => setShowTaskPicker((v) => !v)}>
-                            {showTaskPicker ? "Cancel" : "+ Add an existing task"}
-                        </AddTaskLink>
-
                         <SectionDivider />
-                        <PanelTitle>Filters</PanelTitle>
+                        <FilterSectionTitle>Filters</FilterSectionTitle>
 
-                        <ToggleFilter
-                            label="Length"
-                            optA={{ label: "Short", value: "asc" }}
-                            optB={{ label: "Long", value: "desc" }}
+                        <FilterToggle
+                            label="Length:"
+                            optA={{ label: "Longest first", value: "desc" }}
+                            optB={{ label: "Shortest first", value: "asc" }}
                             value={filters.time}
                             onChange={(v) => update("time", v)}
                         />
-                        <ToggleFilter
-                            label="Difficulty"
-                            optA={{ label: "Easy", value: "asc" }}
-                            optB={{ label: "Hard", value: "desc" }}
+                        <FilterToggle
+                            label="Difficulty:"
+                            optA={{ label: "Hardest first", value: "desc" }}
+                            optB={{ label: "Easiest first", value: "asc" }}
                             value={filters.difficulty ?? "none"}
                             onChange={(v) => update("difficulty", v)}
                         />
-                        <ToggleFilter
-                            label="Importance"
-                            optA={{ label: "Low", value: "asc" }}
-                            optB={{ label: "High", value: "desc" }}
+                        <FilterToggle
+                            label="Importance:"
+                            optA={{ label: "Most important first", value: "desc" }}
+                            optB={{ label: "Least important first", value: "asc" }}
                             value={filters.importance}
                             onChange={(v) => update("importance", v)}
                         />
@@ -756,36 +913,38 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 {/* ── Right panel ── */}
                 <RightPanel>
                     <RightTitle>Generated Schedule</RightTitle>
-                    <RightSubtitle>Select days · click a calendar event to exclude it from scheduling</RightSubtitle>
-
-                    <DayPillRow>
-                        {weekDays.map((d) => (
-                            <DayPill
-                                key={d.date}
-                                $selected={allowedDays.includes(d.date)}
-                                onClick={() => toggleDay(d.date)}
-                            >
-                                <span>{d.label}</span>
-                                <DayPillNum>{d.dayNum}</DayPillNum>
-                            </DayPill>
-                        ))}
-                    </DayPillRow>
+                    <RightSubtitle>
+                        Select days for your new schedule
+                    </RightSubtitle>
 
                     {(hasCalendarEvents || isGoogleConnected) && (
                         <CalendarLegend>
                             <LegendDot />
                             Google Calendar events — click to exclude from scheduling
-                            <ResyncBtn
-                                $syncing={syncing}
-                                disabled={syncing}
-                                onClick={handleResync}
-                            >
+                            <ResyncBtn $syncing={syncing} disabled={syncing} onClick={handleResync}>
                                 {syncing ? "Syncing…" : "↺ Resync"}
                             </ResyncBtn>
                         </CalendarLegend>
                     )}
 
                     {error && <ErrorText>{error}</ErrorText>}
+
+                    {/* Aligned pill row — each pill sits directly above its calendar column */}
+                    <AlignedPillHeader>
+                        <TimeColSpacer />
+                        <PillsWrapper>
+                            {weekDays.map((d) => (
+                                <DayPillCell key={d.date}>
+                                    <DayPill
+                                        $selected={allowedDays.includes(d.date)}
+                                        onClick={() => toggleDay(d.date)}
+                                    >
+                                        {d.label}
+                                    </DayPill>
+                                </DayPillCell>
+                            ))}
+                        </PillsWrapper>
+                    </AlignedPillHeader>
 
                     <GridArea>
                         {loading ? (
@@ -797,6 +956,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                                 onBlockDelete={handleBlockDelete}
                                 lightBg
                                 enabledDays={allowedDays}
+                                hideHeaders
                                 scrollToHour={7}
                             />
                         ) : (
@@ -806,11 +966,11 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                         )}
                     </GridArea>
 
-                    {hasTaskBlocks && (
-                        <RightFooter>
-                            <DoneBtn onClick={handleConfirm}>Done ✓</DoneBtn>
-                        </RightFooter>
-                    )}
+                    <RightFooter>
+                        <DoneBtn onClick={handleConfirm}>
+                            Done <DoneCheckCircle className="done-check-circle">✓</DoneCheckCircle>
+                        </DoneBtn>
+                    </RightFooter>
                 </RightPanel>
             </Modal>
         </Overlay>

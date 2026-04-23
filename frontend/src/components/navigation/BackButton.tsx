@@ -4,14 +4,15 @@ import { BackIcon } from "../icons/BackIcon";
 import React from "react";
 
 type BackButtonProps = {
-    to: string;
+    to?: string;
     label?: string;
     className?: string;
     style?: React.CSSProperties;
+    onClick?: () => void;
 };
 
-const BackLink = styled(Link)`
-    position: fixed;            // 🔥 KEY CHANGE
+const sharedStyles = `
+    position: fixed;
     top: 1.5rem;
     left: 1.5rem;
 
@@ -20,9 +21,13 @@ const BackLink = styled(Link)`
     gap: 0.4rem;
 
     text-decoration: none;
-    color: white;               // default color
+    color: white;
 
-    z-index: 1000;              // always on top
+    z-index: 1000;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
 
     &:hover svg {
         transform: scale(1.08);
@@ -33,6 +38,9 @@ const BackLink = styled(Link)`
         transform: translateX(0);
     }
 `;
+
+const BackLink = styled(Link)`${sharedStyles}`;
+const BackBtn = styled.button`${sharedStyles}`;
 
 const StyledBackIcon = styled(BackIcon)`
     width: 2.2rem;
@@ -50,7 +58,15 @@ const HoverText = styled.span`
     pointer-events: none;
 `;
 
-export default function BackButton({ to, label = "Home", className, style}: BackButtonProps) {
+export default function BackButton({ to, label = "Home", className, style, onClick }: BackButtonProps) {
+    if (onClick || !to) {
+        return (
+            <BackBtn className={className} style={style} onClick={onClick}>
+                <StyledBackIcon />
+                <HoverText>{label}</HoverText>
+            </BackBtn>
+        );
+    }
     return (
         <BackLink to={to} className={className} style={style}>
             <StyledBackIcon />

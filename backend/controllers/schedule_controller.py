@@ -1,10 +1,17 @@
 from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
+from typing import List
 
+from pydantic import BaseModel
 from models.schedule_model import SlotScoreRequest, SlotScoreResponse, BehaviorEventRequest, ScheduleRequest, ScheduleResponse, AutoScheduleRequest, AutoScheduleResponse, GenerateScheduleRequest
 from services.schedule_service import ScheduleService
 from repositories.calendar_repository import CalendarRepository
+
+
+class InitWeightsRequest(BaseModel):
+    priority_style: str  # "important_first" | "urgent_first" | "balanced"
+    time_preferences: List[str]  # ["morning", "afternoon", "evening", "night"]
 
 router = APIRouter(prefix="/api/schedule", tags=["schedule"])
 
@@ -120,3 +127,31 @@ def confirm_schedule(body: list[ScheduleRequest], user_id: UUID):
 @router.get("/user/{user_id}")
 def get_schedule(user_id: UUID):
     return schedule_service.get_schedule(user_id)
+
+
+@router.post("/init-weights")
+def init_weights_from_survey(body: InitWeightsRequest, user_id: UUID):
+    """
+    Set initial perceptron weights from onboarding survey answers.
+    Called once after a new user completes the onboarding survey.
+    """
+    if body.priority_style == "important_first":
+        priority, urgency = 0.55, 0.25
+    elif body.priority_style == "urgent_first":
+        priority, urgency = 0.25, 0.55
+    else:
+        priority, urgency = 0.40, 0.40
+
+    # Strong time preference → give duration_fit more influence
+    has_strong_time_pref = 0 < len(body.time_preferences) <= 2
+    duration_fit = 0.30 if has_strong_time_pref else 0.20
+
+    total = priority + urgency + duration_fit
+    weights = {
+        "priority": round(priority / total, 4),
+        "urgency": round(urgency / total, 4),
+        "duration_fit": round(duration_fit / total, 4),
+    }
+
+    schedule_service.repo.save_perceptron_weights(user_id, weights)
+    return {"message": "weights initialized", "weights": weights}
