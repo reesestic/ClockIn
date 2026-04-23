@@ -12,11 +12,13 @@ import Settings from "./pages/Settings.tsx";
 import Availability from "./pages/Availability.tsx";
 import BusyTimes from "./pages/BusyTimes.tsx";
 import GardenScene from "./components/gardenComponents/GardenScene.tsx";
+import FloatingTaskButton from "./components/navigation/FloatingTaskButton";
 
 
 export default function Root() {
     return (
         <>
+            <FloatingTaskButton />
             <Routes>
 
                 <Route
