@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../constants/Routes";
 

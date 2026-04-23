@@ -819,7 +819,6 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     const unselectedTasks = allTasks.filter(
         (t) => !selectedTaskIds.includes(t.id!) && isSchedulable(t)
     );
-    const hasTaskBlocks = blocks.some((b) => !b.isCalendarEvent);
     const showGrid = blocks.length > 0;
 
     return (
