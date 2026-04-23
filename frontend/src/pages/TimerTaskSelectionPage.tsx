@@ -11,8 +11,7 @@ import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 import TaskList from "../components/taskComponents/TaskList";
 import FreeModeIcon from "../components/icons/FreeModeIcon.tsx";
 import TaskModeIcon from "../components/icons/TaskModeIcon.tsx";
-import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
-import {TIMER_TUTORIAL_STEPS} from "../constants/TimerTutorialSteps.ts";
+
 
 // ── Background elements — must live OUTSIDE any transformed/filtered parent
 //    so that position:fixed children aren't trapped in a sub-stacking context ──
