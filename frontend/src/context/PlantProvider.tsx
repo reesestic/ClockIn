@@ -1,9 +1,7 @@
-import React from "react";
-import { createContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { fetchCompletedPlants } from "../api/plantApi";
-import type { UserPlants, PlantContextType } from "../types/plantContextTypes.ts";
-
-export const PlantContext = createContext<PlantContextType | null>(null);
+import { PlantContext } from "./PlantContext";
+import type { UserPlants } from "../types/plantContextTypes";
 
 export function PlantProvider({ children }: { children: React.ReactNode }) {
     const [plants, setPlants] = useState<UserPlants | null>(null);
@@ -11,7 +9,6 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
     async function refetchPlants() {
         try {
             const data = await fetchCompletedPlants();
-            console.log("API data:", data);
 
             const map: UserPlants = {};
             data.forEach((p: { variety: string }) => {
@@ -26,9 +23,7 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
-        (async () => {
-            await refetchPlants();
-        })();
+        refetchPlants().catch(console.error);
     }, []);
 
     return (
