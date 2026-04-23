@@ -1,12 +1,7 @@
+import React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { fetchCompletedPlants } from "../api/plantApi";
-import React from "react";
-
-type UserPlants = Record<string, boolean>;
-type PlantContextType = {
-    plants: UserPlants | null;
-    refetchPlants: () => Promise<void>;
-};
+import type { UserPlants, PlantContextType } from "../types/plantContextTypes.ts";
 
 const PlantContext = createContext<PlantContextType | null>(null);
 
@@ -31,7 +26,9 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
-        refetchPlants();
+        (async () => {
+            await refetchPlants();
+        })();
     }, []);
 
     return (

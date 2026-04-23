@@ -248,7 +248,7 @@ export default function GardenScene() {
                 style={{
                     width: "auto",
                     height: "100%",
-                    transition: drag.current.active ? "none" : "none",
+                    transition: "none",
                     display: "block",
                 }}
                 viewBox={`${offsetX} 0 ${SVG_W} ${SVG_H}`}
