@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime, timedelta
 import os
+from urllib.parse import quote
 from dotenv import load_dotenv
 from urllib.parse import quote
 
@@ -14,7 +15,7 @@ class GoogleRepository:
     def __init__(self, supabase):
         self.supabase = supabase
 
-    def get_auth_url(self, user_id: str):
+    def get_auth_url(self, user_id: str) -> dict[str, str]:
         return {
             "url": (
                 "https://accounts.google.com/o/oauth2/v2/auth"
@@ -28,7 +29,7 @@ class GoogleRepository:
             )
         }
 
-    def exchange_code_for_tokens(self, code: str):
+    def exchange_code_for_tokens(self, code: str) -> dict[str, object]:
         res = requests.post(
             "https://oauth2.googleapis.com/token",
             data={
@@ -62,13 +63,13 @@ class GoogleRepository:
         }).eq("user_id", user_id).execute()
         return new_tokens["access_token"]
 
-    def _get_valid_access_token(self, tokens: dict) -> str:
+    def _get_valid_access_token(self, tokens: dict[str, object]) -> str:
         expires_at = datetime.fromisoformat(tokens["expires_at"]).replace(tzinfo=None)
         if datetime.utcnow() >= expires_at - timedelta(minutes=5):
             return self._refresh_access_token(tokens["user_id"], tokens["refresh_token"])
         return tokens["access_token"]
 
-    def store_tokens(self, user_id: str, tokens: dict):
+    def store_tokens(self, user_id: str, tokens: dict[str, object]) -> None:
         self.supabase.table("GoogleTokens").upsert({
             "user_id": user_id,
             "access_token": tokens["access_token"],
@@ -78,11 +79,11 @@ class GoogleRepository:
             ).isoformat(),
         }).execute()
 
-    def get_tokens(self, user_id: str):
+    def get_tokens(self, user_id: str) -> dict[str, object] | None:
         res = self.supabase.table("GoogleTokens").select("*").eq("user_id", user_id).execute()
         return res.data[0] if res.data else None
 
-    def delete_tokens(self, user_id: str):
+    def delete_tokens(self, user_id: str) -> None:
         self.supabase.table("GoogleTokens").delete().eq("user_id", user_id).execute()
 
     def _fetch_calendar_ids(self, access_token: str) -> list[str]:
@@ -94,7 +95,7 @@ class GoogleRepository:
         res.raise_for_status()
         return [cal["id"] for cal in res.json().get("items", [])]
 
-    def _fetch_events_for_calendar(self, access_token: str, calendar_id: str) -> list:
+    def _fetch_events_for_calendar(self, access_token: str, calendar_id: str) -> list[dict]:
         time_min = datetime.utcnow().isoformat() + "Z"
         time_max = (datetime.utcnow() + timedelta(days=7)).isoformat() + "Z"
         res = requests.get(
@@ -112,7 +113,7 @@ class GoogleRepository:
             return []  # skip calendars we can't read (e.g. holidays, other people's)
         return [e for e in res.json().get("items", []) if e.get("status") != "cancelled"]
 
-    def fetch_events(self, tokens: dict) -> list:
+    def fetch_events(self, tokens: dict[str, object]) -> list[dict]:
         access_token = self._get_valid_access_token(tokens)
         calendar_ids = self._fetch_calendar_ids(access_token)
 

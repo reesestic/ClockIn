@@ -69,8 +69,8 @@ class ScheduleRepository:
             .execute()
         )
         # Deduplicate by task_id — keep only the most recent row per task
-        seen: set = set()
-        unique: list = []
+        seen: set[str] = set()
+        unique: list[dict] = []
         for row in response.data:
             tid = row.get("task_id")
             if tid not in seen:
@@ -122,11 +122,18 @@ class ScheduleRepository:
     def save_perceptron_weights(self, user_id: UUID, weights: dict) -> None:
         # Only persist the 3 base features — promoted feature weights are cached in-memory
         # on ScheduleService._promoted_weights (keyed by user_id).
-        supabase.table("perceptron_weights").upsert({
-            "user_id": str(user_id),
+        import json
+        base = {
             "priority": weights.get("priority", 0.4),
             "urgency": weights.get("urgency", 0.4),
             "duration_fit": weights.get("duration_fit", 0.2),
+        }
+        supabase.table("perceptron_weights").upsert({
+            "user_id": str(user_id),
+            "weights": json.dumps(base),   # legacy not-null JSONB column
+            "priority": base["priority"],
+            "urgency": base["urgency"],
+            "duration_fit": base["duration_fit"],
             "updated_at": datetime.utcnow().isoformat(),
         }, on_conflict="user_id").execute()
 
