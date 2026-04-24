@@ -510,6 +510,7 @@ export function StickyNoteHome() {
     const [hoveredZone, setHoveredZone] = useState<"calendar" | "trash" | null>(null);
     const [sourceNote, setSourceNote] = useState<Note | null>(null);
     const [toast, setToast] = useState<{ count: number } | null>(null);
+    const [isDraggingNote, setIsDraggingNote] = useState(false);
 
     const navigate = useNavigate();
 
@@ -560,6 +561,16 @@ export function StickyNoteHome() {
         };
         window.addEventListener("noteHoverZone", handler);
         return () => window.removeEventListener("noteHoverZone", handler);
+    }, []);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const custom = e as CustomEvent<{ dragging: boolean }>;
+            setIsDraggingNote(custom.detail.dragging);
+        };
+
+        window.addEventListener("noteDragState", handler as EventListener);
+        return () => window.removeEventListener("noteDragState", handler as EventListener);
     }, []);
 
     const notesWithPositions = notes.map((note, i) => ({
@@ -762,10 +773,16 @@ export function StickyNoteHome() {
 
                     <ActionColumn>
                         <div ref={calendarRef} style={{ display: "inline-flex" }}>
-                            <TaskDropZone isHovered={hoveredZone === "calendar"} />
+                            <TaskDropZone
+                                isHovered={hoveredZone === "calendar"}
+                                isActive={isDraggingNote}
+                            />
                         </div>
                         <div ref={trashRef} style={{ display: "inline-flex" }}>
-                            <TrashDropZone isHovered={hoveredZone === "trash"} />
+                            <TrashDropZone
+                                isHovered={hoveredZone === "trash"}
+                                isActive={isDraggingNote}
+                            />
                         </div>
                     </ActionColumn>
                 </NotesAndButtonsLayout>

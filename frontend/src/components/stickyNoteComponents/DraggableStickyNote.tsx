@@ -102,6 +102,9 @@ export default function DraggableStickyNote({
             };
             hasMoved.current = false;
             setIsDragging(true);
+            window.dispatchEvent(
+                new CustomEvent("noteDragState", { detail: { dragging: true } })
+            );
             setIsSnapping(false);
 
             const boardRect = boardRef.current?.getBoundingClientRect();
@@ -124,6 +127,9 @@ export default function DraggableStickyNote({
                 setIsNearZone(false);
                 window.dispatchEvent(
                     new CustomEvent("noteHoverZone", { detail: { zoneId: null } })
+                );
+                window.dispatchEvent(
+                    new CustomEvent("noteDragState", { detail: { dragging: false } })
                 );
                 document.removeEventListener("mousemove", handleMouseMove);
                 document.removeEventListener("mouseup", handleMouseUp);
