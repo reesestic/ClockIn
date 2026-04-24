@@ -78,17 +78,21 @@ const Tooltip = styled.div<{ $visible: boolean }>`
     z-index: 10;
 `;
 
-type Props = { isHovered: boolean };
+type Props = {
+    isHovered: boolean;
+    isActive: boolean;
+};
 
-export default function TrashDropZone({ isHovered }: Props) {
+
+export default function TrashDropZone({ isHovered, isActive }: Props) {
     return (
         <Wrapper>
 
             <Tooltip $visible={isHovered}>
                 Delete Sticky Note
             </Tooltip>
-            <Ring $visible={isHovered} $size={OUTER_SIZE} $duration="fast" />
-            <Ring $visible={isHovered} $size={INNER_SIZE} $duration="slow" />
+            <Ring $visible={isActive || isHovered} $size={OUTER_SIZE} $duration="fast" />
+            <Ring $visible={isActive || isHovered} $size={INNER_SIZE} $duration="slow" />
 
             <IconSlot $visible={!isHovered}>
                 <TrashIcon />
