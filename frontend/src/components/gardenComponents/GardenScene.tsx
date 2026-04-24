@@ -70,6 +70,7 @@ function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
                 scale(${scale})
                 translate(${-vb.w / 2}, ${-vb.h})
             `}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onSelect(slot.svgX, slot.svgY)}
             style={{
                 cursor: "pointer",
@@ -314,7 +315,7 @@ export default function GardenScene() {
                         <rect width="4948" height="1024" fill="white"/>
                     </clipPath>
                     <filter id="outlineFilter" x="-10%" y="-10%" width="120%" height="120%">
-                        <feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expanded"/>
+                        <feMorphology in="SourceAlpha" operator="dilate" radius="8" result="expanded"/>
                         <feFlood floodColor="white" result="color"/>
                         <feComposite in="color" in2="expanded" operator="in" result="outline"/>
                         <feMerge>
