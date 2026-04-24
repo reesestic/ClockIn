@@ -1064,7 +1064,14 @@ export default function TimerScreen() {
         setStatus(timerStatus);
         statusRef.current = timerStatus;
         setSeconds(timerSeconds);
-        if (timerStatus === "idle") setDigits(timerDigits);
+        if (timerStatus === "idle") {
+            if (mode === "task" && currentTask?.task_duration) {
+                const totalSeconds = currentTask.task_duration * 60;
+                setDigits(secondsToDigits(totalSeconds));
+            } else {
+                setDigits(timerDigits);
+            }
+        }
 
         if (resumeAction === "reuse_prompt") {
             setShowReusePrompt(true);
