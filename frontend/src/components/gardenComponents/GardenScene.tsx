@@ -70,7 +70,10 @@ function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
                 scale(${scale})
                 translate(${-vb.w / 2}, ${-vb.h})
             `}
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+            }}
             onClick={() => onSelect(slot.svgX, slot.svgY)}
             style={{
                 cursor: "pointer",
