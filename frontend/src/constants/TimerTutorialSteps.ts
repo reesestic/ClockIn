@@ -19,9 +19,9 @@ export const TIMER_TUTORIAL_STEPS: TutorialStep[] = [
         body: "Here, you can use the timer in Free Mode! You can set a timer and complete your tasks ",
         highlight: "on your time!",
         targetSelector: "[data-tutorial-id='free-timer']",
-        modalPosition: { top: "30%", left: "50%", transform: "translate(-50%, -50%)" },
+        modalPosition: { top: "30%", left: "45%", transform: "translate(-50%, -50%)" },
         beePosition: { top: "18%", left: "38%" },
-        lineCurve: {offsetX: -400}
+        lineCurve: {offsetX: -450}
     },
     {
         id: 'task-timer',
@@ -29,9 +29,9 @@ export const TIMER_TUTORIAL_STEPS: TutorialStep[] = [
         body: "Here, you can use the timer in Task Mode! You can set a timer and complete your tasks either on your own ",
         highlight: "or with our AI powered study suggestions!",
         targetSelector: "[data-tutorial-id='task-timer']",
-        modalPosition: { top: "30%", left: "50%", transform: "translate(-50%, -50%)" },
+        modalPosition: { top: "30%", left: "55%", transform: "translate(-50%, -50%)" },
         beePosition: { top: "18%", right: "37%" },
-        lineCurve: {offsetX: 200}
+        lineCurve: {offsetX: -550, offsetY:50}
     }
 
 ]

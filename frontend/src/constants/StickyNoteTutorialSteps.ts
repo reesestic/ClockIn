@@ -23,7 +23,7 @@ export const STICKY_NOTE_TUTORIAL_STEPS: TutorialStep[] = [
         title: "Delete Notes",
         body: "Drag a sticky note here to delete it. Once deleted, it's gone for good — so be sure before you drop!",
         targetSelector: "[data-tutorial-id='trash-zone']",
-        modalPosition: { top: "30%", left: "35%", transform: "translate(-50%, -50%)" },
+        modalPosition: { top: "45%", left: "35%", transform: "translate(-50%, -50%)" },
         beePosition: { top: "18%", right: "53%" },
     },
 ]
