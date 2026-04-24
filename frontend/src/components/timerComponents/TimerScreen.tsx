@@ -639,7 +639,10 @@ const PlantContainer = styled.div`
     bottom: 45px;
     left: 50%;
     transform: translateX(-50%);
-    height: clamp(160px, 28vw, 280px);
+    
+    height: clamp(140px, 22vw, 220px);
+    max-height: 35%;
+    
     width: auto;
     display: flex;
     align-items: flex-end;
