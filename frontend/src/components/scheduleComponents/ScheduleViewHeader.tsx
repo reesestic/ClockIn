@@ -206,13 +206,15 @@ export default function ScheduleViewHeader({ onGenerate, onEdit, onDoneEditing, 
                 {!isLocked && hasSchedule ? (
                     <DoneButton onClick={() => onDoneEditing?.()}>Done Editing ✓</DoneButton>
                 ) : (
-                    <CreateButton onClick={onGenerate}>
-                        Create Schedule
-                        <BtnIconWrapper>
-                            <CalendarIcon />
-                            <PlusBadge>+</PlusBadge>
-                        </BtnIconWrapper>
-                    </CreateButton>
+                    <div data-tutorial-id="schedule">
+                        <CreateButton onClick={onGenerate}>
+                            Create Schedule
+                            <BtnIconWrapper>
+                                <CalendarIcon />
+                                <PlusBadge>+</PlusBadge>
+                            </BtnIconWrapper>
+                        </CreateButton>
+                    </div>
                 )}
                 {isLocked && (
                     <>

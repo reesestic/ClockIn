@@ -6,18 +6,19 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         title: "Welcome to ClockIn!",
         body: "Let's get familiar with the",
         highlight: "features before you begin.",
+        targetSelector: "[data-tutorial='home-btn']",
         modalPosition: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
         beePosition: { top: "50%", right: "35%" },
     },
     {
         id: "sticky-notes",
         title: "Sticky Notes",
-        body: "These are your sticky notes to jot down",
-        highlight: "a quick thought.",
+        body: "These are your sticky notes to jot down a quick thought. You can brain dump here and even turn them into",
+        highlight: "formal tasks!",
         targetSelector: "[data-tutorial='sticky-notes']",
         modalPosition: { bottom: "28%", left: "10%" },
         beePosition: { bottom: "25%", left: "31%" },
-        lineCurve:{offsetX: 250, offsetY:100},
+        lineCurve:{ offsetY:-200},
         spotlightOffset:{x: -150, y:90},
     },
     {
@@ -39,8 +40,8 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         targetSelector: "[data-tutorial='task-book']",
         modalPosition: { top: "38%", left: "14%" },
         beePosition: { top: "46%", left: "35%" },
-        lineCurve: { offsetX: 100, offsetY: 0 },
-        spotlightOffset: {x: 200, y: -30}
+        lineCurve: { offsetX: -350, offsetY: 0 },
+        spotlightOffset: {x: -250, y: -30}
     },
     {
         id: "schedule",
@@ -50,7 +51,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         targetSelector: "[data-tutorial='planner']",
         modalPosition: { top: "28%", left: "44%" },
         beePosition: { top: "23%", left: "63%" },
-        lineCurve: { offsetX: 100, offsetY: -30 },
+        lineCurve: { offsetX: 300 , offsetY: -200 },
         spotlightOffset: {x: 40, y: -240}
     },
     {

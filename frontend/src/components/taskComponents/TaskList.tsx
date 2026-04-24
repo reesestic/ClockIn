@@ -30,6 +30,7 @@ const StickyBar = styled.div`
 `;
 
 const SearchInput = styled.input`
+    width: 100%;
     flex: 1;
     padding: 4px 10px;
     border: 1px solid #e0e0e0;
@@ -134,23 +135,29 @@ export default function TaskList({
             {!hideControls && (        // wrap StickyBar
                 <StickyBar>
                     {mode === "tasklist" && onAddTask && (
-                        <AddButton onClick={onAddTask} title="Add task">+</AddButton>
+                        <div data-tutorial-id="add-task">
+                            <AddButton onClick={onAddTask} title="Add task">+</AddButton>
+                        </div>
                     )}
-                    <SearchInput
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="search tasks..."
-                    />
-                    <SortSelect
-                        value={sortKey}
-                        onChange={(e) => setSortKey(e.target.value as SortKey)}
-                    >
-                        <option value="none">sort by...</option>
-                        <option value="due_date">due date</option>
-                        <option value="importance">importance</option>
-                        <option value="difficulty">difficulty</option>
-                        <option value="task_duration">duration</option>
-                    </SortSelect>
+                    <div data-tutorial-id="search-bar" style={{ flex: 1, minWidth: 0 }}>
+                        <SearchInput
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="search tasks..."
+                        />
+                    </div>
+                    <div data-tutorial-id="filters">
+                        <SortSelect
+                            value={sortKey}
+                            onChange={(e) => setSortKey(e.target.value as SortKey)}
+                        >
+                            <option value="none">sort by...</option>
+                            <option value="due_date">due date</option>
+                            <option value="importance">importance</option>
+                            <option value="difficulty">difficulty</option>
+                            <option value="task_duration">duration</option>
+                        </SortSelect>
+                    </div>
                 </StickyBar>
             )}
 

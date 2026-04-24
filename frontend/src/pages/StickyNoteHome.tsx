@@ -24,6 +24,8 @@ import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import {useNotes} from "../context/NoteContext.tsx";
 import LottieLoading from "../components/ui/LottieLoading.tsx";
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import {STICKY_NOTE_TUTORIAL_STEPS} from "../constants/StickyNoteTutorialSteps.ts";
 
 // ─── Custom event types ───────────────────────────────────────────────────────
 
@@ -739,21 +741,24 @@ export function StickyNoteHome() {
 
                 <PageTitle>Your Sticky Notes</PageTitle>
 
+                {/* ── data-tutorial-id added so the tutorial spotlight can target this ── */}
                 <AddAndSelectWrapper>
-                    <AddButton
-                        label="New Note"
-                        onClick={() =>
-                            setActiveNote({
-                                title: "",
-                                content: "",
-                                color: "yellow",
-                                position: {
-                                    x: defaultPosition(numberOfNotes).x,
-                                    y: defaultPosition(numberOfNotes).y,
-                                    z: numberOfNotes + 1
-                                }
-                            })}
-                    />
+                    <div data-tutorial-id="add-note-btn" style={{ display: "inline-flex" }}>
+                        <AddButton
+                            label="New Note"
+                            onClick={() =>
+                                setActiveNote({
+                                    title: "",
+                                    content: "",
+                                    color: "yellow",
+                                    position: {
+                                        x: defaultPosition(numberOfNotes).x,
+                                        y: defaultPosition(numberOfNotes).y,
+                                        z: numberOfNotes + 1
+                                    }
+                                })}
+                        />
+                    </div>
                 </AddAndSelectWrapper>
 
                 <NotesAndButtonsLayout>
@@ -772,13 +777,13 @@ export function StickyNoteHome() {
                     </NotesBoard>
 
                     <ActionColumn>
-                        <div ref={calendarRef} style={{ display: "inline-flex" }}>
+                        <div ref={calendarRef} style={{ display: "inline-flex" }} data-tutorial-id='calendar-zone'>
                             <TaskDropZone
                                 isHovered={hoveredZone === "calendar"}
                                 isActive={isDraggingNote}
                             />
                         </div>
-                        <div ref={trashRef} style={{ display: "inline-flex" }}>
+                        <div ref={trashRef} style={{ display: "inline-flex" }} data-tutorial-id='trash-zone'>
                             <TrashDropZone
                                 isHovered={hoveredZone === "trash"}
                                 isActive={isDraggingNote}
@@ -833,7 +838,7 @@ export function StickyNoteHome() {
                         </ToastLink>
                     </ToastWrapper>
                 )}
-
+                <TutorialButton steps={STICKY_NOTE_TUTORIAL_STEPS} />
             </PageWrapper>
         </>
     );
