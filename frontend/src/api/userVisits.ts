@@ -13,9 +13,11 @@ export type VisitFlags = {
 type Page = "home" | "notes" | "tasks" | "schedule" | "timer" | "garden";
 
 export async function getUserVisits(): Promise<VisitFlags> {
+    console.log("Fetching user visibility. getUserVisits was called");
     const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.USER_VISITS}`
     );
+    console.log(response);
     if (!response.ok) throw new Error("Failed to fetch user visits");
     return await response.json();
 }
