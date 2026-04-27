@@ -13,6 +13,7 @@ import OnboardingSurvey from "../onboardingComponents/OnboardingSurvey.tsx";
 import { HOME_TUTORIAL_STEPS } from "../../constants/HomeTutorialSteps.ts";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { useAutoTutorial } from "../../hooks/useAutoTutorial.ts";
+import { useUserVisits } from "../../hooks/useUserVisits.ts";
 
 const pulse = keyframes`
     0%   { box-shadow: 0 0 0 0 rgba(75, 148, 219, 0.5); }
@@ -72,9 +73,10 @@ const HomeBtn = styled.button<{ $open: boolean }>`
 
 export default function HomeScene() {
     const { user } = useAuth();
+    const { visits } = useUserVisits();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showSurvey, setShowSurvey] = useState(false);
-    useAutoTutorial("home", HOME_TUTORIAL_STEPS);
+    useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home");
     return (
         <SceneWrapper>
             {/* Sidebar */}

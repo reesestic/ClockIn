@@ -14,6 +14,7 @@ import { useTheme } from "../context/ThemeContext";
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
 import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+import {useUserVisits} from "../hooks/useUserVisits.ts";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -307,7 +308,9 @@ export default function TaskPage() {
         ]);
         setSplitTargetTask(null);
     }
-    useAutoTutorial("tasks", TASKS_TUTORIAL_STEPS);
+
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_tasks, TASKS_TUTORIAL_STEPS, "tasks");
     return (
         <PageWrapper>
             {isDark ? <NightBgSVG /> : <DayBgSVG />}

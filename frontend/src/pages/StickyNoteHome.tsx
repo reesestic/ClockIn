@@ -29,6 +29,7 @@ import LottieLoading from "../components/ui/LottieLoading.tsx";
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {STICKY_NOTE_TUTORIAL_STEPS} from "../constants/StickyNoteTutorialSteps.ts";
 import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+import {useUserVisits} from "../hooks/useUserVisits.ts";
 
 // ─── Custom event types ───────────────────────────────────────────────────────
 
@@ -1039,12 +1040,9 @@ export function StickyNoteHome() {
         await generateTasksFromNote(note);
     };
 
-<<<<<<< HEAD
     const { isDark } = useTheme();
-=======
->>>>>>> 207498e (Added user ability to delete LLM generated tasks that they do not want from the note to task pipeline)
-    useAutoTutorial("notes", STICKY_NOTE_TUTORIAL_STEPS);
-
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_notes, STICKY_NOTE_TUTORIAL_STEPS, "notes");
     return (
         <>
             <HomepageBlankObject />
