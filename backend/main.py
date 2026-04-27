@@ -80,6 +80,7 @@ app.include_router(busy_times_router)
 app.include_router(stats_router)
 app.include_router(google_router)
 app.include_router(plants_router)
+app.include_router(user_visits_router)
 
 # def daily_sync_job():
 #     # Sync once immediately on startup
