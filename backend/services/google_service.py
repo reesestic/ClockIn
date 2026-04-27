@@ -40,10 +40,11 @@ class GoogleService:
                 print(f"[GoogleSync] Skipping event with no start/end: {e.get('summary')}")
                 continue
             try:
+                is_all_day = len(start) <= 10
                 bt = {
                     "title": e.get("summary", "Busy"),
                     "start_time": self._format_time(start),
-                    "end_time": self._format_time(end),
+                    "end_time": self._format_time(end, is_exclusive_end=is_all_day),
                     "days_of_week": self._get_days(start, end),
                     "source": "google",
                 }
@@ -57,15 +58,21 @@ class GoogleService:
         return {"status": "synced", "count": len(busy_times)}
 
     def _get_days(self, start_iso: str, end_iso: str) -> list[str]:
+        is_all_day = len(start_iso) <= 10  # date-only strings like "2026-04-23"
         start = datetime.fromisoformat(start_iso)
         end = datetime.fromisoformat(end_iso)
+        # Google all-day events use an exclusive end date (next day midnight),
+        # so subtract one day to get the actual last day of the event.
+        end_date = (end - timedelta(days=1)).date() if is_all_day else end.date()
         days = []
         current = start
-        while current.date() <= end.date():
+        while current.date() <= end_date:
             days.append(current.strftime("%a").upper()[:3])
             current += timedelta(days=1)
         return list(dict.fromkeys(days))  # deduplicate, preserve order
 
-    def _format_time(self, iso_string: str) -> str:
+    def _format_time(self, iso_string: str, is_exclusive_end: bool = False) -> str:
+        if len(iso_string) <= 10:  # date-only (all-day event)
+            return "23:59:00" if is_exclusive_end else "00:00:00"
         dt = datetime.fromisoformat(iso_string)
-        return dt.strftime("%H:%M:%S")  # plain time, no timezone
+        return dt.strftime("%H:%M:%S")

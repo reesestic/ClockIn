@@ -139,8 +139,7 @@ export default function PlannerPage() {
                                 localStorage.getItem(`clockin_ignored_cal:${user?.id}`) ?? "[]"
                             );
                             const blocks = busyTimesToBlocks(google, dates).map((b) => {
-                                const btId = b.id.split(":")[1] ?? null;
-                                return btId && ignoredIds.includes(btId) ? { ...b, isIgnored: true } : b;
+                                return ignoredIds.includes(b.id) ? { ...b, isIgnored: true } : b;
                             });
                             setCalendarBlocks(blocks);
                         })
@@ -162,11 +161,15 @@ export default function PlannerPage() {
 
     function handleConfirm(confirmed: Schedule) {
         const taskOnly = { ...confirmed, blocks: confirmed.blocks.filter((b) => !b.isCalendarEvent) };
-        setSchedule(taskOnly);
-        setOriginalSchedule(taskOnly);
-        setIsLocked(true);
+        const confirmedCalBlocks = confirmed.blocks.filter((b) => b.isCalendarEvent);
+        if (confirmedCalBlocks.length > 0) setCalendarBlocks(confirmedCalBlocks);
+        if (taskOnly.blocks.length > 0) {
+            setSchedule(taskOnly);
+            setOriginalSchedule(taskOnly);
+            setIsLocked(true);
+            setTrackEdits(true);
+        }
         setShowFilters(false);
-        setTrackEdits(true);
     }
 
     function handleBlocksChange(newBlocks: ScheduleBlock[]) {
@@ -193,17 +196,23 @@ export default function PlannerPage() {
     }
 
     function handleCalendarBlockToggle(blockId: string) {
-        const btId = blockId.startsWith("cal:") ? blockId.split(":")[1] : null;
-        if (!btId) return;
+        const clickedBlock = calendarBlocks.find((b) => b.id === blockId);
+        if (!clickedBlock) return;
         setCalendarBlocks((prev) => {
-            const currentlyIgnored = prev.find((b) => b.id.startsWith(`cal:${btId}:`))?.isIgnored ?? false;
+            const group = prev.filter(
+                (b) => b.date === clickedBlock.date &&
+                       b.title === clickedBlock.title &&
+                       b.start === clickedBlock.start &&
+                       b.end === clickedBlock.end
+            );
+            const willIgnore = group.some((b) => !b.isIgnored);
+            const groupIds = new Set(group.map((b) => b.id));
             const updated = prev.map((b) =>
-                b.id.startsWith(`cal:${btId}:`) ? { ...b, isIgnored: !currentlyIgnored } : b
+                groupIds.has(b.id) ? { ...b, isIgnored: willIgnore } : b
             );
             const ignoredIds = updated
                 .filter((b) => b.isIgnored)
-                .map((b) => b.id.split(":")[1])
-                .filter(Boolean);
+                .map((b) => b.id);
             localStorage.setItem(
                 `clockin_ignored_cal:${user?.id}`,
                 JSON.stringify([...new Set(ignoredIds)])
@@ -254,6 +263,8 @@ export default function PlannerPage() {
                     onConfirm={handleConfirm}
                     allTasks={tasks}
                     userId={user.id}
+                    initialSchedule={schedule}
+                    initialCalendarBlocks={calendarBlocks}
                 />
             )}
         </PageBg>
