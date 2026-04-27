@@ -42,8 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // -----------------------------
     useEffect(() => {
         const init = async () => {
-            const { data } = await supabase.auth.getSession();
-            const sessionUser = data.session?.user;
+            // getUser() validates against Supabase and triggers a token refresh
+            // if the cached JWT is expired, so we never start with a stale token.
+            const { data } = await supabase.auth.getUser();
+            const sessionUser = data.user;
 
             if (sessionUser) {
                 setUser({

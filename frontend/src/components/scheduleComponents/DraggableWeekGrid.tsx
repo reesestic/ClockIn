@@ -14,9 +14,9 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ScheduleBlock } from "../../types/ScheduleBlock";
 
-const HOUR_HEIGHT = 36;   // px per hour
-const GRID_START = 0;     // 12am — allows scrolling above 6am
-const GRID_END = 24;      // midnight
+export const HOUR_HEIGHT = 36;
+export const GRID_START = 0;
+const GRID_END = 24;
 const SNAP_MINUTES = 15;
 import { TIME_COL_WIDTH, getWeekDays } from "../../utils/weekGridUtils";
 
@@ -131,6 +131,8 @@ const BlockEl = styled.div<{
     $textColor?: string;
     $isCalendarEvent?: boolean;
     $isIgnored?: boolean;
+    $dayDisabled?: boolean;
+    $readOnly?: boolean;
 }>`
   position: absolute;
   left: 1px;
@@ -155,20 +157,27 @@ const BlockEl = styled.div<{
   padding: 2px 7px;
   font-size: 11px;
   font-weight: 600;
-  cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grab"};
+  cursor: ${({ $isCalendarEvent, $readOnly }) =>
+      $readOnly ? "default" : $isCalendarEvent ? "pointer" : "grab"};
   user-select: none;
   box-sizing: border-box;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  opacity: ${({ $isDragging, $isIgnored }) => $isDragging ? 0.4 : $isIgnored ? 0.6 : 1};
+  opacity: ${({ $isDragging, $isIgnored, $dayDisabled }) =>
+      $isDragging ? 0.4 : $dayDisabled ? 0.22 : $isIgnored ? 0.6 : 1};
+  filter: ${({ $dayDisabled }) => $dayDisabled ? "grayscale(1)" : "none"};
   z-index: ${({ $isIgnored, $isCalendarEvent }) =>
-      $isIgnored ? 1 : $isCalendarEvent ? 2 : 4};
-  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+      $isIgnored ? 1 : $isCalendarEvent ? 5 : 4};
+  transition: ${({ $isCalendarEvent }) =>
+      $isCalendarEvent
+          ? "opacity 0.15s"
+          : "opacity 0.15s, filter 0.15s, background 0.15s, border-color 0.15s"};
   display: flex;
   align-items: center;
   justify-content: space-between;
-  &:active { cursor: ${({ $isCalendarEvent }) => $isCalendarEvent ? "pointer" : "grabbing"}; }
+  &:active { cursor: ${({ $isCalendarEvent, $readOnly }) =>
+      $readOnly ? "default" : $isCalendarEvent ? "pointer" : "grabbing"}; }
 `;
 
 const DeleteBtn = styled.button<{ $textColor?: string }>`
@@ -219,7 +228,7 @@ const TooltipTime = styled.div`
   font-weight: 600;
 `;
 
-function DraggableBlock({ block, onDelete, readOnly }: { block: ScheduleBlock; onDelete?: (id: string) => void; readOnly?: boolean }) {
+function DraggableBlock({ block, onDelete, readOnly, dayDisabled }: { block: ScheduleBlock; onDelete?: (id: string) => void; readOnly?: boolean; dayDisabled?: boolean; }) {
     const startMins = timeToMinutes(block.start) - GRID_START * 60;
     const duration = timeToMinutes(block.end) - timeToMinutes(block.start);
     const top = (startMins / 60) * HOUR_HEIGHT;
@@ -243,10 +252,9 @@ function DraggableBlock({ block, onDelete, readOnly }: { block: ScheduleBlock; o
     return (
         <>
             <BlockEl
-                ref={setNodeRef}
+                ref={isCalendarEvent ? undefined : setNodeRef}
                 style={{
                     transform: isCalendarEvent ? undefined : CSS.Translate.toString(transform),
-                    ...(isCalendarEvent && readOnly ? { cursor: "default" } : {}),
                 }}
                 $top={top}
                 $height={height}
@@ -255,10 +263,17 @@ function DraggableBlock({ block, onDelete, readOnly }: { block: ScheduleBlock; o
                 $textColor={textColor}
                 $isCalendarEvent={isCalendarEvent}
                 $isIgnored={isIgnored}
+                $dayDisabled={dayDisabled}
+                $readOnly={readOnly}
                 onMouseEnter={(e) => { if (!isDragging) setTooltipPos({ x: e.clientX, y: e.clientY }); }}
                 onMouseMove={(e) => { if (!isDragging) setTooltipPos({ x: e.clientX, y: e.clientY }); }}
                 onMouseLeave={() => setTooltipPos(null)}
-                onClick={isCalendarEvent && onDelete && !readOnly ? () => onDelete(block.id) : undefined}
+                onPointerDown={isCalendarEvent && !readOnly ? (e) => {
+                    e.stopPropagation();
+                    e.nativeEvent.stopImmediatePropagation();
+                    if (e.button === 0 && onDelete) onDelete(block.id);
+                } : undefined}
+                onClick={undefined}
                 {...(isCalendarEvent ? {} : listeners)}
                 {...(isCalendarEvent ? {} : attributes)}
             >
@@ -333,12 +348,12 @@ function DroppableDay({
                     {isToday ? <TodayPill>{label}</TodayPill> : <DayLabel>{label}</DayLabel>}
                 </DayHeaderArea>
             )}
-            <DayBody ref={setNodeRef}>
+            <DayBody ref={setNodeRef} data-date={date}>
                 {Array.from({ length: hourCount }, (_, i) => (
                     <HourLine key={i} $index={i} $lightBg={lightBg} />
                 ))}
                 {blocks.map((b) => (
-                    <DraggableBlock key={b.id} block={b} onDelete={onDelete} readOnly={readOnly} />
+                    <DraggableBlock key={b.id} block={b} onDelete={onDelete} readOnly={readOnly} dayDisabled={!isEnabled} />
                 ))}
             </DayBody>
         </DayCol>
@@ -379,18 +394,12 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, onBlockDelet
     const sensors = useSensors(mouseSensor, touchSensor);
 
     function handleDelete(id: string) {
+        if (readOnly) return;
         const block = blocks.find((b) => b.id === id);
         if (block?.isCalendarEvent) {
-            // Calendar toggle always allowed — route through custom handler or toggle in-place
-            if (onBlockDelete) {
-                onBlockDelete(id);
-            }
-        } else if (!readOnly) {
-            if (onBlockDelete) {
-                onBlockDelete(id);
-            } else {
-                onBlocksChange(blocks.filter((b) => b.id !== id));
-            }
+            if (onBlockDelete) onBlockDelete(id);
+        } else {
+            onBlocksChange(blocks.filter((b) => b.id !== id));
         }
     }
 
@@ -450,7 +459,7 @@ export default function DraggableWeekGrid({ blocks, onBlocksChange, onBlockDelet
                             date={day.date}
                             label={day.label}
                             isToday={day.isToday}
-                            isEnabled={enabledDays ? enabledDays.includes(day.date) : false}
+                            isEnabled={!enabledDays || enabledDays.includes(day.date)}
                             blocks={blocks.filter((b) => b.date === day.date)}
                             lightBg={lightBg}
                             onDelete={handleDelete}

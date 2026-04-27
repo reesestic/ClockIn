@@ -240,7 +240,7 @@ class ScheduleService:
         due_date = task.get("due_date")
         due_dt = self._parse_due_dt(due_date) if due_date else None
 
-        for day_offset in range(14):  # search up to 2 weeks
+        for day_offset in range(7):  # search within the current week
             day = now + timedelta(days=day_offset)
             date_str = day.date().isoformat()
 

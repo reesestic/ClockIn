@@ -5,6 +5,7 @@ import ProfileBeeIcon from "../components/icons/ProfileBeeIcon.tsx";
 import BackButton from "../components/navigation/BackButton";
 import {ROUTES} from "../constants/Routes.ts";
 import { useNavigate } from "react-router-dom";
+import OnboardingSurvey from "../components/onboardingComponents/OnboardingSurvey.tsx";
 
 const PageBackButton = styled(BackButton)`
     position: absolute; 
@@ -156,7 +157,8 @@ const ActionBtn = styled.button`
 export default function SettingsPage() {
     const { user } = useAuth();
     const [darkMode, setDarkMode] = useState(false);
-    const navigate = useNavigate(); // add
+    const [showPreferences, setShowPreferences] = useState(false);
+    const navigate = useNavigate();
 
     return (
         <Page>
@@ -192,12 +194,26 @@ export default function SettingsPage() {
 
                 <Divider />
 
+                <ActionBtn onClick={() => setShowPreferences(true)}>
+                    📋 Edit Study Preferences
+                </ActionBtn>
+
+                <Divider />
+
                 <ActionBtn>
                     Change Username or Password
                 </ActionBtn>
 
                 <Divider />
             </Card>
+
+            {showPreferences && user && (
+                <OnboardingSurvey
+                    userId={user.id}
+                    onComplete={() => setShowPreferences(false)}
+                    isReopening
+                />
+            )}
         </Page>
     );
 }
