@@ -15,14 +15,16 @@ export function useAutoTutorial(page: Page, steps: TutorialStep[]) {
     }, [page]);
 
     useEffect(() => {
-        if (loading || hasStarted.current) return;
+        if (loading || hasStarted.current || !visits) return;
+
         const col = `visited_${page}` as keyof typeof visits;
-        if (visits && visits[col] === false) {
+
+        if (visits[col] === false) {
             hasStarted.current = true;
             setSteps(steps);
             setOnComplete(() => markVisited(page));
             const timer = setTimeout(() => start(), 100);
             return () => clearTimeout(timer);
         }
-    }, [loading, visits]);
+    }, [loading, visits, page]);
 }
