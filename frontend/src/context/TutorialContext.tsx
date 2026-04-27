@@ -18,6 +18,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     };
 
     const start = () => {
+        console.log("Starting Tutorial");
         setCurrentStep(0);
         setIsActive(true);
     };
