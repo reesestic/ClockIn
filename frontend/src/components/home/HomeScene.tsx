@@ -80,13 +80,11 @@ export default function HomeScene() {
     useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home", surveyDone);
     return (
         <SceneWrapper>
-            {/* Sidebar */}
             <ProfileSidebar
                 open={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
             />
 
-            {/* Background + objects */}
             <HomepageBlankObject />
             <PotObject />
             <PlannerObject />
@@ -94,7 +92,6 @@ export default function HomeScene() {
             <StickyNotesOnDeskObject />
             <TaskBookObject />
 
-            {/* Home button */}
             <HomeBtn
                 data-tutorial="home-btn"
                 $open={sidebarOpen}
