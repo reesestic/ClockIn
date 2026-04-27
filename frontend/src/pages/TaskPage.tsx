@@ -13,6 +13,7 @@ import NightHomepageIcon from "../components/icons/NightHomepageIcon";
 import { useTheme } from "../context/ThemeContext";
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
+import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -306,7 +307,7 @@ export default function TaskPage() {
         ]);
         setSplitTargetTask(null);
     }
-
+    useAutoTutorial("tasks", TASKS_TUTORIAL_STEPS);
     return (
         <PageWrapper>
             {isDark ? <NightBgSVG /> : <DayBgSVG />}

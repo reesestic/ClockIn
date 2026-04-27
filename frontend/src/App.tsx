@@ -4,6 +4,7 @@ import Root from "./Root.tsx";
 import { NotesProvider } from "./context/NoteContext.tsx";
 import { TutorialProvider } from "./context/TutorialContext.tsx";
 import { PlantProvider } from "./context/PlantProvider";
+import { UserVisitsProvider } from "./context/UserVisitContext.tsx";
 import TutorialOverlay from "./components/onboardingComponents/TutorialOverlay.tsx";
 import OnboardingSurvey from "./components/onboardingComponents/OnboardingSurvey.tsx";
 import { useAuth } from "./context/AuthContext.tsx";
@@ -34,11 +35,13 @@ export default function App() {
     return (
         <TutorialProvider>
             <TutorialOverlay />
-            <NotesProvider>
-                <PlantProvider>
-                    <RouterProvider router={router} />
-                </PlantProvider>
-            </NotesProvider>
+            <UserVisitsProvider>
+                <NotesProvider>
+                    <PlantProvider>
+                        <RouterProvider router={router} />
+                    </PlantProvider>
+                </NotesProvider>
+            </UserVisitsProvider>
             <OnboardingController />
         </TutorialProvider>
     );

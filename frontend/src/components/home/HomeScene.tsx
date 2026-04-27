@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 import PotObject from "./PotObject";
@@ -11,8 +11,8 @@ import HomeIcon from "../icons/HomeIcon.tsx";
 import TaskBookObject from "./TaskBookObject.tsx";
 import OnboardingSurvey from "../onboardingComponents/OnboardingSurvey.tsx";
 import { HOME_TUTORIAL_STEPS } from "../../constants/HomeTutorialSteps.ts";
-import { useTutorial } from "../../constants/useTutorial.ts";
 import { useAuth } from "../../context/AuthContext.tsx";
+import { useAutoTutorial } from "../../hooks/useAutoTutorial.ts";
 
 const pulse = keyframes`
     0%   { box-shadow: 0 0 0 0 rgba(75, 148, 219, 0.5); }
@@ -72,14 +72,9 @@ const HomeBtn = styled.button<{ $open: boolean }>`
 
 export default function HomeScene() {
     const { user } = useAuth();
-    const { setSteps } = useTutorial();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showSurvey, setShowSurvey] = useState(false);
-
-    useEffect(() => {
-        setSteps(HOME_TUTORIAL_STEPS);
-    }, [setSteps]);
-
+    useAutoTutorial("home", HOME_TUTORIAL_STEPS);
     return (
         <SceneWrapper>
             {/* Sidebar */}

@@ -5,6 +5,7 @@ import BackButton from "../navigation/BackButton.tsx";
 import { ROUTES } from "../../constants/Routes.ts";
 import {TIMER_TUTORIAL_STEPS} from "../../constants/TimerTutorialSteps.ts";
 import TutorialButton from "../onboardingComponents/TutorialButton.tsx";
+import {useAutoTutorial} from "../../hooks/useAutoTutorial.ts";
 
 const PageBackButton = styled(BackButton)`
     position: absolute;
@@ -15,6 +16,9 @@ const PageBackButton = styled(BackButton)`
 
 export default function TimerEntryPage() {
     const navigate = useNavigate();
+    useAutoTutorial("timer", TIMER_TUTORIAL_STEPS);
+
+    console.log("TimerEntryPage mounted");
 
     return (
         <>

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from controllers.user_visits_controller import router as user_visits_router
 
 from controllers.sticky_note_controller import router as sticky_note_router
 from controllers.task_controller import router as task_router
@@ -107,3 +108,7 @@ app.include_router(plants_router)
 #
 # sync_thread = threading.Thread(target=daily_sync_job, daemon=True)
 # sync_thread.start()
+
+
+
+app.include_router(user_visits_router)
