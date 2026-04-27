@@ -453,16 +453,6 @@ const OverlayTaskTitle = styled.p`
     max-width: 360px;
 `;
 
-const TaskLabel = styled.div`
-    font-size: clamp(0.7rem, 1.3rem, 1.6rem);
-    font-weight: 600;
-    margin-bottom: 0.2rem;
-    color: rgba(255,255,255,0.85);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.15);
-`;
-
 const TimerInputRow = styled.div`
     display: flex;
     align-items: center;
@@ -725,7 +715,7 @@ const SidebarHandle = styled.button<{ $open: boolean }>`
     z-index: 16;
     width: 22px;
     height: 56px;
-    background: rgba(15,15,35,0.92);
+    background: #F1F1F1;
     border: none;
     border-radius: 8px 0 0 8px;
     cursor: pointer;
@@ -737,8 +727,8 @@ const SidebarHandle = styled.button<{ $open: boolean }>`
         content: "";
         display: block;
         width: 6px; height: 6px;
-        border-left: 2px solid white;
-        border-bottom: 2px solid white;
+        border-left: 2px solid black;
+        border-bottom: 2px solid black;
         transform: ${({ $open }) => ($open ? "rotate(-45deg)" : "rotate(135deg)")};
         margin-left: ${({ $open }) => ($open ? "-2px" : "2px")};
         transition: transform 0.3s ease, margin-left 0.3s ease;
@@ -1551,8 +1541,6 @@ export default function TimerScreen() {
                         <EndSessionButton onClick={handleEndSessionClick}>End Session</EndSessionButton>
 
                         <Main>
-                            {currentTask && <TaskLabel>{currentTask.title}</TaskLabel>}
-
                             {status === "idle" && (
                                 <div style={{
                                     display: "flex",
