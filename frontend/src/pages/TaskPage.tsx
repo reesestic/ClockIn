@@ -309,8 +309,6 @@ export default function TaskPage() {
         setSplitTargetTask(null);
     }
 
-    const { visits } = useUserVisits();
-    useAutoTutorial(visits?.visited_tasks, TASKS_TUTORIAL_STEPS, "tasks");
     return (
         <PageWrapper>
             {isDark ? <NightBgSVG /> : <DayBgSVG />}
@@ -341,7 +339,6 @@ export default function TaskPage() {
                     onCancel={() => setSplitTargetTask(null)}
                 />
             )}
-            <TutorialButton steps={TASKS_TUTORIAL_STEPS} />
         </PageWrapper>
     );
 }
