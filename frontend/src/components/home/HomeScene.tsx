@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext.tsx";
 
 import PotObject from "./PotObject";
 import PlannerObject from "./PlannerObject";
@@ -37,10 +38,15 @@ const HomeBtn = styled.button<{ $open: boolean }>`
 `;
 
 export default function HomeScene() {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { user } = useAuth();
     const { visits } = useUserVisits();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home");
+    // reads the same key OnboardingSurvey sets on finish
+    // re-evaluates when AuthRoot re-renders after survey completes
+    const surveyDone = !!localStorage.getItem(`clockin_onboarding_done:${user?.id}`);
+
+    useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home", surveyDone);
 
     return (
         <SceneWrapper>
