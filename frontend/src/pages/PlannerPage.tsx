@@ -18,6 +18,7 @@ import BackButton from "../components/navigation/BackButton.tsx";
 
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {SCHEDULE_TUTORIAL_STEPS} from "../constants/ScheduleTutorialSteps.ts";
+import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
 
 const PageBg = styled.div`
   min-height: 100vh;
@@ -226,6 +227,7 @@ export default function PlannerPage() {
         ? { blocks: visibleCalendarBlocks }
         : null;
 
+    useAutoTutorial("schedule", SCHEDULE_TUTORIAL_STEPS);
     return (
         <PageBg>
             <BlurredBg />

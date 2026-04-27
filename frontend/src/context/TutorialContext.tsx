@@ -1,4 +1,4 @@
-import { createContext, useState, type ReactNode } from "react";
+import { createContext, useState, useRef, type ReactNode } from "react";
 import type { TutorialStep } from "../types/TutorialStep.ts";
 import type { TutorialContextType } from "../types/TutorialContextType.ts";
 
@@ -9,8 +9,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     const [isActive, setIsActive] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [steps, setStepsState] = useState<TutorialStep[]>([]);
+    const onCompleteRef = useRef<(() => void) | null>(null);
 
     const setSteps = (newSteps: TutorialStep[]) => setStepsState(newSteps);
+
+    const setOnComplete = (cb: () => void) => {
+        onCompleteRef.current = cb;
+    };
 
     const start = () => {
         setCurrentStep(0);
@@ -20,6 +25,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     const stop = () => {
         setIsActive(false);
         setCurrentStep(0);
+        onCompleteRef.current?.();
+        onCompleteRef.current = null;
     };
 
     const next = () => {
@@ -41,6 +48,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             step: steps[currentStep] ?? null,
             totalSteps: steps.length,
             setSteps,
+            setOnComplete,
             start,
             stop,
             next,

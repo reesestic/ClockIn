@@ -8,5 +8,5 @@ export const API_ROUTES = {
     STATS: "/api/stats",
     GOOGLE: "/api/google",
     PLANTS: "/api/plants",
-
+    USER_VISITS: "/user-visits",
 };
