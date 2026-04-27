@@ -5,12 +5,13 @@ import {saveNote, deleteNote, changeColor, noteToTask, sendTasksToList, updateNo
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
 import BackButton from "../components/navigation/BackButton.tsx";
-
+import { useTheme } from "../context/ThemeContext";
+import HomepageBlankObject from "../components/home/HomepageBlankObject";
 
 import {
     PageTitle, PageWrapper, NotesAndButtonsLayout,
     NotesBoard, ActionColumn, AddAndSelectWrapper,
-    Background, BackgroundOverlay
+    BackgroundOverlay
 } from "./StickyNoteHome.styles";
 
 import StickyNoteOverlay from "../components/stickyNoteComponents/StickyNoteOverlay";
@@ -717,10 +718,12 @@ export function StickyNoteHome() {
         await generateTasksFromNote(note);
     };
 
+    const { isDark } = useTheme();
+
     return (
         <>
-            <Background />
-            <BackgroundOverlay />
+            <HomepageBlankObject />
+            <BackgroundOverlay style={isDark ? { background: "rgba(20,15,45,0.45)" } : undefined} />
 
             <PageWrapper>
 

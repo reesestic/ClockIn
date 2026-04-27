@@ -8,9 +8,11 @@ import type { Task } from "../types/Task";
 import { getTasks } from "../api/taskApi";
 import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
+import NightHomepageIcon from "../components/icons/NightHomepageIcon";
 import TaskList from "../components/taskComponents/TaskList";
 import FreeModeIcon from "../components/icons/FreeModeIcon.tsx";
 import TaskModeIcon from "../components/icons/TaskModeIcon.tsx";
+import { useTheme } from "../context/ThemeContext";
 
 const PageWrapper = styled.div`
     position: relative;
@@ -24,7 +26,17 @@ const PageWrapper = styled.div`
     gap: 1.2rem;
 `;
 
-const BackgroundSVG = styled(HomepageBlankIcon)`
+const DayBgSVG = styled(HomepageBlankIcon)`
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    filter: blur(6px);
+    transform: scale(1.05);
+`;
+
+const NightBgSVG = styled(NightHomepageIcon)`
     position: fixed;
     inset: 0;
     width: 100%;
@@ -39,6 +51,10 @@ const BackgroundOverlay = styled.div`
     inset: 0;
     z-index: 1;
     background: rgba(28, 77, 119, 0.5);
+
+    [data-theme="dark"] & {
+        background: rgba(20, 15, 45, 0.5);
+    }
 `;
 
 const PageBackButton = styled(BackButton)`
@@ -57,6 +73,10 @@ const ModalCard = styled.div`
     position: relative;
     z-index: 2;
     background: white;
+
+    [data-theme="dark"] & {
+        background: #9f95c6;
+    }
     border-radius: 20px;
     width: min(680px, 88vw);
     max-height: 68vh;
@@ -197,6 +217,10 @@ const ActionSubText = styled.p<{ $active: boolean }>`
     opacity: ${({ $active }) => ($active ? 1 : 0.4)};
     transition: opacity 0.2s ease;
     width: 160px;
+
+    [data-theme="dark"] & {
+        color: black;
+    }
 `;
 
 const IconWrapper = styled.div`
@@ -211,6 +235,7 @@ const IconWrapper = styled.div`
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TimerTaskSelectionPage() {
+    const { isDark } = useTheme();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [search, setSearch] = useState("");
@@ -265,7 +290,7 @@ export default function TimerTaskSelectionPage() {
 
     return (
         <PageWrapper>
-            <BackgroundSVG />
+            {isDark ? <NightBgSVG /> : <DayBgSVG />}
             <BackgroundOverlay />
             <PageBackButton to={ROUTES.TIMER_ENTRY_PAGE} />
 

@@ -77,9 +77,26 @@ class ScheduleService:
         # 2b. load Google Calendar busy times (excluding user-ignored ones)
         booked = self._add_busy_times_to_booked(user_id, booked, ignored_event_ids or [])
 
-        # Add all existing schedules to results and ensure they are booked
+        # Tasks being explicitly (re)scheduled — always recalculate their slot.
+        # Only carry over existing slots for OTHER tasks not in this request.
+        submitted_set = set(task_ids)
+
         results = []
         for s in existing_schedules:
+            if s["task_id"] in submitted_set:
+                # Will be rescheduled below — just block its old slot so other tasks
+                # don't accidentally land there while we recalculate.
+                start_str = s["scheduled_start"]
+                end_str = s["scheduled_end"]
+                start = datetime.fromisoformat(self._strip_tz(start_str))
+                end = datetime.fromisoformat(self._strip_tz(end_str))
+                date_str = start.date().isoformat()
+                start_mins = start.hour * 60 + start.minute
+                end_mins = end.hour * 60 + end.minute
+                if (date_str, start_mins, end_mins) not in booked:
+                    booked.append((date_str, start_mins, end_mins))
+                continue
+
             start_str = s["scheduled_start"]
             end_str = s["scheduled_end"]
             start = datetime.fromisoformat(self._strip_tz(start_str))
@@ -98,9 +115,7 @@ class ScheduleService:
                 "score": 1.0,
             })
 
-        existing_task_ids = set(s['task_id'] for s in existing_schedules)
-        new_task_ids = [tid for tid in task_ids if tid not in existing_task_ids]
-        new_tasks = [t for t in tasks if str(t.id) in new_task_ids]
+        new_tasks = tasks  # all submitted tasks get a fresh slot
 
         task_dicts = [
             {
@@ -252,29 +267,29 @@ class ScheduleService:
             day_booked = [(s, e) for (d, s, e) in booked if d == date_str]
 
             for hour in range(6, 24):
-                slot_dt = day.replace(hour=hour, minute=0, second=0, microsecond=0)
-                if slot_dt <= now:
-                    continue
-                slot_start_mins = hour * 60
-                slot_end_mins = slot_start_mins + duration_mins
-                if any(slot_start_mins < be and bs < slot_end_mins for bs, be in day_booked):
-                    continue
-                slot_end = slot_dt + timedelta(minutes=duration_mins)
-                if due_dt and slot_end > due_dt:
-                    continue
+                for minute in (0, 30):
+                    slot_dt = day.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                    if slot_dt < now:
+                        continue
+                    if due_dt and slot_dt >= due_dt:
+                        continue
+                    slot_start_mins = hour * 60 + minute
+                    slot_end_mins = slot_start_mins + duration_mins
+                    if any(slot_start_mins < be and bs < slot_end_mins for bs, be in day_booked):
+                        continue
 
-                score = (
-                    weights["priority"] * priority_score +
-                    weights["urgency"] * urgency_score +
-                    weights["duration_fit"] * self._score_duration_fit(duration_mins, slot_dt)
-                )
-                for pk in promoted_keys:
-                    score += weights.get(pk, 0.0) * self._slot_feature_value(pk, slot_dt)
-                score = round(score, 4)
+                    score = (
+                        weights["priority"] * priority_score +
+                        weights["urgency"] * urgency_score +
+                        weights["duration_fit"] * self._score_duration_fit(duration_mins, slot_dt)
+                    )
+                    for pk in promoted_keys:
+                        score += weights.get(pk, 0.0) * self._slot_feature_value(pk, slot_dt)
+                    score = round(score, 4)
 
-                if score > best_score:
-                    best_score = score
-                    best_slot = slot_dt
+                    if score > best_score:
+                        best_score = score
+                        best_slot = slot_dt
 
         return best_slot
 

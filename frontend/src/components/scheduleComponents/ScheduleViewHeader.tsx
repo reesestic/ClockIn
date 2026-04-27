@@ -54,6 +54,10 @@ const Subtitle = styled.p`
   font-weight: 400;
   font-style: italic;
   color: #bbb;
+
+  [data-theme="dark"] & {
+    color: #444;
+  }
 `;
 
 const Center = styled.div`
@@ -75,6 +79,10 @@ const DateSmall = styled.span`
   font-size: 0.8rem;
   color: #c8d0d8;
   font-weight: 600;
+
+  [data-theme="dark"] & {
+    color: #444;
+  }
 `;
 
 const DateBig = styled.span`
@@ -83,6 +91,10 @@ const DateBig = styled.span`
   font-weight: 700;
   line-height: 1;
   margin: 0 2px;
+
+  [data-theme="dark"] & {
+    color: #333;
+  }
 `;
 
 const CreateButton = styled.button`

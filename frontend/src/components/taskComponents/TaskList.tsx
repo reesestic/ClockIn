@@ -14,6 +14,10 @@ const TaskContainer = styled.div`
     margin: auto;
     padding-bottom: 2%;
     min-height: 100vh;
+
+    [data-theme="dark"] & {
+        background-color: #9f95c6;
+    }
 `;
 
 const StickyBar = styled.div`
@@ -27,6 +31,10 @@ const StickyBar = styled.div`
     gap: 8px;
     border-radius: 5px 5px 0 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+
+    [data-theme="dark"] & {
+        background-color: #9f95c6;
+    }
 `;
 
 const SearchInput = styled.input`
@@ -47,6 +55,12 @@ const SearchInput = styled.input`
     &::placeholder {
         color: #ccc;
     }
+
+    [data-theme="dark"] & {
+        background: #857bb5;
+        color: #f0ecf8;
+        border-color: #7a70a8;
+    }
 `;
 
 const SortSelect = styled.select`
@@ -62,6 +76,12 @@ const SortSelect = styled.select`
     cursor: pointer;
     &:focus {
         border-color: #aaa;
+    }
+
+    [data-theme="dark"] & {
+        background: #857bb5;
+        color: #f0ecf8;
+        border-color: #7a70a8;
     }
 `;
 

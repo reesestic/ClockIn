@@ -104,6 +104,10 @@ const Modal = styled.div`
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
     background: #ffffff;
     position: relative;
+
+    [data-theme="dark"] & {
+        background: #9f95c6;
+    }
 `;
 
 const ConfirmOverlay = styled.div`
@@ -135,6 +139,11 @@ const LeftPanel = styled.div`
     flex-direction: column;
     overflow: hidden;
     border-right: 1px solid #f0f0f0;
+
+    [data-theme="dark"] & {
+        background: #9f95c6;
+        border-right-color: #7a70a8;
+    }
 `;
 
 const LeftHeader = styled.div`
@@ -154,6 +163,7 @@ const PanelTitle = styled.h2`
     font-weight: 800;
     margin: 0;
     color: #1a1a1a;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const AddTaskBtn = styled.button`
@@ -168,6 +178,7 @@ const AddTaskBtn = styled.button`
     font-family: inherit;
     padding: 0;
     &:hover { color: #444; }
+    [data-theme="dark"] & { color: black; }
 `;
 
 const AddTaskPlus = styled.div`
@@ -302,12 +313,14 @@ const TaskCardDue = styled.div`
     font-size: 12px;
     color: #777;
     flex-shrink: 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const SectionDivider = styled.div`
     height: 1px;
     background: #f0f0f0;
     margin: 16px 0 14px;
+    [data-theme="dark"] & { background: rgba(0,0,0,0.2); }
 `;
 
 const FilterSectionTitle = styled.h3`
@@ -315,6 +328,7 @@ const FilterSectionTitle = styled.h3`
     font-weight: 800;
     color: #1a1a1a;
     margin: 0 0 16px 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const FilterRow = styled.div`
@@ -326,6 +340,7 @@ const FilterLabel = styled.div`
     font-weight: 600;
     color: #1a1a1a;
     margin-bottom: 8px;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const PillGroup = styled.div`
@@ -356,6 +371,7 @@ const LeftFooter = styled.div`
     border-top: 1px solid #f0f0f0;
     display: flex;
     justify-content: center;
+    [data-theme="dark"] & { border-top-color: rgba(0,0,0,0.2); }
 `;
 
 const CreateBtn = styled.button<{ $loading: boolean }>`
@@ -393,6 +409,7 @@ const RightTitle = styled.h2`
     color: #1a1a1a;
     text-align: center;
     flex-shrink: 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const RightSubtitle = styled.p`
@@ -401,6 +418,7 @@ const RightSubtitle = styled.p`
     margin: 0 0 8px 0;
     text-align: center;
     flex-shrink: 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 // ── Aligned day pill row (sits above grid columns) ────────────────────────────
@@ -443,6 +461,7 @@ const DayPill = styled.button<{ $selected: boolean }>`
     cursor: pointer;
     font-family: inherit;
     transition: all 0.12s;
+    [data-theme="dark"] & { color: ${({ $selected }) => ($selected ? "#ffffff" : "black")}; background: ${({ $selected }) => ($selected ? "#4B94DB" : "rgba(0,0,0,0.1)")}; }
     white-space: nowrap;
     &:hover {
         background: ${({ $selected }) => ($selected ? "#2e6abf" : "#f5f5f5")};

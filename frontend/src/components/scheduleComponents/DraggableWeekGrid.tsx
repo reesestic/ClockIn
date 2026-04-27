@@ -57,6 +57,7 @@ const TimeLabel = styled.div`
   font-size: 10px;
   color: #9aabb8;
   box-sizing: border-box;
+  [data-theme="dark"] & { color: black; }
 `;
 
 const DaysContainer = styled.div`
@@ -76,6 +77,7 @@ const DayCol = styled.div<{ $isOver: boolean; $lightBg?: boolean; $isEnabled?: b
           ? ($isEnabled ? "#ffffff" : "#f0f0f0")
           : "transparent"};
   transition: background 0.1s;
+  [data-theme="dark"] & { border-left-color: rgba(0,0,0,0.2); }
 `;
 
 const DayHeaderArea = styled.div<{ $lightBg?: boolean }>`
@@ -107,6 +109,7 @@ const DayLabel = styled.div`
   color: #aab8c8;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+  [data-theme="dark"] & { color: black; }
 `;
 
 const DayBody = styled.div`
@@ -121,6 +124,7 @@ const HourLine = styled.div<{ $index: number; $lightBg?: boolean }>`
   top: ${({ $index }) => $index * HOUR_HEIGHT}px;
   border-top: 1px solid ${({ $lightBg }) => ($lightBg ? "#e8eaee" : "#e8eaee")};
   pointer-events: none;
+  [data-theme="dark"] & { border-top-color: rgba(0,0,0,0.15); }
 `;
 
 const BlockEl = styled.div<{
@@ -178,6 +182,18 @@ const BlockEl = styled.div<{
   justify-content: space-between;
   &:active { cursor: ${({ $isCalendarEvent, $readOnly }) =>
       $readOnly ? "default" : $isCalendarEvent ? "pointer" : "grabbing"}; }
+  [data-theme="dark"] & {
+      background: ${({ $isCalendarEvent, $isIgnored, $bg }) =>
+          $isIgnored
+              ? "rgba(180,180,180,0.18)"
+              : $isCalendarEvent
+              ? "rgba(80,55,140,0.45)"
+              : ($bg ?? "#C5AFFF")};
+      border-color: ${({ $isCalendarEvent, $isIgnored }) =>
+          $isIgnored ? "#bbb" : $isCalendarEvent ? "#7a6fc4" : "rgba(0,0,0,0.1)"};
+      color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
+          $isIgnored ? "#aaa" : $isCalendarEvent ? "#c8c0f0" : ($textColor ?? "white")};
+  }
 `;
 
 const DeleteBtn = styled.button<{ $textColor?: string }>`

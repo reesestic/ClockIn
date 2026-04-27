@@ -65,6 +65,10 @@ const Card = styled.div`
   padding: 2rem 3rem 2rem 3rem;
   box-sizing: border-box;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+
+  [data-theme="dark"] & {
+    background: #9f95c6;
+  }
 `;
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
