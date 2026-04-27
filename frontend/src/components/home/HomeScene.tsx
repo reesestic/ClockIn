@@ -76,7 +76,8 @@ export default function HomeScene() {
     const { visits } = useUserVisits();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showSurvey, setShowSurvey] = useState(false);
-    useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home");
+    const surveyDone = !!localStorage.getItem(`clockin_onboarding_done:${user?.id}`);
+    useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home", surveyDone);
     return (
         <SceneWrapper>
             {/* Sidebar */}
