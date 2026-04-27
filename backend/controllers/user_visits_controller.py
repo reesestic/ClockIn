@@ -7,6 +7,7 @@ router = APIRouter(prefix=USER_VISITS)
 
 @router.get("")
 async def get_user_visits(user=Depends(get_current_user)):
+    print("controller called and connected, calling service")
     return await UserVisitsService.get_visits(user["id"])
 
 @router.patch("/mark/{page}")

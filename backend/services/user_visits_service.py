@@ -5,6 +5,7 @@ VALID_PAGES = {"home", "notes", "tasks", "schedule", "timer", "garden"}
 class UserVisitsService:
     @staticmethod
     async def get_visits(user_id: str):
+        print("service called get visits, calling repository")
         return await UserVisitsRepository.get_by_user_id(user_id)
 
     @staticmethod
