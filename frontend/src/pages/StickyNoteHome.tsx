@@ -5,7 +5,7 @@ import {saveNote, deleteNote, changeColor, noteToTask, sendTasksToList, updateNo
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
 import BackButton from "../components/navigation/BackButton.tsx";
-
+import WarningIcon from "../components/icons/WarningIcon.tsx";
 
 import {
     PageTitle, PageWrapper, NotesAndButtonsLayout,
@@ -52,10 +52,57 @@ function defaultPosition(index: number) {
     };
 }
 
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PendingDrop = { note: Note; zone: "trash" | "calendar" } | null;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const colors: Record<string, string> = {
+    red: "#FFAFB1",
+    orange: "#F6C98A",
+    yellow: "#FFF59A",
+    green: "#C0E8AA",
+    blue: "#AFDBFF",
+    purple: "#C5AFFF",
+    pink: "#FFC7E8",
+};
+
+const darkColors: Record<string, string> = {
+    red: "#e57373",
+    orange: "#ef9c3a",
+    yellow: "#c8a800",
+    green: "#5aab2e",
+    blue: "#2a7fcf",
+    purple: "#7c52e0",
+    pink: "#e05fa8",
+};
+
+const getColorHex = (colorName?: string) =>
+    colors[colorName ?? "yellow"] ?? colors["yellow"];
+
+const getDarkColorHex = (colorName?: string) =>
+    darkColors[colorName ?? "yellow"] ?? darkColors["yellow"];
+
+function getMissingFields(task: Task): Set<"title" | "due_date" | "task_duration"> {
+    const missing = new Set<"title" | "due_date" | "task_duration">();
+    if (!task.title?.trim()) missing.add("title");
+    if (!task.due_date) missing.add("due_date");
+    if (!task.task_duration || task.task_duration <= 0) missing.add("task_duration");
+    return missing;
+}
+
+function computeCanSchedule(task: Task): boolean {
+    return getMissingFields(task).size === 0;
+}
+
+function toHoursMinutes(totalMinutes: number | null | undefined) {
+    if (!totalMinutes) return { hours: 0, minutes: 0 };
+    return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
+}
+
+function toTotalMinutes(hours: number, minutes: number) {
+    return hours * 60 + minutes;
+}
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -105,6 +152,18 @@ const ModalTitle = styled.h2`
     color: #1a1a1a;
     margin: 0;
     letter-spacing: -0.02em;
+`;
+const RemoveButton = styled.button`
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #636363;
+    font-size: 0.9rem;
+    padding: 0 8px;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s;
+    &:hover { opacity: 1; color: #d9534f; }
 `;
 
 const ModalSubtitle = styled.p`
@@ -164,7 +223,7 @@ const CancelButton = styled.button`
     }
 `;
 
-// ─── Modal Task Editable Styled Components ─────────────────────────────────────
+// ─── Modal Task Editable Styled Components ────────────────────────────────────
 
 const TaskEditableContainer = styled.div`
     display: flex;
@@ -179,9 +238,11 @@ const TitleRow = styled.div<{ colorHex: string }>`
     display: flex;
     background-color: ${({ colorHex }) => colorHex};
     width: 100%;
+    border-radius: 2px 2px 0 0;
+    align-items: center;
 `;
 
-const TitleInput = styled.input<{ colorHex: string }>`
+const TitleInput = styled.input<{ colorHex: string; hasError?: boolean }>`
     background-color: ${({ colorHex }) => colorHex};
     color: black;
     font-weight: bold;
@@ -192,6 +253,73 @@ const TitleInput = styled.input<{ colorHex: string }>`
     width: 100%;
     box-sizing: border-box;
     cursor: text;
+    border-bottom: ${({ hasError }) => (hasError ? "2px solid #ef4444" : "2px solid transparent")};
+`;
+
+const MenuButton = styled.button`
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #636363;
+    font-size: 1.1rem;
+    padding: 0 6px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 11;
+    &:hover { color: black; }
+`;
+
+const ContextMenu = styled.div`
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 180px;
+    padding-left: 2%;
+    padding-right: 2%;
+`;
+
+const ColorMenuItem = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #333;
+    position: relative;
+    &:hover { background-color: #f5f5f5; }
+`;
+
+const ColorDot = styled.button<{ hex: string }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: ${({ hex }) => hex};
+    border: 1.5px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: transform 0.1s;
+    &:hover { transform: scale(1.2); }
+`;
+
+const ColorSubmenu = styled.div`
+    position: absolute;
+    left: 100%;
+    top: 0;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 101;
+    padding: 8px;
+    display: flex;
+    gap: 6px;
 `;
 
 const CollapsedFieldContainer = styled.div`
@@ -231,22 +359,19 @@ const FieldRow = styled.div`
     width: 100%;
 `;
 
-const RatingHints = styled.div`
-    display: flex;
-    justify-content: space-between;
-    width: 90px;
+const RatingRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin: 4px auto;
+    align-items: start;
 `;
 
-const RatingHint = styled.span`
-    font-size: 0.6rem;
-    color: #bbb;
-    font-style: italic;
-`;
-
-
-const FieldLabel = styled.label`
+const FieldLabel = styled.label<{ hasError?: boolean }>`
     font-size: 0.8rem;
-    color: #888;
+    color: ${({ hasError }) => (hasError ? "#ef4444" : "#888")};
+    font-weight: ${({ hasError }) => (hasError ? "600" : "400")};
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -254,10 +379,10 @@ const FieldLabel = styled.label`
     min-width: 80px;
 `;
 
-const FieldInput = styled.input`
-    background-color: #ffffff;
+const FieldInput = styled.input<{ hasError?: boolean }>`
+    background-color: ${({ hasError }) => (hasError ? "#fef2f2" : "#ffffff")};
     color: #636363;
-    border: 1px solid #e0e0e0;
+    border: 1px solid ${({ hasError }) => (hasError ? "#ef4444" : "#e0e0e0")};
     border-radius: 3px;
     padding: 3px 6px;
     font-size: 0.9rem;
@@ -270,20 +395,51 @@ const FieldInput = styled.input`
     }
 `;
 
+const DurationRow = styled.div`
+    display: flex;
+    gap: 6px;
+    align-items: center;
+`;
+
+const DurationUnit = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+`;
+
+const DurationUnitLabel = styled.span`
+    font-size: 0.7rem;
+    color: #bbb;
+    text-align: center;
+`;
+
+const RatingHints = styled.div`
+    display: flex;
+    justify-content: space-between;
+    width: 90px;
+`;
+
+const RatingHint = styled.span`
+    font-size: 0.6rem;
+    color: #bbb;
+    font-style: italic;
+`;
+
 const RadioGroup = styled.div`
     display: flex;
     gap: 6px;
     margin-top: 2px;
-    justify-content: flex-start;
+    justify-content: center;
 `;
 
-const RadioOption = styled.button<{ selected: boolean }>`
+const RadioOption = styled.button<{ selected: boolean; selectedColor?: string; selectedDark?: string }>`
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 2px solid ${({ selected }) => (selected ? "#555" : "#ccc")};
-    background-color: ${({ selected }) => (selected ? "#555" : "#fff")};
-    color: ${({ selected }) => (selected ? "#fff" : "#888")};
+    border: 2px solid ${({ selected, selectedDark }) => (selected ? (selectedDark ?? "#555") : "#ccc")};
+    background-color: ${({ selected, selectedColor }) => (selected ? (selectedColor ?? "#555") : "#fff")};
+    color: ${({ selected, selectedDark }) => (selected ? (selectedDark ?? "#fff") : "#aaa")};
     font-size: 0.8rem;
     font-weight: bold;
     cursor: pointer;
@@ -291,9 +447,39 @@ const RadioOption = styled.button<{ selected: boolean }>`
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
+    &:hover { border-color: ${({ selectedDark }) => selectedDark ?? "#555"}; }
+`;
 
-    &:hover {
-        border-color: #555;
+const WarningBadge = styled.div`
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    z-index: 12;
+    cursor: default;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+`;
+
+const Tooltip = styled.div`
+    position: absolute;
+    top: 110%;
+    left: 0;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 0.72rem;
+    border-radius: 6px;
+    padding: 5px 9px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 200;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    &::before {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        left: 10px;
+        border: 5px solid transparent;
+        border-bottom-color: #1a1a1a;
     }
 `;
 
@@ -342,40 +528,117 @@ const ToastLink = styled.button`
 interface ModalTaskEditableProps {
     task: Task;
     onChange: (updated: Task) => void;
+    onRemove: () => void;
 }
 
-const colors: Record<string, string> = {
-    red: "#FFAFB1",
-    orange: "#F6C98A",
-    yellow: "#FFF59A",
-    green: "#C0E8AA",
-    blue: "#AFDBFF",
-    purple: "#C5AFFF",
-    pink: "#FFC7E8",
-};
-
-const getColorHex = (colorName?: string) =>
-    colors[colorName ?? "yellow"] ?? colors["yellow"];
-
-function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
+function ModalTaskEditable({ task, onChange , onRemove}: ModalTaskEditableProps) {
     const [local, setLocal] = useState<Task>({ ...task });
-    const colorHex = getColorHex(local.color);
+    const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    const { hours: initHours, minutes: initMins } = toHoursMinutes(task.task_duration);
+    const [durationHours, setDurationHours] = useState(initHours);
+    const [durationMinutes, setDurationMinutes] = useState(initMins);
+
+    const currentColorHex = getColorHex(local.color);
+    const currentDarkHex = getDarkColorHex(local.color);
+    const missingFields = getMissingFields(local);
+    const isSchedulable = missingFields.size === 0;
 
     const update = (fields: Partial<Task>) => {
         const updated = { ...local, ...fields };
+        updated.can_schedule = computeCanSchedule(updated);
         setLocal(updated);
         onChange(updated);
     };
 
+
+    const handleColorChange = (colorName: string) => {
+        const updated = { ...local, color: colorName };
+        updated.can_schedule = computeCanSchedule(updated);
+        setLocal(updated);
+        onChange(updated);
+        setColorSubmenuOpen(false);
+        setMenuOpen(false);
+    };
+
+    const handleDurationChange = (hours: number, minutes: number) => {
+        setDurationHours(hours);
+        setDurationMinutes(minutes);
+        update({ task_duration: toTotalMinutes(hours, minutes) });
+    };
+
+    const tooltipText = missingFields.size > 0
+        ? `Missing: ${[...missingFields]
+            .map(f => f === "task_duration" ? "time to complete" : f.replace("_", " "))
+            .join(", ")}`
+        : "";
+
     return (
-        <TaskEditableContainer>
-            <TitleRow colorHex={colorHex}>
+        <TaskEditableContainer style={{ position: "relative" }}>
+            {!isSchedulable && (
+                <WarningBadge
+                    onMouseEnter={() => setShowTooltip(true)}
+                    onMouseLeave={() => setShowTooltip(false)}
+                >
+                    <WarningIcon size={20} />
+                    {showTooltip && <Tooltip>{tooltipText}</Tooltip>}
+                </WarningBadge>
+            )}
+
+            <TitleRow colorHex={currentColorHex}>
                 <TitleInput
-                    colorHex={colorHex}
+                    colorHex={currentColorHex}
+                    hasError={missingFields.has("title")}
                     value={local.title}
                     onChange={e => update({ title: e.target.value })}
                     placeholder="Task title"
                 />
+                <MenuButton
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(prev => !prev);
+                        setColorSubmenuOpen(false);
+                    }}
+                    title="Options"
+                >
+                    ⋮
+                </MenuButton>
+                <RemoveButton onClick={onRemove} title="Remove task">✕</RemoveButton>
+                {menuOpen && (
+                    <ContextMenu>
+                        <ColorMenuItem
+                            onMouseEnter={() => setColorSubmenuOpen(true)}
+                            onMouseLeave={() => setColorSubmenuOpen(false)}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            Color
+                            <ColorDot
+                                hex={currentColorHex}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    setColorSubmenuOpen(prev => !prev);
+                                }}
+                            />
+                            {colorSubmenuOpen && (
+                                <ColorSubmenu>
+                                    {Object.entries(colors).map(([name, hex]) => (
+                                        <ColorDot
+                                            key={name}
+                                            hex={hex}
+                                            title={name}
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                handleColorChange(name);
+                                            }}
+                                        />
+                                    ))}
+                                </ColorSubmenu>
+                            )}
+                        </ColorMenuItem>
+                    </ContextMenu>
+                )}
             </TitleRow>
 
             <CollapsedFieldContainer>
@@ -386,35 +649,72 @@ function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
                 />
 
                 <FieldRow>
-                    <FieldLabel>
-                        Due Date
+                    <FieldLabel hasError={missingFields.has("due_date")}>
+                        Due Date{missingFields.has("due_date") ? " *" : ""}
                         <FieldInput
-                            type="date"
-                            value={local.due_date ?? ""}
+                            hasError={missingFields.has("due_date")}
+                            type="datetime-local"
+                            value={
+                                local.due_date
+                                    ? local.due_date.length === 10
+                                        ? local.due_date + "T00:00"
+                                        : local.due_date.slice(0, 16)
+                                    : ""
+                            }
                             onChange={e => update({ due_date: e.target.value || null })}
                         />
                     </FieldLabel>
 
-                    <FieldLabel>
-                        Duration (min)
-                        <FieldInput
-                            type="number"
-                            min={1}
-                            value={local.task_duration ?? ""}
-                            onChange={e => update({ task_duration: Number(e.target.value) })}
-                            placeholder="e.g. 30"
-                        />
+                    <FieldLabel hasError={missingFields.has("task_duration")}>
+                        Time to Complete{missingFields.has("task_duration") ? " *" : ""}
+                        <DurationRow>
+                            <DurationUnit>
+                                <FieldInput
+                                    hasError={missingFields.has("task_duration")}
+                                    type="number"
+                                    min={0}
+                                    value={durationHours || ""}
+                                    onChange={e =>
+                                        handleDurationChange(
+                                            Math.max(0, Number(e.target.value)),
+                                            durationMinutes
+                                        )
+                                    }
+                                    placeholder="0"
+                                />
+                                <DurationUnitLabel>hrs</DurationUnitLabel>
+                            </DurationUnit>
+                            <DurationUnit>
+                                <FieldInput
+                                    hasError={missingFields.has("task_duration")}
+                                    type="number"
+                                    min={0}
+                                    max={59}
+                                    value={durationMinutes || ""}
+                                    onChange={e =>
+                                        handleDurationChange(
+                                            durationHours,
+                                            Math.min(59, Math.max(0, Number(e.target.value)))
+                                        )
+                                    }
+                                    placeholder="0"
+                                />
+                                <DurationUnitLabel>min</DurationUnitLabel>
+                            </DurationUnit>
+                        </DurationRow>
                     </FieldLabel>
                 </FieldRow>
 
-                <FieldRow style={{ justifyContent: "flex-start" }}>
-                    <FieldLabel style={{ flex: "none", margin: "2%" }}>
+                <RatingRow>
+                    <FieldLabel style={{ alignItems: "center" }}>
                         Importance
                         <RadioGroup>
                             {[1, 2, 3].map(val => (
                                 <RadioOption
                                     key={val}
                                     selected={local.importance === val}
+                                    selectedColor={currentColorHex}
+                                    selectedDark={currentDarkHex}
                                     onClick={e => { e.stopPropagation(); update({ importance: val }); }}
                                     type="button"
                                 >
@@ -428,13 +728,15 @@ function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
                         </RatingHints>
                     </FieldLabel>
 
-                    <FieldLabel style={{ flex: "none", margin: "2%" }}>
+                    <FieldLabel style={{ alignItems: "center" }}>
                         Difficulty
                         <RadioGroup>
                             {[1, 2, 3].map(val => (
                                 <RadioOption
                                     key={val}
                                     selected={local.difficulty === val}
+                                    selectedColor={currentColorHex}
+                                    selectedDark={currentDarkHex}
                                     onClick={e => { e.stopPropagation(); update({ difficulty: val }); }}
                                     type="button"
                                 >
@@ -447,7 +749,7 @@ function ModalTaskEditable({ task, onChange }: ModalTaskEditableProps) {
                             <RatingHint>hard</RatingHint>
                         </RatingHints>
                     </FieldLabel>
-                </FieldRow>
+                </RatingRow>
             </CollapsedFieldContainer>
         </TaskEditableContainer>
     );
@@ -460,10 +762,11 @@ interface TaskConfirmModalProps {
     isLoading: boolean;
     onUpdateTask: (index: number, updated: Task) => void;
     onConfirm: () => void;
+    onRemoveTask: (index: number) => void;
     onCancel: () => void;
 }
 
-function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel }: TaskConfirmModalProps) {
+function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel, onRemoveTask }: TaskConfirmModalProps) {
     return (
         <ModalBackdrop onClick={onCancel}>
             <ModalCard onClick={e => e.stopPropagation()}>
@@ -482,9 +785,10 @@ function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel 
                     <TaskList>
                         {tasks.map((task, i) => (
                             <ModalTaskEditable
-                                key={i}
+                                key={task.title + i}
                                 task={task}
                                 onChange={updated => onUpdateTask(i, updated)}
+                                onRemove={() => onRemoveTask(i)}
                             />
                         ))}
                     </TaskList>
@@ -557,7 +861,6 @@ export function StickyNoteHome() {
         };
     }, [recomputeZones]);
 
-    // ── Listen for hovered zone events to glow the icons ────────────────────
     useEffect(() => {
         const handler = (e: CustomEvent<{ zoneId: string | null }>) => {
             setHoveredZone(e.detail.zoneId as "calendar" | "trash" | null);
@@ -612,6 +915,9 @@ export function StickyNoteHome() {
         setProposedTasks(prev =>
             prev.map((task, i) => i === index ? updated : task)
         );
+    };
+    const handleRemoveTask = (index: number) => {
+        setProposedTasks(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleConfirmTasks = async () => {
@@ -730,7 +1036,9 @@ export function StickyNoteHome() {
 
         await generateTasksFromNote(note);
     };
+
     useAutoTutorial("notes", STICKY_NOTE_TUTORIAL_STEPS);
+
     return (
         <>
             <Background />
@@ -742,7 +1050,6 @@ export function StickyNoteHome() {
 
                 <PageTitle>Your Sticky Notes</PageTitle>
 
-                {/* ── data-tutorial-id added so the tutorial spotlight can target this ── */}
                 <AddAndSelectWrapper>
                     <div data-tutorial-id="add-note-btn" style={{ display: "inline-flex" }}>
                         <AddButton
@@ -826,6 +1133,7 @@ export function StickyNoteHome() {
                         onUpdateTask={handleUpdateTask}
                         onConfirm={handleConfirmTasks}
                         onCancel={handleCancelTasks}
+                        onRemoveTask={handleRemoveTask}
                     />
                 )}
 
@@ -839,6 +1147,7 @@ export function StickyNoteHome() {
                         </ToastLink>
                     </ToastWrapper>
                 )}
+
                 <TutorialButton steps={STICKY_NOTE_TUTORIAL_STEPS} />
             </PageWrapper>
         </>
