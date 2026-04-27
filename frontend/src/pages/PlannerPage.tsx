@@ -16,6 +16,10 @@ import { getGoogleStatus } from "../api/googleApi";
 import { ROUTES } from "../constants/Routes.ts";
 import BackButton from "../components/navigation/BackButton.tsx";
 
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import {SCHEDULE_TUTORIAL_STEPS} from "../constants/ScheduleTutorialSteps.ts";
+import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+
 const PageBg = styled.div`
   min-height: 100vh;
   position: relative;
@@ -223,6 +227,7 @@ export default function PlannerPage() {
         ? { blocks: visibleCalendarBlocks }
         : null;
 
+    useAutoTutorial("schedule", SCHEDULE_TUTORIAL_STEPS);
     return (
         <PageBg>
             <BlurredBg />
@@ -256,6 +261,7 @@ export default function PlannerPage() {
                     userId={user.id}
                 />
             )}
+            <TutorialButton steps={SCHEDULE_TUTORIAL_STEPS} />
         </PageBg>
     );
 }

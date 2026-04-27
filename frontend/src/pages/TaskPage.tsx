@@ -9,6 +9,9 @@ import { getTasks, saveTask, deleteTask, updateTask, splitTask } from "../api/ta
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
+import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -282,7 +285,7 @@ export default function TaskPage() {
         ]);
         setSplitTargetTask(null);
     }
-
+    useAutoTutorial("tasks", TASKS_TUTORIAL_STEPS);
     return (
         <PageWrapper>
             <BackgroundSVG />
@@ -313,6 +316,7 @@ export default function TaskPage() {
                     onCancel={() => setSplitTargetTask(null)}
                 />
             )}
+            <TutorialButton steps={TASKS_TUTORIAL_STEPS} />
         </PageWrapper>
     );
 }

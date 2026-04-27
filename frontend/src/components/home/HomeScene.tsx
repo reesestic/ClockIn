@@ -11,6 +11,7 @@ import styled from "styled-components";
 import TaskBookObject from "./TaskBookObject.tsx";
 import TutorialButton from "../onboardingComponents/TutorialButton.tsx";
 import { HOME_TUTORIAL_STEPS } from "../../constants/HomeTutorialSteps.ts";
+import {useAutoTutorial} from "../../hooks/useAutoTutorial.ts";
 
 export const SceneWrapper = styled.div`
     position: relative;
@@ -36,7 +37,7 @@ const HomeBtn = styled.button<{ $open: boolean }>`
 
 export default function HomeScene() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-
+    useAutoTutorial("home", HOME_TUTORIAL_STEPS);
     return (
         <SceneWrapper>
             {/* Sidebar */}

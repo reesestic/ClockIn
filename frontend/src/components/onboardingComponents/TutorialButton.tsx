@@ -1,6 +1,4 @@
 import styled, { keyframes } from "styled-components";
-
-import { useEffect } from "react";
 import type {TutorialStep} from "../../types/TutorialStep.ts";
 import {useTutorial} from "../../constants/useTutorial.ts";
 
@@ -45,13 +43,8 @@ interface Props {
 export default function TutorialButton({ steps }: Props) {
     const { setSteps, start } = useTutorial();
 
-    // Register this page's steps as soon as the component mounts
-    useEffect(() => {
-        setSteps(steps);
-    }, [steps, setSteps]);
-
     return (
-        <Btn onClick={start} title="How it works">
+        <Btn onClick={() => { setSteps(steps); start(); }} title="How it works">
             ?
         </Btn>
     );
