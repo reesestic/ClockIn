@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from services.user_visits_service import UserVisitsService
 from dependencies.auth import get_current_user
-router = APIRouter(prefix="/user-visits", tags=["user-visits"])
+router = APIRouter(prefix="/api/user-visits", tags=["user-visits"])
 
 @router.get("/")
 async def get_user_visits(user=Depends(get_current_user)):

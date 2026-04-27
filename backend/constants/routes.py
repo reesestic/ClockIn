@@ -10,4 +10,5 @@ BUSY_TIMES = f"{API_PREFIX}/busy-times"
 STATS = f"{API_PREFIX}/stats"
 GOOGLE = f"{API_PREFIX}/google"
 PLANTS = f"{API_PREFIX}/plants"
+USER_VISITS= f"{API_PREFIX}/user-visits"
 
