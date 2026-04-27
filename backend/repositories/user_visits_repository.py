@@ -9,7 +9,7 @@ class UserVisitsRepository:
             .eq("id", user_id) \
             .single() \
             .execute()
-         print("supabase response:", response.data)
+        print("supabase response:", response.data)
         return response.data
 
     @staticmethod
