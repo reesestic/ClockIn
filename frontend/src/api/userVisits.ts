@@ -17,9 +17,10 @@ export async function getUserVisits(): Promise<VisitFlags> {
     const response = await authFetch(
         `${import.meta.env.VITE_API_URL}${API_ROUTES.USER_VISITS}`
     );
-    console.log(response);
+    const data = await response.json();
+    console.log(data);
     if (!response.ok) throw new Error("Failed to fetch user visits");
-    return await response.json();
+    return data;
 }
 
 export async function markPageVisited(page: Page): Promise<VisitFlags> {
