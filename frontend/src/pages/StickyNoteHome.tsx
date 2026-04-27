@@ -26,6 +26,7 @@ import {useNotes} from "../context/NoteContext.tsx";
 import LottieLoading from "../components/ui/LottieLoading.tsx";
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {STICKY_NOTE_TUTORIAL_STEPS} from "../constants/StickyNoteTutorialSteps.ts";
+import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
 
 // ─── Custom event types ───────────────────────────────────────────────────────
 
@@ -729,7 +730,7 @@ export function StickyNoteHome() {
 
         await generateTasksFromNote(note);
     };
-
+    useAutoTutorial("notes", STICKY_NOTE_TUTORIAL_STEPS);
     return (
         <>
             <Background />
