@@ -20,5 +20,5 @@ export function useAutoTutorial(
         setSteps(steps);
         setOnComplete(() => markVisited(page));
         start();
-    }, [visited, enabled]);
+    }, [visited, enabled, steps, page, markVisited, setOnComplete, setSteps, start]);
 }
