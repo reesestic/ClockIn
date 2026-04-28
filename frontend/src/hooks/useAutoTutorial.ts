@@ -17,8 +17,13 @@ export function useAutoTutorial(
     useEffect(() => {
         if (!enabled) return;
         if (visited !== false) return;
+        
         setSteps(steps);
         setOnComplete(() => markVisited(page));
         start();
-    }, [visited, enabled, steps, page, markVisited, setOnComplete, setSteps, start]);
+        
+    // We only want this to trigger when the 'visited' status or 'enabled' toggle changes.
+    // Adding the rest causes infinite loops if the parent doesn't memoize them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [visited, enabled]); 
 }
