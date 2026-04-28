@@ -448,8 +448,10 @@ export default function TaskEditable({
     const [collapsed, setCollapsed] = useState<boolean>(viewMode === "grid" ? false : !initialEditing);
 
     useEffect(() => {
-        if (viewMode === "grid") setCollapsed(false);
-        else setCollapsed(true);
+        const timer = setTimeout(() => {
+            setCollapsed(viewMode !== "grid");
+        }, 0);
+        return () => clearTimeout(timer);
     }, [viewMode]);
 
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
