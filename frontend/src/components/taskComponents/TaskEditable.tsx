@@ -3,6 +3,7 @@ import styled from "styled-components";
 import type { Task } from "../../types/Task.ts";
 import { useDebounce } from "../../hooks/useDebounce.ts";
 import WarningIcon from "../icons/WarningIcon.tsx"
+import type { ViewMode } from "../../pages/TaskPage.tsx";
 
 // ── Color Map ────────────────────────────────────────────────────────────────
 
@@ -57,15 +58,39 @@ function toTotalMinutes(hours: number, minutes: number) {
     return hours * 60 + minutes;
 }
 
+// ── New Styled Icons ─────────────────────────────────────────────────────────
 
+const IconSvg = styled.svg`
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+`;
+
+const StyledPencil = () => (
+    <IconSvg viewBox="0 0 24 24">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </IconSvg>
+);
+
+const StyledCheck = () => (
+    <IconSvg viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12" />
+    </IconSvg>
+);
 
 // ── Styled Components ─────────────────────────────────────────────────────────
 
-const Container = styled.div<{ isEditing: boolean }>`
-    max-width: 60%;
+const Container = styled.div<{ isEditing: boolean; $viewMode: ViewMode }>`
+    max-width: ${({ $viewMode }) => ($viewMode === "grid" ? "90%" : "70%")};
     display: flex;
     border-radius: 12px;
-    margin: 3% auto;
+    margin: ${({ $viewMode }) => ($viewMode === "grid" ? "4px auto" : "1.5% auto")};
     flex-direction: column;
     position: relative;
     background-color: white;
@@ -73,9 +98,9 @@ const Container = styled.div<{ isEditing: boolean }>`
     transition: border-color 0.15s, box-shadow 0.15s;
     border: 2px solid ${({ isEditing }) => (isEditing ? "#3b82f6" : "lightgray")};
     box-shadow: ${({ isEditing }) =>
-            isEditing
-                    ? "0 0 0 3px rgba(59, 130, 246, 0.2), -3px 3px 10px 0px #b5b5b5"
-                    : "-3px 3px 10px 0px #b5b5b5"};
+    isEditing
+        ? "0 0 0 3px rgba(59, 130, 246, 0.2), -3px 3px 10px 0px #b5b5b5"
+        : "-3px 3px 10px 0px #b5b5b5"};
     overflow: visible;
 `;
 
@@ -83,11 +108,11 @@ const TitleInput = styled.input<{ isEditing: boolean; colorHex: string; hasError
     background-color: ${({ colorHex }) => colorHex};
     color: black;
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 1.15rem;
     margin-left: 1%;
     border: none;
     outline: none;
-    padding: 4px 6px;
+    padding: 10px 6px; /* Increased padding for better look */
     width: 100%;
     box-sizing: border-box;
     cursor: ${({ isEditing }) => (isEditing ? "text" : "pointer")};
@@ -109,11 +134,30 @@ const MenuButton = styled.button`
     cursor: pointer;
     color: #636363;
     font-size: 1.1rem;
-    padding: 0 6px;
+    padding: 0 10px;
     flex-shrink: 0;
     position: relative;
     z-index: 11;
     &:hover { color: black; }
+`;
+
+const EditToggleButton = styled.button<{ isEditing: boolean; activeColor: string }>`
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 12px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 11;
+    color: ${({ isEditing, activeColor }) => (isEditing ? activeColor : activeColor)};
+    transition: color 0.15s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover {
+        color: ${({ isEditing, activeColor }) => (isEditing ? activeColor : activeColor)};
+        transform: scale(1.1);
+    }
 `;
 
 const ContextMenu = styled.div`
@@ -140,7 +184,7 @@ const MenuItem = styled.button<{ danger?: boolean }>`
     border: none;
     cursor: pointer;
     color: ${({ danger }) => (danger ? "#d9534f" : "#333")};
-    font-size: 0.9rem;
+    font-size: 1rem;
     &:hover { background-color: #f5f5f5; }
 `;
 
@@ -150,7 +194,7 @@ const ColorMenuItem = styled.div`
     justify-content: space-between;
     padding: 8px 14px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #333;
     position: relative;
     &:hover { background-color: #f5f5f5; }
@@ -189,7 +233,7 @@ const DescriptionTextarea = styled.textarea<{ isEditing: boolean }>`
     color: #636363;
     border: 1px solid transparent;
     resize: ${({ isEditing }) => (isEditing ? "vertical" : "none")};
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     padding: 4px 6px;
     width: 100%;
     box-sizing: border-box;
@@ -220,7 +264,7 @@ const RatingRow = styled.div`
 `;
 
 const FieldLabel = styled.label<{ hasError?: boolean }>`
-    font-size: 0.8rem;
+    font-size: 0.95rem;
     color: ${({ hasError }) => (hasError ? "#ef4444" : "#888")};
     font-weight: ${({ hasError }) => (hasError ? "600" : "400")};
     display: flex;
@@ -235,7 +279,7 @@ const FieldInput = styled.input<{ isEditing: boolean; hasError?: boolean }>`
     border: 1px solid ${({ hasError }) => (hasError ? "#ef4444" : "#e0e0e0")};
     border-radius: 3px;
     padding: 3px 6px;
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     width: 100%;
     box-sizing: border-box;
     cursor: ${({ isEditing }) => (isEditing ? "text" : "pointer")};
@@ -260,7 +304,7 @@ const DurationUnit = styled.div`
 `;
 
 const DurationUnitLabel = styled.span`
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     color: #bbb;
     text-align: center;
 `;
@@ -283,7 +327,7 @@ const RadioOption = styled.button<{
     border: 2px solid ${({ selected, selectedDark }) => (selected ? selectedDark : "#ccc")};
     background-color: ${({ selected, selectedColor }) => (selected ? selectedColor : "#fff")};
     color: ${({ selected, selectedDark }) => (selected ? selectedDark : "#aaa")};
-    font-size: 0.8rem;
+    font-size: 0.95rem;
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -323,13 +367,6 @@ const CollapsedFieldContainer = styled.div`
     align-items: flex-start;
 `;
 
-const EditingHint = styled.span`
-    font-size: 0.7rem;
-    color: #aaa;
-    padding: 2px 6px;
-    align-self: center;
-`;
-
 const ClickOverlay = styled.div`
     position: absolute;
     inset: 0;
@@ -345,12 +382,10 @@ const RatingHints = styled.div`
 `;
 
 const RatingHint = styled.span`
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     color: #bbb;
     font-style: italic;
 `;
-
-// ── Warning badge ─────────────────────────────────────────────────────────────
 
 const WarningBadge = styled.div`
     position: absolute;
@@ -367,7 +402,7 @@ const Tooltip = styled.div`
     left: 0;
     background: #1a1a1a;
     color: #fff;
-    font-size: 0.72rem;
+    font-size: 0.85rem;
     border-radius: 6px;
     padding: 5px 9px;
     white-space: nowrap;
@@ -397,6 +432,7 @@ type TaskEditableProps = {
     onDelete?: (taskId: string) => void;
     onAddToSchedule?: (taskId: string) => void;
     onSplit?: (task: Task) => void;
+    viewMode?: ViewMode;
 };
 
 export default function TaskEditable({
@@ -407,8 +443,17 @@ export default function TaskEditable({
                                          onChange,
                                          onDelete,
                                          onSplit,
+                                         viewMode = "list",
                                      }: TaskEditableProps) {
-    const [collapsed, setCollapsed] = useState<boolean>(!initialEditing);
+    const [collapsed, setCollapsed] = useState<boolean>(viewMode === "grid" ? false : !initialEditing);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setCollapsed(viewMode !== "grid");
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [viewMode]);
+
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
     const [isEditing, setIsEditing] = useState<boolean>(initialEditing);
@@ -428,7 +473,6 @@ export default function TaskEditable({
     const currentColorHex = getColorHex(local.color);
     const currentDarkHex = getDarkColorHex(local.color);
 
-    // Derived — recomputed every render from local state
     const missingFields = getMissingFields(local);
     const isSchedulable = missingFields.size === 0;
 
@@ -438,22 +482,12 @@ export default function TaskEditable({
         }
     });
 
-    useEffect(() => {
-        if (!isEditing) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setIsEditing(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isEditing]);
+    // EFFECT REMOVED: No more closing on click outside.
 
     useEffect(() => {
         if (initialEditing) setTimeout(() => titleRef.current?.focus(), 0);
     }, []);
 
-    // Central update — always recomputes can_schedule
     const updateLocal = (patch: Partial<Task>) => {
         const next = { ...local, ...patch };
         next.can_schedule = computeCanSchedule(next);
@@ -484,10 +518,9 @@ export default function TaskEditable({
         : "";
 
     return (
-        <Container ref={containerRef} isEditing={isEditing}>
+        <Container ref={containerRef} isEditing={isEditing} $viewMode={viewMode}>
             {!isEditing && <ClickOverlay onClick={onClick} />}
 
-            {/* ── Warning badge — only shown when not schedulable ── */}
             {!isSchedulable && (
                 <WarningBadge
                     onMouseEnter={() => setShowTooltip(true)}
@@ -498,7 +531,6 @@ export default function TaskEditable({
                 </WarningBadge>
             )}
 
-            {/* ── Title Row ── */}
             <TitleRow colorHex={currentColorHex}>
                 <TitleInput
                     ref={titleRef}
@@ -517,7 +549,24 @@ export default function TaskEditable({
                     }}
                     placeholder="Task title"
                 />
-                {isEditing && <EditingHint>editing</EditingHint>}
+                {isEditable && (
+                    <EditToggleButton
+                        isEditing={isEditing}
+                        activeColor={currentDarkHex}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isEditing) {
+                                setIsEditing(false);
+                            } else {
+                                setIsEditing(true);
+                                setCollapsed(false);
+                            }
+                        }}
+                        title={isEditing ? "Done editing" : "Edit task"}
+                    >
+                        {isEditing ? <StyledCheck /> : <StyledPencil />}
+                    </EditToggleButton>
+                )}
                 {isEditable && (
                     <MenuButton
                         onClick={(e) => {
@@ -532,7 +581,6 @@ export default function TaskEditable({
                 )}
             </TitleRow>
 
-            {/* ── Context Menu ── */}
             {isEditable && menuOpen && (
                 <ContextMenu>
                     <ColorMenuItem
@@ -565,16 +613,6 @@ export default function TaskEditable({
                         )}
                     </ColorMenuItem>
 
-                    <MenuItem
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            setIsEditing(true);
-                        }}
-                    >
-                        Edit task
-                    </MenuItem>
-
                     {(task.task_duration ?? 0) >= 120 && (
                         <MenuItem
                             onClick={(e) => {
@@ -600,7 +638,6 @@ export default function TaskEditable({
                 </ContextMenu>
             )}
 
-            {/* ── Expanded Fields ── */}
             {!collapsed && (
                 <CollapsedFieldContainer>
                     <DescriptionTextarea
@@ -619,7 +656,6 @@ export default function TaskEditable({
                     />
 
                     <FieldRow>
-                        {/* ── Due Date ── */}
                         <FieldLabel hasError={missingFields.has("due_date")}>
                             Due Date{missingFields.has("due_date") ? " *" : ""}
                             <FieldInput
@@ -639,7 +675,6 @@ export default function TaskEditable({
                             />
                         </FieldLabel>
 
-                        {/* ── Time to Complete ── */}
                         <FieldLabel hasError={missingFields.has("task_duration")}>
                             Time to Complete{missingFields.has("task_duration") ? " *" : ""}
                             <DurationRow>
@@ -684,7 +719,6 @@ export default function TaskEditable({
                         </FieldLabel>
                     </FieldRow>
 
-                    {/* ── Importance + Difficulty ── */}
                     <RatingRow>
                         <FieldLabel style={{ alignItems: "center" }}>
                             Importance
@@ -741,7 +775,6 @@ export default function TaskEditable({
                 </CollapsedFieldContainer>
             )}
 
-            {/* ── Collapse Toggle ── */}
             <CollapseButton
                 onClick={(e) => {
                     e.stopPropagation();

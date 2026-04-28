@@ -10,9 +10,11 @@ import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
-import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
-import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
-import {useUserVisits} from "../hooks/useUserVisits.ts";
+import { TASKS_TUTORIAL_STEPS } from "../constants/TaskListTutorialSteps.ts";
+import { useAutoTutorial } from "../hooks/useAutoTutorial.ts";
+import { useUserVisits } from "../hooks/useUserVisits.ts";
+
+export type ViewMode = "list" | "grid";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -51,6 +53,10 @@ const Content = styled.div`
     z-index: 2;
 `;
 
+
+
+
+
 // ── Split Modal Styled Components ─────────────────────────────────────────────
 
 const fadeIn = keyframes`
@@ -81,8 +87,8 @@ const ModalCard = styled.div`
     padding: 32px;
     width: min(480px, 90vw);
     box-shadow:
-        0 4px 6px rgba(0,0,0,0.05),
-        0 20px 60px rgba(0,0,0,0.18);
+            0 4px 6px rgba(0,0,0,0.05),
+            0 20px 60px rgba(0,0,0,0.18);
     animation: ${slideUp} 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
     flex-direction: column;
@@ -247,6 +253,7 @@ function SplitTaskModal({ task, onConfirm, onCancel }: SplitTaskModalProps) {
 export default function TaskPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [splitTargetTask, setSplitTargetTask] = useState<Task | null>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>("list");
 
     useEffect(() => {
         getTasks().then(setTasks);
@@ -279,7 +286,6 @@ export default function TaskPage() {
     async function handleConfirmSplit(split: number) {
         if (!splitTargetTask?.id) return;
         const newTasks = await splitTask(splitTargetTask.id, split);
-        // remove the original task and add the split tasks
         setTasks(prev => [
             ...newTasks,
             ...prev.filter(t => t.id !== splitTargetTask.id),
@@ -289,6 +295,7 @@ export default function TaskPage() {
 
     const { visits } = useUserVisits();
     useAutoTutorial(visits?.visited_tasks, TASKS_TUTORIAL_STEPS, "tasks");
+
     return (
         <PageWrapper>
             <BackgroundSVG />
@@ -300,6 +307,7 @@ export default function TaskPage() {
                         tasks,
                         mode: "tasklist",
                         onUpdateTask: handleUpdateTask,
+                        viewMode,
                     }}
                     onAddTask={async (newTask) => {
                         await handleCreateTask({ ...newTask, can_schedule: false });
@@ -309,6 +317,7 @@ export default function TaskPage() {
                     onAddToSchedule={(taskId) => {
                         console.log("Add to schedule:", taskId);
                     }}
+                    onViewModeChange={setViewMode}
                 />
             </Content>
 
