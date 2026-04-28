@@ -122,3 +122,22 @@ export async function updateTaskStatus( taskId: string, status: string): Promise
 
     return await response.json();
 }
+
+export async function generateTasksFromFile(file: File): Promise<Task[]> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await authFetch(
+        `${import.meta.env.VITE_API_URL}${API_ROUTES.TASKS}/generate-from-file`,
+        {
+            method: "POST",
+            body: formData,
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to generate tasks from file");
+    }
+
+    return await response.json();
+}

@@ -113,7 +113,8 @@ type SortKey = "none" | "due_date" | "difficulty" | "importance" | "task_duratio
 
 type TaskListProps = TaskSidebarProps & {
     onAddTask?: () => void;
-    hideControls?: boolean;   // add this
+    hideControls?: boolean;
+    onOpenUpload?: () => void;
 
 };
 
@@ -131,6 +132,7 @@ export default function TaskList({
                                      mode,
                                      onSplitTask,
                                      hideControls = false,
+                                     onOpenUpload,
                                  }: TaskListProps) {
     const [search, setSearch] = useState("");
     const [sortKey, setSortKey] = useState<SortKey>("none");
@@ -158,6 +160,11 @@ export default function TaskList({
                         <div data-tutorial-id="add-task">
                             <AddButton onClick={onAddTask} title="Add task">+</AddButton>
                         </div>
+                    )}
+                    {onOpenUpload && (
+                        <button onClick={onOpenUpload}>
+                            Upload
+                        </button>
                     )}
                     <div data-tutorial-id="search-bar" style={{ flex: 1, minWidth: 0 }}>
                         <SearchInput

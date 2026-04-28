@@ -2,6 +2,9 @@
     import TaskList from "./TaskList";
     import type { TaskSidebarProps } from "./TaskSidebarProps.ts";
     import type { Task } from "../../types/Task.ts";
+    import { useState } from "react";
+    import TaskConfirmModal from "../modal/TaskConfirmModal.tsx";
+    import FileUploadModal from "../modal/FileUploadModal.tsx";
 
     // ── Styled Components ────────────────────────────────────────────────────────
 
@@ -75,6 +78,14 @@
                                             onSplitTask,
                                         }: TaskSidebarFullProps) {
 
+        const [showUploadModal, setShowUploadModal] = useState(false);
+        const [proposedTasks, setProposedTasks] = useState<Task[]>([]);
+        const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+        const handleOpenUpload = () => {
+            setShowUploadModal(true);
+        };
+
         const handleAdd = async () => {
             await onAddTask({
                 title: "",
@@ -85,6 +96,24 @@
                 difficulty: 0,
                 status: "to do",
             });
+        };
+
+        const handleConfirm = async () => {
+            for (const task of proposedTasks) {
+                await onAddTask({
+                    title: task.title,
+                    description: task.description,
+                    due_date: task.due_date ?? null,
+                    task_duration: task.task_duration ?? 0,
+                    importance: task.importance ?? 1,
+                    difficulty: task.difficulty ?? 1,
+                    status: "to do",
+                });
+            }
+
+            setShowConfirmModal(false);
+            setShowUploadModal(false);
+            setProposedTasks([]);
         };
 
         return (
@@ -108,7 +137,37 @@
                         onAddTask={handleAdd}
                         mode={props.mode}
                         onSplitTask={onSplitTask}
+                        onOpenUpload={handleOpenUpload}
                     />
+                    {showUploadModal && (
+                        <FileUploadModal
+                            onClose={() => setShowUploadModal(false)}
+                            onTasksGenerated={(tasks) => {
+                                setShowUploadModal(false);
+                                setProposedTasks(tasks);
+                                setShowConfirmModal(true);
+                            }}
+                        />
+                    )}
+
+                    {showConfirmModal && (
+                        <TaskConfirmModal
+                            tasks={proposedTasks}
+                            isLoading={false}
+                            onUpdateTask={(i, updated) => {
+                                setProposedTasks(prev =>
+                                    prev.map((t, idx) => idx === i ? updated : t)
+                                );
+                            }}
+                            onRemoveTask={(i) => {
+                                setProposedTasks(prev =>
+                                    prev.filter((_, idx) => idx !== i)
+                                );
+                            }}
+                            onConfirm={handleConfirm}
+                            onCancel={() => setShowConfirmModal(false)}
+                        />
+                    )}
                 </ScrollableTaskList>
             </SidebarContainer>
         );
