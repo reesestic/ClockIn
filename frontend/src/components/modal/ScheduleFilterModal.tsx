@@ -637,7 +637,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         try {
             const saved = localStorage.getItem(`clockin_ignored_cal:${userId}`);
             if (saved) return new Set<string>(JSON.parse(saved));
-        } catch {}
+        } catch { /* ignore parse errors */ }
         return new Set((initialCalendarBlocks ?? []).filter((b) => b.isIgnored).map((b) => stableCalKey(b)));
     })());
 
@@ -648,7 +648,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                 const ids = JSON.parse(saved) as string[];
                 if (ids.length > 0) return ids;
             }
-        } catch {}
+        } catch { /* ignore parse errors */ }
         return [...new Set(initTaskBlocksRef.current.map((b) => b.task_id).filter((id): id is string => !!id))];
     });
     const [allowedDays, setAllowedDays] = useState<string[]>(weekDays.map((d) => d.date));

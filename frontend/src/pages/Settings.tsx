@@ -309,20 +309,6 @@ const ModalFieldset = styled.div`
     gap: 14px;
 `;
 
-const ModalSection = styled.div`
-    border-top: 1px solid #f0f0f0;
-    padding-top: 16px;
-    [data-theme="dark"] & { border-top-color: #4a4180; }
-`;
-
-const ModalSectionTitle = styled.div`
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #555;
-    margin-bottom: 12px;
-    [data-theme="dark"] & { color: #c8c0f0; }
-`;
-
 const ModalBtnRow = styled.div`
     display: flex;
     gap: 10px;
