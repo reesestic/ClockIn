@@ -20,5 +20,6 @@ export function useAutoTutorial(
         setSteps(steps);
         setOnComplete(() => markVisited(page));
         start();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visited, enabled]);
 }

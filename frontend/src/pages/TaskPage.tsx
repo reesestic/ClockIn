@@ -10,7 +10,13 @@ import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 import NightHomepageIcon from "../components/icons/NightHomepageIcon";
+import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
+import { TASKS_TUTORIAL_STEPS } from "../constants/TaskListTutorialSteps.ts";
+import { useAutoTutorial } from "../hooks/useAutoTutorial.ts";
+import { useUserVisits } from "../hooks/useUserVisits.ts";
 import { useTheme } from "../context/ThemeContext";
+
+export type ViewMode = "list" | "grid";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -98,8 +104,8 @@ const ModalCard = styled.div`
     padding: 32px;
     width: min(480px, 90vw);
     box-shadow:
-        0 4px 6px rgba(0,0,0,0.05),
-        0 20px 60px rgba(0,0,0,0.18);
+            0 4px 6px rgba(0,0,0,0.05),
+            0 20px 60px rgba(0,0,0,0.18);
     animation: ${slideUp} 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
     flex-direction: column;
@@ -265,6 +271,7 @@ export default function TaskPage() {
     const { isDark } = useTheme();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [splitTargetTask, setSplitTargetTask] = useState<Task | null>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>("list");
 
     useEffect(() => {
         getTasks().then(setTasks);
@@ -305,6 +312,9 @@ export default function TaskPage() {
         setSplitTargetTask(null);
     }
 
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_tasks, TASKS_TUTORIAL_STEPS, "tasks");
+
     return (
         <PageWrapper>
             {isDark ? <NightBgSVG /> : <DayBgSVG />}
@@ -316,6 +326,7 @@ export default function TaskPage() {
                         tasks,
                         mode: "tasklist",
                         onUpdateTask: handleUpdateTask,
+                        viewMode,
                     }}
                     onAddTask={async (newTask) => {
                         await handleCreateTask({ ...newTask, can_schedule: false });
@@ -325,6 +336,7 @@ export default function TaskPage() {
                     onAddToSchedule={(taskId) => {
                         console.log("Add to schedule:", taskId);
                     }}
+                    onViewModeChange={setViewMode}
                 />
             </Content>
 
@@ -335,6 +347,7 @@ export default function TaskPage() {
                     onCancel={() => setSplitTargetTask(null)}
                 />
             )}
+            <TutorialButton steps={TASKS_TUTORIAL_STEPS} />
         </PageWrapper>
     );
 }
