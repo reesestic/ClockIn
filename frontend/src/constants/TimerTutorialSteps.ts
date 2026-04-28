@@ -9,10 +9,9 @@ export const TIMER_TUTORIAL_STEPS: TutorialStep[] = [
             "other steps. As you use our timer, ",
         highlight: "you'll grow a garden of plants!",
         targetSelector: "[data-tutorial-id='timer-start']",
-        modalPosition: { top: "30%", left: "80%", transform: "translate(-50%, -50%)" },
+        modalPosition: { top: "30%", left: "50%", transform: "translate(-50%, -50%)" },
         beePosition: { top: "18%", right: "35%" },
-        lineCurve: {offsetX: 200, offsetY: 400},
-        spotlightOffset:{y: 50}
+        lineCurve: {offsetX: 200}
     },
     {
         id: 'free-timer',

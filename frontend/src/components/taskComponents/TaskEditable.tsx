@@ -112,7 +112,7 @@ const TitleInput = styled.input<{ isEditing: boolean; colorHex: string; hasError
     margin-left: 1%;
     border: none;
     outline: none;
-    padding: 10px 6px; /* Increased padding for better look */
+    padding: 10px 6px;
     width: 100%;
     box-sizing: border-box;
     cursor: ${({ isEditing }) => (isEditing ? "text" : "pointer")};
@@ -149,13 +149,12 @@ const EditToggleButton = styled.button<{ isEditing: boolean; activeColor: string
     flex-shrink: 0;
     position: relative;
     z-index: 11;
-    color: ${({ isEditing, activeColor }) => (isEditing ? activeColor : activeColor)};
+    color: ${({ activeColor }) => activeColor};
     transition: color 0.15s, transform 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
     &:hover {
-        color: ${({ isEditing, activeColor }) => (isEditing ? activeColor : activeColor)};
         transform: scale(1.1);
     }
 `;
@@ -387,6 +386,8 @@ const RatingHint = styled.span`
     font-style: italic;
 `;
 
+// ── Warning badge ─────────────────────────────────────────────────────────────
+
 const WarningBadge = styled.div`
     position: absolute;
     top: -8px;
@@ -473,6 +474,7 @@ export default function TaskEditable({
     const currentColorHex = getColorHex(local.color);
     const currentDarkHex = getDarkColorHex(local.color);
 
+    // Derived — recomputed every render from local state
     const missingFields = getMissingFields(local);
     const isSchedulable = missingFields.size === 0;
 
@@ -482,12 +484,11 @@ export default function TaskEditable({
         }
     });
 
-    // EFFECT REMOVED: No more closing on click outside.
-
     useEffect(() => {
         if (initialEditing) setTimeout(() => titleRef.current?.focus(), 0);
     }, []);
 
+    // Central update — always recomputes can_schedule
     const updateLocal = (patch: Partial<Task>) => {
         const next = { ...local, ...patch };
         next.can_schedule = computeCanSchedule(next);
@@ -521,6 +522,7 @@ export default function TaskEditable({
         <Container ref={containerRef} isEditing={isEditing} $viewMode={viewMode}>
             {!isEditing && <ClickOverlay onClick={onClick} />}
 
+            {/* ── Warning badge — only shown when not schedulable ── */}
             {!isSchedulable && (
                 <WarningBadge
                     onMouseEnter={() => setShowTooltip(true)}
@@ -531,6 +533,7 @@ export default function TaskEditable({
                 </WarningBadge>
             )}
 
+            {/* ── Title Row ── */}
             <TitleRow colorHex={currentColorHex}>
                 <TitleInput
                     ref={titleRef}
@@ -581,6 +584,7 @@ export default function TaskEditable({
                 )}
             </TitleRow>
 
+            {/* ── Context Menu ── */}
             {isEditable && menuOpen && (
                 <ContextMenu>
                     <ColorMenuItem
@@ -638,6 +642,7 @@ export default function TaskEditable({
                 </ContextMenu>
             )}
 
+            {/* ── Expanded Fields ── */}
             {!collapsed && (
                 <CollapsedFieldContainer>
                     <DescriptionTextarea
@@ -656,6 +661,7 @@ export default function TaskEditable({
                     />
 
                     <FieldRow>
+                        {/* ── Due Date ── */}
                         <FieldLabel hasError={missingFields.has("due_date")}>
                             Due Date{missingFields.has("due_date") ? " *" : ""}
                             <FieldInput
@@ -675,6 +681,7 @@ export default function TaskEditable({
                             />
                         </FieldLabel>
 
+                        {/* ── Time to Complete ── */}
                         <FieldLabel hasError={missingFields.has("task_duration")}>
                             Time to Complete{missingFields.has("task_duration") ? " *" : ""}
                             <DurationRow>
@@ -719,6 +726,7 @@ export default function TaskEditable({
                         </FieldLabel>
                     </FieldRow>
 
+                    {/* ── Importance + Difficulty ── */}
                     <RatingRow>
                         <FieldLabel style={{ alignItems: "center" }}>
                             Importance
@@ -775,6 +783,7 @@ export default function TaskEditable({
                 </CollapsedFieldContainer>
             )}
 
+            {/* ── Collapse Toggle ── */}
             <CollapseButton
                 onClick={(e) => {
                     e.stopPropagation();

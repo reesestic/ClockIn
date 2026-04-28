@@ -15,6 +15,10 @@ const TaskContainer = styled.div`
     margin: auto;
     padding-bottom: 2%;
     min-height: 100vh;
+
+    [data-theme="dark"] & {
+        background-color: #9f95c6;
+    }
 `;
 
 const StickyBar = styled.div`
@@ -22,21 +26,25 @@ const StickyBar = styled.div`
     top: 0;
     z-index: 20;
     background-color: #ffffff;
-    padding: 16px 20px 14px;
+    padding: 10px 12px 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     border-radius: 5px 5px 0 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+
+    [data-theme="dark"] & {
+        background-color: #9f95c6;
+    }
 `;
 
 const SearchInput = styled.input`
     width: 100%;
     flex: 1;
-    padding: 6px 14px;
+    padding: 4px 10px;
     border: 1px solid #e0e0e0;
     border-radius: 12px;
-    font-size: calc(6px + 1.5vh);
+    font-size: calc(2px + 1vh);
     font-family: "clother", sans-serif;
     font-style: italic;
     color: #636363;
@@ -49,22 +57,33 @@ const SearchInput = styled.input`
     &::placeholder {
         color: #ccc;
     }
+
+    [data-theme="dark"] & {
+        background: #857bb5;
+        color: #f0ecf8;
+        border-color: #7a70a8;
+    }
 `;
 
 const SortSelect = styled.select`
-    padding: 6px 10px;
+    padding: 4px 8px;
     border: 1px solid #e0e0e0;
     border-radius: 12px;
-    font-size: calc(6px + 1.5vh);
+    font-size: calc(2px + 1vh);
     font-family: "clother", sans-serif;
     font-style: italic;
     color: #636363;
     background: #fff;
     outline: none;
     cursor: pointer;
-    white-space: nowrap;
     &:focus {
         border-color: #aaa;
+    }
+
+    [data-theme="dark"] & {
+        background: #857bb5;
+        color: #f0ecf8;
+        border-color: #7a70a8;
     }
 `;
 
@@ -72,9 +91,9 @@ const AddButton = styled.button`
     background: #f5f5f5;
     border: 1px solid #999;
     border-radius: 50%;
-    width: 38px;
-    height: 38px;
-    font-size: 1.4rem;
+    width: 24px;
+    height: 24px;
+    font-size: 1rem;
     cursor: pointer;
     color: black;
     display: flex;
@@ -151,8 +170,8 @@ const TaskGrid = styled.div<{ $viewMode: ViewMode }>`
     padding: ${({ $viewMode }) => ($viewMode === "grid" ? "4px" : "0")};
 
     ${({ $viewMode }) =>
-            $viewMode === "grid" &&
-            `
+    $viewMode === "grid" &&
+    `
         > * {
             width: 100%;
             min-height: 140px;
@@ -161,8 +180,8 @@ const TaskGrid = styled.div<{ $viewMode: ViewMode }>`
     `}
 
     ${({ $viewMode }) =>
-            $viewMode === "list" &&
-            `
+    $viewMode === "list" &&
+    `
         > * {
             width: 100%;
         }
@@ -212,7 +231,7 @@ export default function TaskList({
             if (!b.due_date) return -1;
             return a.due_date.localeCompare(b.due_date);
         }
-        return (b[sortKey] ?? 0) - (a[sortKey] ?? 0);
+        return (b[sortKey] ?? 0) - (a[sortKey] ?? 0); // higher = first for importance/difficulty/duration
     });
 
     return (
@@ -224,7 +243,6 @@ export default function TaskList({
                             <AddButton onClick={onAddTask} title="Add task">+</AddButton>
                         </div>
                     )}
-
                     <div data-tutorial-id="search-bar" style={{ flex: 1, minWidth: 0 }}>
                         <SearchInput
                             value={search}
@@ -232,17 +250,16 @@ export default function TaskList({
                             placeholder="search tasks..."
                         />
                     </div>
-
                     <div data-tutorial-id="filters">
                         <SortSelect
                             value={sortKey}
                             onChange={(e) => setSortKey(e.target.value as SortKey)}
                         >
-                            <option value="none">Sort By...</option>
-                            <option value="due_date">Earliest Due Date</option>
-                            <option value="importance">Most Important</option>
-                            <option value="difficulty">Most Difficult</option>
-                            <option value="task_duration">Longest First</option>
+                            <option value="none">sort by...</option>
+                            <option value="due_date">due date</option>
+                            <option value="importance">importance</option>
+                            <option value="difficulty">difficulty</option>
+                            <option value="task_duration">duration</option>
                         </SortSelect>
                     </div>
 

@@ -2,6 +2,8 @@ import styled, { keyframes } from "styled-components";
 import FreeModeIcon from "../icons/FreeModeIcon.tsx";
 import TaskModeIcon from "../icons/TaskModeIcon.tsx";
 import HomepageBlankIcon from "../icons/HomepageBlankIcon.tsx";
+import NightHomepageIcon from "../icons/NightHomepageIcon.tsx";
+import { useTheme } from "../../context/ThemeContext";
 
 const fadeIn = keyframes`
     from { opacity: 0; }
@@ -21,7 +23,7 @@ const PageWrapper = styled.div`
     animation: ${fadeIn} 0.2s ease;
 `;
 
-const BackgroundSVG = styled(HomepageBlankIcon)`
+const bgStyles = `
     position: fixed;
     inset: 0;
     width: 100%;
@@ -31,11 +33,18 @@ const BackgroundSVG = styled(HomepageBlankIcon)`
     transform: scale(1.05);
 `;
 
+const DayBgSVG = styled(HomepageBlankIcon)`${bgStyles}`;
+const NightBgSVG = styled(NightHomepageIcon)`${bgStyles}`;
+
 const BackgroundOverlay = styled.div`
     position: fixed;
     inset: 0;
     z-index: 1;
     background: rgba(28, 77, 119, 0.5);
+
+    [data-theme="dark"] & {
+        background: rgba(20, 15, 45, 0.5);
+    }
 `;
 
 const Content = styled.div`
@@ -151,9 +160,10 @@ type Props = {
 };
 
 export default function TaskOpenModal({ onFree, onTask }: Props) {
+    const { isDark } = useTheme();
     return (
         <PageWrapper>
-            <BackgroundSVG />
+            {isDark ? <NightBgSVG /> : <DayBgSVG />}
             <BackgroundOverlay />
             <Content>
                 <TopSection>

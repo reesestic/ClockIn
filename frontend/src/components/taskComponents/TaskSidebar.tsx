@@ -21,27 +21,35 @@ const Header = styled.div`
 
 const Heading = styled.h4`
     text-align: center;
-    font-size: calc(2px + 5.5vh);
+    font-size: calc(2px + 3.5vh);
     font-family: "clother", sans-serif;
     font-weight: 700;
     font-style: italic;
     color: white;
+
+    [data-theme="dark"] & {
+        color: black;
+    }
 `;
 
 const SubHeader = styled.h4`
-    font-size: calc(2px + 2vh);
+    font-size: calc(2px + 1vh);
     font-family: "clother", sans-serif;
     font-weight: 400;
     font-style: italic;
     color: white;
     margin: 0;
     text-align: center;
+
+    [data-theme="dark"] & {
+        color: black;
+    }
 `;
 
 const ScrollableTaskList = styled.div`
     flex: 1;
     overflow-y: auto;
-    width: 88%;
+    width: 80%;
     border-radius: 5px;
     margin: 1% auto;
     scrollbar-width: none;
@@ -84,11 +92,13 @@ export default function TaskSidebar({
 
     return (
         <SidebarContainer>
+            {/* ── Header ── */}
             <Header>
                 <Heading>Your Task List</Heading>
                 <SubHeader>things you need to get done...</SubHeader>
             </Header>
 
+            {/* ── Task List ── */}
             <ScrollableTaskList>
                 <TaskList
                     tasks={props.tasks ?? []}
