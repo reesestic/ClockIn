@@ -83,8 +83,7 @@ type Props = {
     initialCalendarBlocks?: ScheduleBlock[];
 };
 
-// ── Overlay / Modal shell ──────────────────────────────────────────────────────
-
+// Overlay / Modal shell 
 const Overlay = styled.div`
     position: fixed;
     inset: 0;

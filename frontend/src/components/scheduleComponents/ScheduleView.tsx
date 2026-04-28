@@ -72,6 +72,7 @@ const DayLabel = styled.div`
   color: #aab8c8;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+  [data-theme="dark"] & { color: black; }
 `;
 
 export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditing, onBlocksChange, onCalendarBlockToggle, isLocked, calendarMode, onSetCalendarMode, hasGoogleCalendar }: ScheduleViewProps) {

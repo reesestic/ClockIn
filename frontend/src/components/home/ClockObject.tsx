@@ -43,7 +43,8 @@ const StyledClock = styled(ClockIcon)`
 
     [data-theme="dark"] & path[fill="#AFDBFF"] { fill: #494264; }
     [data-theme="dark"] & path[fill="#4B94DB"] { fill: #272336; }
-    [data-theme="dark"] & path[fill="#0E4F87"] { fill: #100e1d; }
+    [data-theme="dark"] & path[fill="#0E4F87"]:not(.digit) { fill: #272336; }
+    [data-theme="dark"] & path.digit { fill: #ffffff; }
     [data-theme="dark"] & path[fill="#D9D9D9"] { fill: #5c5270; }
 `;
 

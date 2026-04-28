@@ -11,6 +11,7 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import styled from "styled-components";
 import { useState, useRef, useEffect } from "react";
+import { useTheme } from "../../context/ThemeContext";
 import { createPortal } from "react-dom";
 import type { ScheduleBlock } from "../../types/ScheduleBlock";
 
@@ -18,6 +19,16 @@ export const HOUR_HEIGHT = 36;
 export const GRID_START = 0;
 const GRID_END = 24;
 const SNAP_MINUTES = 15;
+
+const DARK_COLOR_MAP: Record<string, string> = {
+    "#FFF59A": "#9a7c10",
+    "#4B94DB": "#1e5fa8",
+    "#FFAFB1": "#b03848",
+    "#C0E8AA": "#3d8030",
+    "#C5AFFF": "#6040b8",
+    "#F6C98A": "#b06818",
+    "#FFC7E8": "#a03070",
+};
 import { TIME_COL_WIDTH, getWeekDays } from "../../utils/weekGridUtils";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -57,7 +68,7 @@ const TimeLabel = styled.div`
   font-size: 10px;
   color: #9aabb8;
   box-sizing: border-box;
-  [data-theme="dark"] & { color: black; }
+  [data-theme="dark"] & { color: #000000; }
 `;
 
 const DaysContainer = styled.div`
@@ -188,9 +199,9 @@ const BlockEl = styled.div<{
               ? "rgba(180,180,180,0.18)"
               : $isCalendarEvent
               ? "rgba(80,55,140,0.45)"
-              : ($bg ?? "#C5AFFF")};
+              : ($bg ?? "#6040b8")};
       border-color: ${({ $isCalendarEvent, $isIgnored }) =>
-          $isIgnored ? "#bbb" : $isCalendarEvent ? "#7a6fc4" : "rgba(0,0,0,0.1)"};
+          $isIgnored ? "#bbb" : $isCalendarEvent ? "#7a6fc4" : "rgba(255,255,255,0.15)"};
       color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
           $isIgnored ? "#aaa" : $isCalendarEvent ? "#c8c0f0" : ($textColor ?? "white")};
   }
@@ -261,9 +272,10 @@ function DraggableBlock({ block, onDelete, readOnly, dayDisabled }: { block: Sch
         disabled: isCalendarEvent,
     });
 
-    const bg = block.color;
-    const isDarkBg = !bg || bg === "#C5AFFF" || bg.startsWith("#5") || bg.startsWith("#3");
-    const textColor = isDarkBg ? "black" : "#000000";
+    const { isDark } = useTheme();
+    const lightBg = block.color;
+    const bg = isDark ? (DARK_COLOR_MAP[lightBg ?? ""] ?? lightBg) : lightBg;
+    const textColor = isDark ? "white" : "#1a1a1a";
 
     return (
         <>

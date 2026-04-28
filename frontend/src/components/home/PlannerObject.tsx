@@ -80,16 +80,16 @@ const DayName = styled.span`
     color: #636363;
     font-style: italic;
     align-self: flex-end;
-    [data-theme="dark"] & { color: #c8c0f0; }
+    [data-theme="dark"] & { color: #ffffff; }
 `;
 
 const DayNumber = styled.span`
-    font-size: 1em;
+    font-size: 0.72em;
     font-weight: 400;
     color: #636363;
-    line-height: 0.85;
+    line-height: 1.1;
     font-style: italic;
-    [data-theme="dark"] & { color: #c8c0f0; }
+    [data-theme="dark"] & { color: #ffffff; }
 `;
 
 const MonthName = styled.span`
@@ -99,7 +99,7 @@ const MonthName = styled.span`
     font-style: italic;
     padding: 1%;
     align-self: flex-end;
-    [data-theme="dark"] & { color: #c8c0f0; }
+    [data-theme="dark"] & { color: #ffffff; }
 `;
 
 export default function PlannerObject() {

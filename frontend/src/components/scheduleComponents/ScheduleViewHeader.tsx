@@ -56,7 +56,7 @@ const Subtitle = styled.p`
   color: #bbb;
 
   [data-theme="dark"] & {
-    color: #444;
+    color: #000000;
   }
 `;
 
@@ -81,7 +81,7 @@ const DateSmall = styled.span`
   font-weight: 600;
 
   [data-theme="dark"] & {
-    color: #444;
+    color: #000000;
   }
 `;
 
@@ -93,7 +93,7 @@ const DateBig = styled.span`
   margin: 0 2px;
 
   [data-theme="dark"] & {
-    color: #333;
+    color: #000000;
   }
 `;
 
@@ -153,6 +153,10 @@ const EditButton = styled.button`
   white-space: nowrap;
   transition: background 0.15s;
   &:hover { background: rgba(108,92,231,0.06); }
+  [data-theme="dark"] & {
+    color: black;
+    border-color: rgba(0,0,0,0.35);
+  }
 `;
 
 const DoneButton = styled.button`
@@ -173,6 +177,7 @@ const ScheduledBadge = styled.span`
   font-size: 10px;
   color: #22c55e;
   font-weight: 700;
+  [data-theme="dark"] & { color: black; }
 `;
 
 const CalModeWrap = styled.div`
@@ -182,6 +187,7 @@ const CalModeWrap = styled.div`
   border-radius: 20px;
   overflow: hidden;
   flex-shrink: 0;
+  [data-theme="dark"] & { border-color: rgba(0,0,0,0.3); }
 `;
 
 const CalModeSegment = styled.button<{ $active: boolean }>`
@@ -198,6 +204,10 @@ const CalModeSegment = styled.button<{ $active: boolean }>`
   &:hover:not([disabled]) {
     background: ${({ $active }) => ($active ? "#3a7bd5" : "rgba(75,148,219,0.08)")};
     color: ${({ $active }) => ($active ? "white" : "#4b94db")};
+  }
+  [data-theme="dark"] & {
+    color: ${({ $active }) => ($active ? "white" : "black")};
+    &:not(:last-child) { border-right-color: rgba(0,0,0,0.2); }
   }
 `;
 

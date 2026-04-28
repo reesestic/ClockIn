@@ -56,7 +56,7 @@ export default function NightHomepageIcon({ className }: { className?: string })
                 {/* Window glass (dark outside at night) */}
                 <path d="M1384 -17H1597V707.5L1384 550V-17Z" fill="#0d0b24"/>
 
-                {/* Warm lamp light beams */}
+                {/* Warm lamp light beams (window) */}
                 <path opacity="0.5" d="M689.747 657.265L1572.76 -47.0838L1696.91 -5.76459L1089.07 765.898C1089.07 765.898 918.401 818.238 786.46 788.303C654.518 758.369 689.747 657.265 689.747 657.265Z" fill="url(#night_paint0_linear)"/>
                 <path opacity="0.5" d="M1051.4 942.122L1571.52 169.867L1589.78 177.53L1125.71 972.075L1051.4 942.122Z" fill="url(#night_paint1_linear)"/>
 
@@ -95,8 +95,17 @@ export default function NightHomepageIcon({ className }: { className?: string })
 
                 {/* Pot body inner / leaves */}
                 <path d="M120.389 573.796C120.389 573.796 138.04 582.872 171.323 583.285C204.607 583.697 227.301 573.796 227.301 573.796V689.207C227.301 690.825 226.505 692.316 225.024 692.969C219.885 695.235 205.097 699.939 171.323 699.625C137.524 699.311 125.664 694.928 121.93 692.857C120.865 692.265 120.389 691.114 120.389 689.895V573.796Z" fill="#8a8418"/>
+
+                {/* Desk lamp beam — rendered last so it sits in front of lamp */}
+                <path opacity="0.5" d="M348,400 L420,700 C500,730 610,730 690,700 L390,370 Z" fill="url(#lamp_paint_linear)"/>
+
             </g>
             <defs>
+                <linearGradient id="lamp_paint_linear" x1="368" y1="449" x2="455" y2="850" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#bd895b" stop-opacity="0.7"/>
+                    <stop offset="0.55" stop-color="#bd895b" stop-opacity="0.15"/>
+                    <stop offset="1" stop-color="#bd895b" stop-opacity="0"/>
+                </linearGradient>
                 <linearGradient id="night_paint0_linear" x1="1164.6" y1="-16.8643" x2="1223.12" y2="773.62" gradientUnits="userSpaceOnUse">
                     <stop offset="0.572115" stop-color="#c0c4e4"/>
                     <stop offset="1" stop-color="#827aa2" stop-opacity="0"/>
