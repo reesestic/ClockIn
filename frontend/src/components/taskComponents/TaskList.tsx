@@ -4,6 +4,7 @@ import TaskEditable from "./TaskEditable.tsx";
 import TaskSelectable from "./TaskSelectable.tsx";
 import type { TaskSidebarProps } from "./TaskSidebarProps.ts";
 import { useState } from "react";
+import type { ViewMode } from "../../pages/TaskPage.tsx";
 
 // ── Styled Components ────────────────────────────────────────────────────────
 
@@ -107,6 +108,86 @@ const AddButton = styled.button`
     }
 `;
 
+// ── View Toggle ───────────────────────────────────────────────────────────────
+
+const ViewToggleWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 3px;
+    flex-shrink: 0;
+`;
+
+const ToggleBtn = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    background: ${({ $active }) => ($active ? "#ffffff" : "transparent")};
+    color: ${({ $active }) => ($active ? "#1c4d77" : "#aaa")};
+    box-shadow: ${({ $active }) => ($active ? "0 1px 3px rgba(0,0,0,0.12)" : "none")};
+    &:hover {
+        color: ${({ $active }) => ($active ? "#1c4d77" : "#636363")};
+    }
+`;
+
+function ListIcon() {
+    return (
+        <svg width="22" height="22" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <rect x="2" y="3.5" width="14" height="2" rx="1" fill="currentColor" />
+            <rect x="2" y="8" width="14" height="2" rx="1" fill="currentColor" />
+            <rect x="2" y="12.5" width="14" height="2" rx="1" fill="currentColor" />
+        </svg>
+    );
+}
+
+function GridIcon() {
+    return (
+        <svg width="22" height="22" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="6" height="6" rx="1.5" fill="currentColor" />
+            <rect x="10" y="2" width="6" height="6" rx="1.5" fill="currentColor" />
+            <rect x="2" y="10" width="6" height="6" rx="1.5" fill="currentColor" />
+            <rect x="10" y="10" width="6" height="6" rx="1.5" fill="currentColor" />
+        </svg>
+    );
+}
+
+// ── Grid ─────────────────────────────────────────────────────────────────────
+
+const TaskGrid = styled.div<{ $viewMode: ViewMode }>`
+    display: ${({ $viewMode }) => ($viewMode === "grid" ? "grid" : "flex")};
+    flex-direction: column;
+    grid-template-columns: repeat(3, 1fr);
+    gap: ${({ $viewMode }) => ($viewMode === "grid" ? "6px" : "0")};
+    padding: ${({ $viewMode }) => ($viewMode === "grid" ? "4px" : "0")};
+
+    ${({ $viewMode }) =>
+    $viewMode === "grid" &&
+    `
+        > * {
+            width: 100%;
+            min-height: 140px;
+            box-sizing: border-box;
+        }
+    `}
+
+    ${({ $viewMode }) =>
+    $viewMode === "list" &&
+    `
+        > * {
+            width: 100%;
+        }
+    `}
+`;
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type SortKey = "none" | "due_date" | "difficulty" | "importance" | "task_duration";
@@ -116,6 +197,8 @@ type TaskListProps = TaskSidebarProps & {
     hideControls?: boolean;
     onOpenUpload?: () => void;
 
+    viewMode?: ViewMode;
+    onViewModeChange?: (mode: ViewMode) => void;
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -133,6 +216,8 @@ export default function TaskList({
                                      onSplitTask,
                                      hideControls = false,
                                      onOpenUpload,
+                                     viewMode = "list",
+                                     onViewModeChange,
                                  }: TaskListProps) {
     const [search, setSearch] = useState("");
     const [sortKey, setSortKey] = useState<SortKey>("none");
@@ -154,7 +239,7 @@ export default function TaskList({
 
     return (
         <TaskContainer>
-            {!hideControls && (        // wrap StickyBar
+            {!hideControls && (
                 <StickyBar>
                     {mode === "tasklist" && onAddTask && (
                         <div data-tutorial-id="add-task">
@@ -185,36 +270,58 @@ export default function TaskList({
                             <option value="task_duration">duration</option>
                         </SortSelect>
                     </div>
+
+                    <ViewToggleWrapper>
+                        <ToggleBtn
+                            $active={viewMode === "list"}
+                            onClick={() => onViewModeChange?.("list")}
+                            title="List view"
+                            aria-label="Switch to list view"
+                        >
+                            <ListIcon />
+                        </ToggleBtn>
+                        <ToggleBtn
+                            $active={viewMode === "grid"}
+                            onClick={() => onViewModeChange?.("grid")}
+                            title="Grid view"
+                            aria-label="Switch to grid view"
+                        >
+                            <GridIcon />
+                        </ToggleBtn>
+                    </ViewToggleWrapper>
                 </StickyBar>
             )}
 
-            {sortedTasks.map((task: Task, index: number) => {
-                if (mode === "planner") {
+            <TaskGrid $viewMode={viewMode}>
+                {sortedTasks.map((task: Task, index: number) => {
+                    if (mode === "planner") {
+                        return (
+                            <TaskSelectable
+                                key={task.id}
+                                task={task}
+                                isSelected={selectedTaskIds?.includes(task.id!)}
+                                onClick={() => onToggleSelect?.(task.id!)}
+                            />
+                        );
+                    }
+
                     return (
-                        <TaskSelectable
+                        <TaskEditable
                             key={task.id}
                             task={task}
-                            isSelected={selectedTaskIds?.includes(task.id!)}
-                            onClick={() => onToggleSelect?.(task.id!)}
+                            isEditable={mode === "tasklist"}
+                            initialEditing={index === 0 && !task.title}
+                            isSelected={false}
+                            onClick={() => onSelectTask?.(task)}
+                            onChange={onUpdateTask}
+                            onDelete={onDeleteTask}
+                            onAddToSchedule={onAddToSchedule}
+                            onSplit={onSplitTask}
+                            viewMode={viewMode}
                         />
                     );
-                }
-
-                return (
-                    <TaskEditable
-                        key={task.id}
-                        task={task}
-                        isEditable={mode === "tasklist"}
-                        initialEditing={index === 0 && !task.title}
-                        isSelected={false}
-                        onClick={() => onSelectTask?.(task)}
-                        onChange={onUpdateTask}
-                        onDelete={onDeleteTask}
-                        onAddToSchedule={onAddToSchedule}
-                        onSplit={onSplitTask}
-                    />
-                );
-            })}
+                })}
+            </TaskGrid>
         </TaskContainer>
     );
 }
