@@ -25,6 +25,10 @@
         font-weight: 700;
         font-style: italic;
         color: white;
+
+        [data-theme="dark"] & {
+            color: black;
+        }
     `;
 
 
@@ -36,6 +40,10 @@
         color: white;
         margin: 0;
         text-align: center;
+
+        [data-theme="dark"] & {
+            color: black;
+        }
     `;
 
     const ScrollableTaskList = styled.div`

@@ -9,9 +9,8 @@ import { getTasks, saveTask, deleteTask, updateTask, splitTask } from "../api/ta
 import TaskSidebar from "../components/taskComponents/TaskSidebar.tsx";
 import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
-import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
-import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
-import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+import NightHomepageIcon from "../components/icons/NightHomepageIcon";
+import { useTheme } from "../context/ThemeContext";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 
@@ -28,7 +27,17 @@ const PageWrapper = styled.div`
     width: 100%;
 `;
 
-const BackgroundSVG = styled(HomepageBlankIcon)`
+const DayBgSVG = styled(HomepageBlankIcon)`
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    filter: blur(6px);
+    transform: scale(1.05);
+`;
+
+const NightBgSVG = styled(NightHomepageIcon)`
     position: fixed;
     inset: 0;
     width: 100%;
@@ -43,6 +52,10 @@ const BackgroundOverlay = styled.div`
     inset: 0;
     z-index: 1;
     background: rgba(28, 77, 119, 0.5);
+
+    [data-theme="dark"] & {
+        background: rgba(20, 15, 45, 0.5);
+    }
 `;
 
 const Content = styled.div`
@@ -76,6 +89,11 @@ const ModalBackdrop = styled.div`
 
 const ModalCard = styled.div`
     background: #ffffff;
+
+    [data-theme="dark"] & {
+        background: #9f95c6;
+    }
+
     border-radius: 16px;
     padding: 32px;
     width: min(480px, 90vw);
@@ -244,6 +262,7 @@ function SplitTaskModal({ task, onConfirm, onCancel }: SplitTaskModalProps) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TaskPage() {
+    const { isDark } = useTheme();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [splitTargetTask, setSplitTargetTask] = useState<Task | null>(null);
 
@@ -285,10 +304,10 @@ export default function TaskPage() {
         ]);
         setSplitTargetTask(null);
     }
-    useAutoTutorial("tasks", TASKS_TUTORIAL_STEPS);
+
     return (
         <PageWrapper>
-            <BackgroundSVG />
+            {isDark ? <NightBgSVG /> : <DayBgSVG />}
             <BackgroundOverlay />
             <Content>
                 <PageBackButton to={ROUTES.HOME} label="Home" />
@@ -316,7 +335,6 @@ export default function TaskPage() {
                     onCancel={() => setSplitTargetTask(null)}
                 />
             )}
-            <TutorialButton steps={TASKS_TUTORIAL_STEPS} />
         </PageWrapper>
     );
 }

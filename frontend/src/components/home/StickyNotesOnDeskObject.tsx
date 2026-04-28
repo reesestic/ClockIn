@@ -44,6 +44,8 @@ const BoardBackground = styled(StickyNotesOnDeskIcon)`
     width: 100%;
     height: auto;
     display: block;
+
+    [data-theme="dark"] & rect[fill="white"] { fill: #9f95c6; stroke: #272336; }
 `;
 
 const NotesOverlay = styled.svg`

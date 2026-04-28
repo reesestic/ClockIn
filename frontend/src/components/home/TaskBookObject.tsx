@@ -40,6 +40,11 @@ const StyledTaskBook = styled(TaskBookIcon)`
     width: 100%;
     height: auto;
     display: block;
+
+    [data-theme="dark"] & path[fill="#4B94DB"] { fill: #272336; stroke: #8b7fd4; }
+    [data-theme="dark"] & path[stroke="#4B94DB"] { stroke: #8b7fd4; }
+    [data-theme="dark"] & path[fill="#D9D9D9"] { fill: #5c5270; }
+    [data-theme="dark"] & path[fill="#F1F1F1"] { fill: #9f95c6; }
 `;
 
 const StyledLink = styled(Link)`

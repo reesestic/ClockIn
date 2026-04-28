@@ -5,12 +5,14 @@ import {saveNote, deleteNote, changeColor, noteToTask, sendTasksToList, updateNo
 import type {Note} from "../types/Note";
 import type {Task} from "../types/Task";
 import BackButton from "../components/navigation/BackButton.tsx";
+import { useTheme } from "../context/ThemeContext";
+import HomepageBlankObject from "../components/home/HomepageBlankObject";
 import WarningIcon from "../components/icons/WarningIcon.tsx";
 
 import {
     PageTitle, PageWrapper, NotesAndButtonsLayout,
     NotesBoard, ActionColumn, AddAndSelectWrapper,
-    Background, BackgroundOverlay
+    BackgroundOverlay
 } from "./StickyNoteHome.styles";
 
 import StickyNoteOverlay from "../components/stickyNoteComponents/StickyNoteOverlay";
@@ -24,9 +26,9 @@ import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import {useNotes} from "../context/NoteContext.tsx";
 import LottieLoading from "../components/ui/LottieLoading.tsx";
-import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {STICKY_NOTE_TUTORIAL_STEPS} from "../constants/StickyNoteTutorialSteps.ts";
 import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+import {useUserVisits} from "../hooks/useUserVisits.ts";
 
 // ─── Custom event types ───────────────────────────────────────────────────────
 
@@ -1037,12 +1039,13 @@ export function StickyNoteHome() {
         await generateTasksFromNote(note);
     };
 
-    useAutoTutorial("notes", STICKY_NOTE_TUTORIAL_STEPS);
-
+    const { isDark } = useTheme();
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_notes, STICKY_NOTE_TUTORIAL_STEPS, "notes");
     return (
         <>
-            <Background />
-            <BackgroundOverlay />
+            <HomepageBlankObject />
+            <BackgroundOverlay style={isDark ? { background: "rgba(20,15,45,0.45)" } : undefined} />
 
             <PageWrapper>
 
@@ -1085,13 +1088,21 @@ export function StickyNoteHome() {
                     </NotesBoard>
 
                     <ActionColumn>
-                        <div ref={calendarRef} style={{ display: "inline-flex" }} data-tutorial-id='calendar-zone'>
+                        <div
+                            ref={calendarRef}
+                            data-tutorial-id="calendar-zone"
+                            style={{ display: "inline-flex" }}
+                        >
                             <TaskDropZone
                                 isHovered={hoveredZone === "calendar"}
                                 isActive={isDraggingNote}
                             />
                         </div>
-                        <div ref={trashRef} style={{ display: "inline-flex" }} data-tutorial-id='trash-zone'>
+                        <div
+                            ref={trashRef}
+                            data-tutorial-id="trash-zone"
+                            style={{ display: "inline-flex" }}
+                        >
                             <TrashDropZone
                                 isHovered={hoveredZone === "trash"}
                                 isActive={isDraggingNote}
@@ -1148,7 +1159,6 @@ export function StickyNoteHome() {
                     </ToastWrapper>
                 )}
 
-                <TutorialButton steps={STICKY_NOTE_TUTORIAL_STEPS} />
             </PageWrapper>
         </>
     );

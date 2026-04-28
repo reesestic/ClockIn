@@ -72,9 +72,10 @@ const DayLabel = styled.div`
   color: #aab8c8;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+  [data-theme="dark"] & { color: black; }
 `;
 
-export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditing, onBlocksChange, isLocked, calendarMode, onSetCalendarMode, hasGoogleCalendar }: ScheduleViewProps) {
+export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditing, onBlocksChange, onCalendarBlockToggle, isLocked, calendarMode, onSetCalendarMode, hasGoogleCalendar }: ScheduleViewProps) {
     const weekDays = getWeekDays();
 
     return (
@@ -109,6 +110,7 @@ export default function ScheduleView({ schedule, onGenerate, onEdit, onDoneEditi
                     <DraggableWeekGrid
                         blocks={schedule.blocks}
                         onBlocksChange={onBlocksChange ?? (() => {})}
+                        onBlockDelete={onCalendarBlockToggle}
                         readOnly={isLocked}
                         hideHeaders
                     />

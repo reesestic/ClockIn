@@ -44,6 +44,15 @@ const StyledPot = styled(PotIcon)`
     width: 100%;
     height: auto;
     display: block;
+
+    [data-theme="dark"] & path[fill="#4B94DB"],
+    [data-theme="dark"] & path[fill="#4B94DB"][stroke="#4B94DB"] { fill: #272336; }
+    [data-theme="dark"] & path[fill="#F2F2F2"],
+    [data-theme="dark"] & rect[fill="#F2F2F2"] { fill: #7a7099; }
+    [data-theme="dark"] & path[fill="#3D9D8B"] { fill: #212c2c; }
+    [data-theme="dark"] & path[fill="#C0E8AA"] { fill: #485d50; }
+    [data-theme="dark"] & path[fill="#D45884"] { fill: #7e3f61; }
+    [data-theme="dark"] & path[fill="#733047"] { fill: #3f2136; }
 `;
 
 const StyledLink = styled(Link)`

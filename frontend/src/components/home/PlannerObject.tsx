@@ -42,6 +42,14 @@ const StyledPlanner = styled(PlannerIcon)`
     width: 100%;
     height: auto;
     display: block;
+
+    [data-theme="dark"] & path[fill="#4B94DB"] { fill: #272336; }
+    [data-theme="dark"] & path[fill="white"] { fill: #9f95c6; }
+    [data-theme="dark"] & path[fill="#D9D9D9"] { fill: #5c5270; }
+    [data-theme="dark"] & rect[fill="#636363"] { fill: #42352b; }
+    [data-theme="dark"] & ellipse[fill="#4B94DB"] { fill: #8b7fd4; }
+    [data-theme="dark"] & path[stroke="#D9D9D9"] { stroke: #000000; }
+    [data-theme="dark"] & path[stroke="#636363"] { stroke: #302b42; }
 `;
 
 const StyledLink = styled(Link)`
@@ -72,14 +80,16 @@ const DayName = styled.span`
     color: #636363;
     font-style: italic;
     align-self: flex-end;
+    [data-theme="dark"] & { color: #ffffff; }
 `;
 
 const DayNumber = styled.span`
-    font-size: 1em;
+    font-size: 0.72em;
     font-weight: 400;
     color: #636363;
-    line-height: 0.85;
+    line-height: 1.1;
     font-style: italic;
+    [data-theme="dark"] & { color: #ffffff; }
 `;
 
 const MonthName = styled.span`
@@ -89,6 +99,7 @@ const MonthName = styled.span`
     font-style: italic;
     padding: 1%;
     align-self: flex-end;
+    [data-theme="dark"] & { color: #ffffff; }
 `;
 
 export default function PlannerObject() {

@@ -450,8 +450,10 @@ export default function TaskEditable({
     }, [isEditing]);
 
     useEffect(() => {
-        if (initialEditing) setTimeout(() => titleRef.current?.focus(), 0);
-    }, []);
+        if (initialEditing) {
+            setTimeout(() => titleRef.current?.focus(), 0);
+        }
+    }, [initialEditing]);
 
     // Central update — always recomputes can_schedule
     const updateLocal = (patch: Partial<Task>) => {

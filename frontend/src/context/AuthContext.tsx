@@ -9,6 +9,7 @@ interface AuthUser {
     id: string;
     email: string;
     username?: string;
+    onboardingDone?: boolean;
 }
 
 interface AuthContextValue {
@@ -42,14 +43,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // -----------------------------
     useEffect(() => {
         const init = async () => {
-            const { data } = await supabase.auth.getSession();
-            const sessionUser = data.session?.user;
+            // getUser() validates against Supabase and triggers a token refresh
+            // if the cached JWT is expired, so we never start with a stale token.
+            const { data } = await supabase.auth.getUser();
+            const sessionUser = data.user;
 
             if (sessionUser) {
                 setUser({
                     id: sessionUser.id,
                     email: sessionUser.email!,
                     username: sessionUser.user_metadata?.username,
+                    onboardingDone: sessionUser.user_metadata?.onboarding_done === true,
                 });
             }
 
@@ -65,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     id: session.user.id,
                     email: session.user.email!,
                     username: session.user.user_metadata?.username,
+                    onboardingDone: session.user.user_metadata?.onboarding_done === true,
                 });
             } else {
                 setUser(null);
@@ -92,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 id: data.user.id,
                 email: data.user.email!,
                 username: data.user.user_metadata?.username,
+                onboardingDone: data.user.user_metadata?.onboarding_done === true,
             });
         }
 

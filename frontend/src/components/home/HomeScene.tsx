@@ -1,4 +1,5 @@
 import { useState } from "react";
+import styled, { keyframes } from "styled-components";
 
 import PotObject from "./PotObject";
 import PlannerObject from "./PlannerObject";
@@ -7,11 +8,46 @@ import StickyNotesOnDeskObject from "./StickyNotesOnDeskObject";
 import HomepageBlankObject from "./HomepageBlankObject";
 import ProfileSidebar from "./ProfileSidebar";
 import HomeIcon from "../icons/HomeIcon.tsx";
-import styled from "styled-components";
 import TaskBookObject from "./TaskBookObject.tsx";
-import TutorialButton from "../onboardingComponents/TutorialButton.tsx";
+import OnboardingSurvey from "../onboardingComponents/OnboardingSurvey.tsx";
 import { HOME_TUTORIAL_STEPS } from "../../constants/HomeTutorialSteps.ts";
-import {useAutoTutorial} from "../../hooks/useAutoTutorial.ts";
+import { useAuth } from "../../context/AuthContext.tsx";
+import { useAutoTutorial } from "../../hooks/useAutoTutorial.ts";
+import { useUserVisits } from "../../hooks/useUserVisits.ts";
+
+const pulse = keyframes`
+    0%   { box-shadow: 0 0 0 0 rgba(75, 148, 219, 0.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(75, 148, 219, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(75, 148, 219, 0); }
+`;
+
+const QuestionBtn = styled.button`
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 500;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: 2.5px solid #4B94DB;
+    color: #4B94DB;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 12px rgba(75, 148, 219, 0.25);
+    transition: transform 0.15s, background 0.15s;
+    animation: ${pulse} 2.5s ease-out infinite;
+
+    &:hover {
+        background: #4B94DB;
+        color: white;
+        transform: scale(1.1);
+    }
+`;
 
 export const SceneWrapper = styled.div`
     position: relative;
@@ -36,17 +72,19 @@ const HomeBtn = styled.button<{ $open: boolean }>`
 `;
 
 export default function HomeScene() {
+    const { user } = useAuth();
+    const { visits } = useUserVisits();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    useAutoTutorial("home", HOME_TUTORIAL_STEPS);
+    const [showSurvey, setShowSurvey] = useState(false);
+    const surveyDone = !!localStorage.getItem(`clockin_onboarding_done:${user?.id}`);
+    useAutoTutorial(visits?.visited_home, HOME_TUTORIAL_STEPS, "home", surveyDone);
     return (
         <SceneWrapper>
-            {/* Sidebar */}
             <ProfileSidebar
                 open={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
             />
 
-            {/* Background + objects */}
             <HomepageBlankObject />
             <PotObject />
             <PlannerObject />
@@ -54,8 +92,6 @@ export default function HomeScene() {
             <StickyNotesOnDeskObject />
             <TaskBookObject />
 
-
-            {/* Home button */}
             <HomeBtn
                 data-tutorial="home-btn"
                 $open={sidebarOpen}
@@ -64,8 +100,18 @@ export default function HomeScene() {
                 <HomeIcon className="w-[53px] h-[53px]" />
             </HomeBtn>
 
-            {/* Tutorial */}
-            <TutorialButton steps={HOME_TUTORIAL_STEPS} />
+            {/* ? button — reopens the onboarding survey */}
+            <QuestionBtn onClick={() => setShowSurvey(true)} title="Edit preferences">
+                ?
+            </QuestionBtn>
+
+            {showSurvey && user && (
+                <OnboardingSurvey
+                    userId={user.id}
+                    onComplete={() => setShowSurvey(false)}
+                    isReopening
+                />
+            )}
         </SceneWrapper>
     );
 }

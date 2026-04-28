@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import type { Preference, ScheduleFilters } from "../../types/ScheduleFilters";
 import type { Schedule } from "../../types/Schedule";
@@ -8,9 +9,10 @@ import { generateSchedule, confirmSchedule, acceptBlock, rejectBlock } from "../
 import { getBusyTimes } from "../../api/busyTimesApi";
 import type { BusyTimeRecord } from "../../api/busyTimesApi";
 import { syncGoogleCalendar, getGoogleStatus } from "../../api/googleApi";
-import DraggableWeekGrid from "../scheduleComponents/DraggableWeekGrid";
+import DraggableWeekGrid, { HOUR_HEIGHT, GRID_START } from "../scheduleComponents/DraggableWeekGrid";
 import { TIME_COL_WIDTH } from "../../utils/weekGridUtils";
 import { StickyNoteThemes } from "../../types/StickyNoteThemes";
+import LottieLoading from "../ui/LottieLoading";
 
 const TASK_COLORS = [
     { bg: "#FFF59A", text: "#1a1a1a" },
@@ -48,16 +50,12 @@ function formatDueDate(due: string | null | undefined): string | null {
 function busyTimesToBlocks(busyTimes: BusyTimeRecord[], allowedDates: string[]): ScheduleBlock[] {
     const DAY_ABBR: Record<number, string> = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
     const blocks: ScheduleBlock[] = [];
-
     for (const bt of busyTimes) {
         if (!bt.start_time || !bt.end_time) continue;
-
         for (const date of allowedDates) {
             const day = new Date(date + "T00:00");
             const dayAbbr = DAY_ABBR[day.getDay()];
-
             if (bt.days_of_week?.length > 0 && !bt.days_of_week.includes(dayAbbr)) continue;
-
             blocks.push({
                 id: `cal:${bt.id}:${date}`,
                 title: bt.title,
@@ -68,7 +66,6 @@ function busyTimesToBlocks(busyTimes: BusyTimeRecord[], allowedDates: string[]):
             });
         }
     }
-
     return blocks;
 }
 
@@ -77,15 +74,20 @@ function calBlockToBusyTimeId(blockId: string): string | null {
     return blockId.split(":")[1] ?? null;
 }
 
+function stableCalKey(b: { title: string; start: string; end: string; date: string }): string {
+    return `${b.title}|${b.start}|${b.end}|${b.date}`;
+}
+
 type Props = {
     onClose: () => void;
     onConfirm: (schedule: Schedule) => void;
     allTasks: Task[];
     userId: string;
+    initialSchedule?: Schedule | null;
+    initialCalendarBlocks?: ScheduleBlock[];
 };
 
-// ── Overlay / Modal shell ──────────────────────────────────────────────────────
-
+// Overlay / Modal shell 
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
@@ -104,6 +106,30 @@ const Modal = styled.div`
     overflow: hidden;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
     background: #ffffff;
+    position: relative;
+
+    [data-theme="dark"] & {
+        background: #9f95c6;
+    }
+`;
+
+const ConfirmOverlay = styled.div`
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    border-radius: 9px;
+`;
+
+const ConfirmText = styled.div`
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2035;
+    margin-top: 4px;
 `;
 
 // ── Left panel ─────────────────────────────────────────────────────────────────
@@ -116,6 +142,11 @@ const LeftPanel = styled.div`
     flex-direction: column;
     overflow: hidden;
     border-right: 1px solid #f0f0f0;
+
+    [data-theme="dark"] & {
+        background: #9f95c6;
+        border-right-color: #7a70a8;
+    }
 `;
 
 const LeftHeader = styled.div`
@@ -135,6 +166,7 @@ const PanelTitle = styled.h2`
     font-weight: 800;
     margin: 0;
     color: #1a1a1a;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const AddTaskBtn = styled.button`
@@ -149,6 +181,7 @@ const AddTaskBtn = styled.button`
     font-family: inherit;
     padding: 0;
     &:hover { color: #444; }
+    [data-theme="dark"] & { color: black; }
 `;
 
 const AddTaskPlus = styled.div`
@@ -283,12 +316,14 @@ const TaskCardDue = styled.div`
     font-size: 12px;
     color: #777;
     flex-shrink: 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const SectionDivider = styled.div`
     height: 1px;
     background: #f0f0f0;
     margin: 16px 0 14px;
+    [data-theme="dark"] & { background: rgba(0,0,0,0.2); }
 `;
 
 const FilterSectionTitle = styled.h3`
@@ -296,6 +331,7 @@ const FilterSectionTitle = styled.h3`
     font-weight: 800;
     color: #1a1a1a;
     margin: 0 0 16px 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const FilterRow = styled.div`
@@ -307,6 +343,7 @@ const FilterLabel = styled.div`
     font-weight: 600;
     color: #1a1a1a;
     margin-bottom: 8px;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const PillGroup = styled.div`
@@ -337,6 +374,7 @@ const LeftFooter = styled.div`
     border-top: 1px solid #f0f0f0;
     display: flex;
     justify-content: center;
+    [data-theme="dark"] & { border-top-color: rgba(0,0,0,0.2); }
 `;
 
 const CreateBtn = styled.button<{ $loading: boolean }>`
@@ -365,6 +403,10 @@ const RightPanel = styled.div`
     overflow: hidden;
     padding: 16px 18px 12px;
     min-width: 0;
+
+    [data-theme="dark"] & {
+        background: #857bb5;
+    }
 `;
 
 const RightTitle = styled.h2`
@@ -374,6 +416,7 @@ const RightTitle = styled.h2`
     color: #1a1a1a;
     text-align: center;
     flex-shrink: 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 const RightSubtitle = styled.p`
@@ -382,6 +425,7 @@ const RightSubtitle = styled.p`
     margin: 0 0 8px 0;
     text-align: center;
     flex-shrink: 0;
+    [data-theme="dark"] & { color: black; }
 `;
 
 // ── Aligned day pill row (sits above grid columns) ────────────────────────────
@@ -424,6 +468,7 @@ const DayPill = styled.button<{ $selected: boolean }>`
     cursor: pointer;
     font-family: inherit;
     transition: all 0.12s;
+    [data-theme="dark"] & { color: ${({ $selected }) => ($selected ? "#ffffff" : "black")}; background: ${({ $selected }) => ($selected ? "#4B94DB" : "rgba(0,0,0,0.1)")}; }
     white-space: nowrap;
     &:hover {
         background: ${({ $selected }) => ($selected ? "#2e6abf" : "#f5f5f5")};
@@ -581,10 +626,31 @@ function FilterToggle({
 
 // Main Component 
 
-export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, userId }: Props) {
+export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, userId, initialSchedule, initialCalendarBlocks }: Props) {
     const weekDays = useMemo(() => getWeekDays(), []);
 
-    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+    // Captured once at mount — stable for the modal's lifetime
+    const initTaskBlocksRef = useRef(
+        initialSchedule?.blocks.filter((b) => !b.isCalendarEvent) ?? []
+    );
+    const ignoredIdSetRef = useRef<Set<string>>((() => {
+        try {
+            const saved = localStorage.getItem(`clockin_ignored_cal:${userId}`);
+            if (saved) return new Set<string>(JSON.parse(saved));
+        } catch { /* ignore parse errors */ }
+        return new Set((initialCalendarBlocks ?? []).filter((b) => b.isIgnored).map((b) => stableCalKey(b)));
+    })());
+
+    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem(`clockin_selected_tasks:${userId}`);
+            if (saved) {
+                const ids = JSON.parse(saved) as string[];
+                if (ids.length > 0) return ids;
+            }
+        } catch { /* ignore parse errors */ }
+        return [...new Set(initTaskBlocksRef.current.map((b) => b.task_id).filter((id): id is string => !!id))];
+    });
     const [allowedDays, setAllowedDays] = useState<string[]>(weekDays.map((d) => d.date));
     const [showTaskPicker, setShowTaskPicker] = useState(false);
 
@@ -600,40 +666,126 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
     const [hasCalendarEvents, setHasCalendarEvents] = useState(false);
     const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-    const [syncing, setSyncing] = useState(false);
-    const [schedule, setSchedule] = useState<Schedule | null>(null);
+    // Start syncing=true so loading bee shows immediately
+    const [syncing, setSyncing] = useState(true);
+    const [schedule, setSchedule] = useState<Schedule | null>(() => {
+        const taskBlocks = initTaskBlocksRef.current;
+        return taskBlocks.length > 0 && initialSchedule
+            ? { ...initialSchedule, blocks: taskBlocks }
+            : null;
+    });
     const [loading, setLoading] = useState(false);
+    const [confirming, setConfirming] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const prevBlocksRef = useRef<ScheduleBlock[]>([]);
+    const prevBlocksRef = useRef<ScheduleBlock[]>(initTaskBlocksRef.current);
+
+    useEffect(() => {
+        localStorage.setItem(`clockin_selected_tasks:${userId}`, JSON.stringify(selectedTaskIds));
+    }, [selectedTaskIds, userId]);
+
+    // ── Manual drag-to-place ───────────────────────────────────────────────────
+    const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+    const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+    const dragTaskRef = useRef<{ task: Task; color: string } | null>(null);
+
+    function handleTaskDragStart(task: Task, e: React.PointerEvent) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        const color = getTaskColor(task.id!).bg;
+        dragTaskRef.current = { task, color };
+        setDraggedTask(task);
+        setDragPos({ x: e.clientX, y: e.clientY });
+
+        function onMove(ev: PointerEvent) {
+            setDragPos({ x: ev.clientX, y: ev.clientY });
+        }
+
+        function onUp(ev: PointerEvent) {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+
+            const dragged = dragTaskRef.current;
+            dragTaskRef.current = null;
+            setDraggedTask(null);
+            setDragPos(null);
+
+            if (!dragged) return;
+
+            const el = document.elementFromPoint(ev.clientX, ev.clientY);
+            const dayBodyEl = el?.closest("[data-date]") as HTMLElement | null;
+            if (!dayBodyEl) return;
+
+            const date = dayBodyEl.dataset.date!;
+            const rect = dayBodyEl.getBoundingClientRect();
+            const relativeY = Math.max(0, ev.clientY - rect.top);
+            const rawMins = GRID_START * 60 + (relativeY / HOUR_HEIGHT) * 60;
+            const snappedStart = Math.floor(rawMins / 15) * 15;
+            const durationMins = dragged.task.task_duration ?? 60;
+            const snappedEnd = Math.min(snappedStart + durationMins, 24 * 60);
+
+            const p = (n: number) => String(Math.floor(n)).padStart(2, "0");
+            const toTime = (m: number) => `${p(m / 60)}:${p(m % 60)}`;
+
+            const newBlock: ScheduleBlock = {
+                id: `manual:${dragged.task.id}:${date}:${snappedStart}:${Date.now()}`,
+                title: dragged.task.title,
+                date,
+                start: toTime(snappedStart),
+                end: toTime(snappedEnd),
+                task_id: dragged.task.id,
+                color: dragged.color,
+            };
+
+            setBlocks((prev) => {
+                const toMins = (t: string) => Number(t.split(":")[0]) * 60 + Number(t.split(":")[1]);
+                const hasOverlap = prev.some((b) => {
+                    if (b.date !== date) return false;
+                    if (b.isCalendarEvent && b.isIgnored) return false;
+                    return snappedStart < toMins(b.end) && toMins(b.start) < snappedEnd;
+                });
+                if (hasOverlap) return prev;
+                return [...prev, newBlock];
+            });
+        }
+
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+    }
 
     const loadCalendarBlocks = useCallback(() => {
         const allowedDates = weekDays.map((d) => d.date);
-        const savedIgnored: string[] = JSON.parse(
-            localStorage.getItem(`clockin_ignored_cal:${userId}`) ?? "[]"
-        );
-        return getBusyTimes().then((all) => {
-            const googleEvents = all.filter((bt) => bt.source === "google");
-            if (googleEvents.length === 0) return;
-            const calBlocks = busyTimesToBlocks(googleEvents, allowedDates).map((b) => {
-                const btId = calBlockToBusyTimeId(b.id);
-                return btId && savedIgnored.includes(btId) ? { ...b, isIgnored: true } : b;
+        return getBusyTimes()
+            .then((all) => {
+                const googleEvents = all.filter((bt) => bt.source === "google");
+                const calBlocks = busyTimesToBlocks(googleEvents, allowedDates).map((b) =>
+                    ignoredIdSetRef.current.has(stableCalKey(b)) ? { ...b, isIgnored: true } : b
+                );
+                setBlocks([...calBlocks, ...initTaskBlocksRef.current]);
+                if (calBlocks.length > 0) setHasCalendarEvents(true);
+            })
+            .catch(() => {
+                setBlocks(initTaskBlocksRef.current);
             });
-            setBlocks((prev) => {
-                const taskBlocks = prev.filter((b) => !b.isCalendarEvent);
-                return [...calBlocks, ...taskBlocks];
-            });
-            setHasCalendarEvents(true);
-        });
-    }, [weekDays, userId]);
+    }, [weekDays]);
 
     useEffect(() => {
         getGoogleStatus()
-            .then((s: { connected: boolean }) => setIsGoogleConnected(s.connected))
-            .catch(() => {});
-        loadCalendarBlocks().catch((e: unknown) => {
-            console.error("[CalendarSync] Failed to load busy times:", e);
-        });
+            .then((s: { connected: boolean }) => {
+                setIsGoogleConnected(s.connected);
+                if (s.connected) {
+                    return syncGoogleCalendar()
+                        .then(() => loadCalendarBlocks())
+                        .catch(() => loadCalendarBlocks())
+                        .finally(() => setSyncing(false));
+                }
+                return loadCalendarBlocks().finally(() => setSyncing(false));
+            })
+            .catch(() => {
+                loadCalendarBlocks()
+                    .catch(() => {})
+                    .finally(() => setSyncing(false));
+            });
     }, [loadCalendarBlocks]);
 
     async function handleResync() {
@@ -697,24 +849,31 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     function saveIgnoredIds(updatedBlocks: ScheduleBlock[]) {
         const ids = new Set<string>();
         for (const b of updatedBlocks) {
-            if (b.isCalendarEvent && b.isIgnored) {
-                const btId = calBlockToBusyTimeId(b.id);
-                if (btId) ids.add(btId);
-            }
+            if (b.isCalendarEvent && b.isIgnored) ids.add(stableCalKey(b));
         }
+        ignoredIdSetRef.current = ids;
         localStorage.setItem(`clockin_ignored_cal:${userId}`, JSON.stringify(Array.from(ids)));
     }
 
     function handleBlockDelete(blockId: string) {
-        const busyTimeId = calBlockToBusyTimeId(blockId);
-        if (busyTimeId) {
+        const clickedBlock = blocks.find((b) => b.id === blockId);
+        if (!clickedBlock) return;
+
+        if (clickedBlock.isCalendarEvent) {
             setBlocks((prev) => {
-                const currentlyIgnored =
-                    prev.find((b) => b.id.startsWith(`cal:${busyTimeId}:`))?.isIgnored ?? false;
+                // Match all calendar events with the same title+time across all days
+                // (handles duplicate DB entries for the same recurring event)
+                const group = prev.filter(
+                    (b) => b.isCalendarEvent &&
+                           b.date === clickedBlock.date &&
+                           b.title === clickedBlock.title &&
+                           b.start === clickedBlock.start &&
+                           b.end === clickedBlock.end
+                );
+                const willIgnore = group.some((b) => !b.isIgnored);
+                const groupIds = new Set(group.map((b) => b.id));
                 const updated = prev.map((b) =>
-                    b.isCalendarEvent && b.id.startsWith(`cal:${busyTimeId}:`)
-                        ? { ...b, isIgnored: !currentlyIgnored }
-                        : b
+                    groupIds.has(b.id) ? { ...b, isIgnored: willIgnore } : b
                 );
                 saveIgnoredIds(updated);
                 return updated;
@@ -787,27 +946,33 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     async function handleConfirm() {
         const taskBlocks = blocks.filter((b) => !b.isCalendarEvent);
         if (!schedule || taskBlocks.length === 0) {
+            // No tasks scheduled — still propagate the calendar ignored state
+            onConfirm({ blocks } as Schedule);
             onClose();
             return;
         }
+        setConfirming(true);
         const confirmed = { ...schedule, blocks };
-        await confirmSchedule(taskBlocks, userId).catch((err: unknown) =>
-            console.error(err)
-        );
-        await Promise.all(
-            taskBlocks
-                .filter((b) => b.task_id)
-                .map((b) =>
-                    acceptBlock(
-                        b.task_id!,
-                        `${b.date}T${b.start}:00`,
-                        `${b.date}T${b.end}:00`,
-                        userId
-                    ).catch((err: unknown) => console.error(err))
-                )
-        );
-        onConfirm(confirmed);
-        onClose();
+        try {
+            await confirmSchedule(taskBlocks, userId);
+            await Promise.all(
+                taskBlocks
+                    .filter((b) => b.task_id)
+                    .map((b) =>
+                        acceptBlock(
+                            b.task_id!,
+                            `${b.date}T${b.start}:00`,
+                            `${b.date}T${b.end}:00`,
+                            userId
+                        ).catch((err: unknown) => console.error(err))
+                    )
+            );
+        } catch (err) {
+            console.error(err);
+        } finally {
+            onConfirm(confirmed);
+            onClose();
+        }
     }
 
     const isSchedulable = (t: Task) =>
@@ -815,15 +980,30 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         !!t.due_date &&
         !!t.task_duration && t.task_duration > 0;
 
-    const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!));
+    const todayStart = useMemo(() => {
+        const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+    }, []);
+
+    const isFuture = (t: Task) => {
+        if (!t.due_date) return false;
+        return new Date(t.due_date.length <= 10 ? t.due_date + "T00:00" : t.due_date) >= todayStart;
+    };
+
+    const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!) && isFuture(t));
     const unselectedTasks = allTasks.filter(
-        (t) => !selectedTaskIds.includes(t.id!) && isSchedulable(t)
+        (t) => !selectedTaskIds.includes(t.id!) && isSchedulable(t) && isFuture(t)
     );
-    const showGrid = blocks.length > 0;
+    const showGrid = blocks.length > 0 || (!loading && !syncing);
 
     return (
         <Overlay onClick={onClose}>
             <Modal onClick={(e) => e.stopPropagation()}>
+                {confirming && (
+                    <ConfirmOverlay>
+                        <LottieLoading size={110} />
+                        <ConfirmText>Saving your schedule…</ConfirmText>
+                    </ConfirmOverlay>
+                )}
                 {/* ── Left panel ── */}
                 <LeftPanel>
                     <LeftHeader>
@@ -869,7 +1049,11 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                             return (
                                 <TaskRow key={task.id}>
                                     <RemoveBtn onClick={() => removeTask(task.id!)}>✕</RemoveBtn>
-                                    <TaskCard $bg={color.bg}>
+                                    <TaskCard
+                                        $bg={color.bg}
+                                        style={{ cursor: "grab" }}
+                                        onPointerDown={(e) => handleTaskDragStart(task, e)}
+                                    >
                                         <TaskCardTitle>{task.title}</TaskCardTitle>
                                         <TaskCardDue>Due: {due ?? "—"}</TaskCardDue>
                                     </TaskCard>
@@ -912,9 +1096,9 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
 
                 {/* ── Right panel ── */}
                 <RightPanel>
-                    <RightTitle>Generated Schedule</RightTitle>
+                    <RightTitle>Your Schedule</RightTitle>
                     <RightSubtitle>
-                        Select days for your new schedule
+                        Drag tasks from the left onto the grid, or use Create to auto-schedule. Select days to include.
                     </RightSubtitle>
 
                     {(hasCalendarEvents || isGoogleConnected) && (
@@ -949,6 +1133,11 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                     <GridArea>
                         {loading ? (
                             <EmptyState>Generating your schedule…</EmptyState>
+                        ) : syncing && !showGrid ? (
+                            <EmptyState style={{ flexDirection: "column", gap: 6 }}>
+                                <LottieLoading size={120} />
+                                <span style={{ fontSize: 13, color: "#aaa", fontWeight: 600 }}>Loading your events…</span>
+                            </EmptyState>
                         ) : showGrid ? (
                             <DraggableWeekGrid
                                 blocks={blocks}
@@ -959,11 +1148,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                                 hideHeaders
                                 scrollToHour={7}
                             />
-                        ) : (
-                            <EmptyState>
-                                Add tasks and click Create to generate your schedule.
-                            </EmptyState>
-                        )}
+                        ) : null}
                     </GridArea>
 
                     <RightFooter>
@@ -973,6 +1158,32 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
                     </RightFooter>
                 </RightPanel>
             </Modal>
+
+            {draggedTask && dragPos && createPortal(
+                <div style={{
+                    position: "fixed",
+                    left: dragPos.x + 12,
+                    top: dragPos.y - 14,
+                    zIndex: 9999,
+                    background: dragTaskRef.current?.color ?? "#C5AFFF",
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    pointerEvents: "none",
+                    maxWidth: 180,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
+                    border: "1.5px solid rgba(0,0,0,0.1)",
+                    userSelect: "none",
+                    color: "#1a1a1a",
+                }}>
+                    {draggedTask.title}
+                </div>,
+                document.body
+            )}
         </Overlay>
     );
 }

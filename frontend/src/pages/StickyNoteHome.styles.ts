@@ -6,6 +6,10 @@ export const PageTitle = styled.h1`
     font-size: clamp(0.8rem, 3rem, 4rem);
     margin: 1rem 0 0;
     color: white;
+
+    [data-theme="dark"] & {
+        color: black;
+    }
 `
 
 export const PageWrapper = styled.div`

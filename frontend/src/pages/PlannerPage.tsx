@@ -3,7 +3,9 @@ import styled from "styled-components";
 import ScheduleView from "../components/scheduleComponents/ScheduleView.tsx";
 import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
+import NightHomepageIcon from "../components/icons/NightHomepageIcon";
 
 import type { Task } from "../types/Task";
 import type { Schedule } from "../types/Schedule";
@@ -19,6 +21,7 @@ import BackButton from "../components/navigation/BackButton.tsx";
 import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
 import {SCHEDULE_TUTORIAL_STEPS} from "../constants/ScheduleTutorialSteps.ts";
 import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+import { useUserVisits } from "../hooks/useUserVisits.ts";
 
 const PageBg = styled.div`
   min-height: 100vh;
@@ -31,7 +34,7 @@ const PageBg = styled.div`
   overflow: hidden;
 `;
 
-const BlurredBg = styled(HomepageBlankIcon)`
+const bgStyles = `
   position: fixed;
   inset: -40px;
   width: calc(100% + 80px);
@@ -41,11 +44,18 @@ const BlurredBg = styled(HomepageBlankIcon)`
   transform: scale(1.05);
 `;
 
+const DayBlurredBg = styled(HomepageBlankIcon)`${bgStyles}`;
+const NightBlurredBg = styled(NightHomepageIcon)`${bgStyles}`;
+
 const BgDim = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.18);
   z-index: 1;
+
+  [data-theme="dark"] & {
+    background: rgba(10, 7, 25, 0.35);
+  }
 `;
 
 const BackBtnWrapper = styled.div`
@@ -69,6 +79,10 @@ const Card = styled.div`
   padding: 2rem 3rem 2rem 3rem;
   box-sizing: border-box;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+
+  [data-theme="dark"] & {
+    background: #9f95c6;
+  }
 `;
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -139,12 +153,12 @@ export default function PlannerPage() {
                     getBusyTimes()
                         .then((all) => {
                             const google = all.filter((bt) => bt.source === "google");
-                            const ignoredIds: string[] = JSON.parse(
+                            const ignoredKeys = new Set<string>(JSON.parse(
                                 localStorage.getItem(`clockin_ignored_cal:${user?.id}`) ?? "[]"
-                            );
+                            ));
                             const blocks = busyTimesToBlocks(google, dates).map((b) => {
-                                const btId = b.id.split(":")[1] ?? null;
-                                return btId && ignoredIds.includes(btId) ? { ...b, isIgnored: true } : b;
+                                const key = `${b.title}|${b.start}|${b.end}|${b.date}`;
+                                return ignoredKeys.has(key) ? { ...b, isIgnored: true } : b;
                             });
                             setCalendarBlocks(blocks);
                         })
@@ -166,11 +180,15 @@ export default function PlannerPage() {
 
     function handleConfirm(confirmed: Schedule) {
         const taskOnly = { ...confirmed, blocks: confirmed.blocks.filter((b) => !b.isCalendarEvent) };
-        setSchedule(taskOnly);
-        setOriginalSchedule(taskOnly);
-        setIsLocked(true);
+        const confirmedCalBlocks = confirmed.blocks.filter((b) => b.isCalendarEvent);
+        if (confirmedCalBlocks.length > 0) setCalendarBlocks(confirmedCalBlocks);
+        if (taskOnly.blocks.length > 0) {
+            setSchedule(taskOnly);
+            setOriginalSchedule(taskOnly);
+            setIsLocked(true);
+            setTrackEdits(true);
+        }
         setShowFilters(false);
-        setTrackEdits(true);
     }
 
     function handleBlocksChange(newBlocks: ScheduleBlock[]) {
@@ -197,20 +215,26 @@ export default function PlannerPage() {
     }
 
     function handleCalendarBlockToggle(blockId: string) {
-        const btId = blockId.startsWith("cal:") ? blockId.split(":")[1] : null;
-        if (!btId) return;
+        const clickedBlock = calendarBlocks.find((b) => b.id === blockId);
+        if (!clickedBlock) return;
         setCalendarBlocks((prev) => {
-            const currentlyIgnored = prev.find((b) => b.id.startsWith(`cal:${btId}:`))?.isIgnored ?? false;
-            const updated = prev.map((b) =>
-                b.id.startsWith(`cal:${btId}:`) ? { ...b, isIgnored: !currentlyIgnored } : b
+            const group = prev.filter(
+                (b) => b.date === clickedBlock.date &&
+                       b.title === clickedBlock.title &&
+                       b.start === clickedBlock.start &&
+                       b.end === clickedBlock.end
             );
-            const ignoredIds = updated
+            const willIgnore = group.some((b) => !b.isIgnored);
+            const groupIds = new Set(group.map((b) => b.id));
+            const updated = prev.map((b) =>
+                groupIds.has(b.id) ? { ...b, isIgnored: willIgnore } : b
+            );
+            const ignoredKeys = updated
                 .filter((b) => b.isIgnored)
-                .map((b) => b.id.split(":")[1])
-                .filter(Boolean);
+                .map((b) => `${b.title}|${b.start}|${b.end}|${b.date}`);
             localStorage.setItem(
                 `clockin_ignored_cal:${user?.id}`,
-                JSON.stringify([...new Set(ignoredIds)])
+                JSON.stringify([...new Set(ignoredKeys)])
             );
             return updated;
         });
@@ -227,10 +251,12 @@ export default function PlannerPage() {
         ? { blocks: visibleCalendarBlocks }
         : null;
 
-    useAutoTutorial("schedule", SCHEDULE_TUTORIAL_STEPS);
+    const { isDark } = useTheme();
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_schedule, SCHEDULE_TUTORIAL_STEPS, "schedule");
     return (
         <PageBg>
-            <BlurredBg />
+            {isDark ? <NightBlurredBg /> : <DayBlurredBg />}
             <BgDim />
             <BackBtnWrapper>
                 <BackButton to={ROUTES.HOME} style={{ color: "#fff" }} />
@@ -259,6 +285,8 @@ export default function PlannerPage() {
                     onConfirm={handleConfirm}
                     allTasks={tasks}
                     userId={user.id}
+                    initialSchedule={schedule}
+                    initialCalendarBlocks={calendarBlocks}
                 />
             )}
             <TutorialButton steps={SCHEDULE_TUTORIAL_STEPS} />

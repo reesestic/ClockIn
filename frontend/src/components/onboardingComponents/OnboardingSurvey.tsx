@@ -4,6 +4,8 @@ import { initializeWeights } from "../../api/onboardingApi";
 import type { PriorityStyle } from "../../api/onboardingApi";
 import { createBusyTime } from "../../api/busyTimesApi";
 import { getGoogleStatus } from "../../api/googleApi";
+import { supabase } from "../../supabaseClient";
+import TutorialBeeIcon from "../icons/TutorialBeeIcon";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -25,6 +27,7 @@ interface SurveyState {
 interface Props {
     userId: string;
     onComplete: (displayName: string) => void;
+    isReopening?: boolean;
 }
 
 const TIME_OF_DAY_OPTIONS: { id: TimeOfDay; label: string; sub: string }[] = [
@@ -326,10 +329,11 @@ const DoneSub = styled.p`
     margin: 0 0 32px 0;
 `;
 
-const BeeEmoji = styled.div`
-    font-size: 56px;
-    text-align: center;
-    margin-bottom: 16px;
+const BeeIcon = styled(TutorialBeeIcon)`
+    width: 80px;
+    height: auto;
+    display: block;
+    margin: 0 auto 16px;
 `;
 
 const ErrorText = styled.p`
@@ -340,7 +344,7 @@ const ErrorText = styled.p`
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function OnboardingSurvey({ userId, onComplete }: Props) {
+export default function OnboardingSurvey({ userId, onComplete, isReopening = false }: Props) {
     const [step, setStep] = useState(1);
     const [survey, setSurvey] = useState<SurveyState>({
         displayName: "",
@@ -407,6 +411,17 @@ export default function OnboardingSurvey({ userId, onComplete }: Props) {
         }));
     }
 
+    function handleQuickSave() {
+        if (!isReopening) return;
+        initializeWeights(userId, {
+            priorityStyle: survey.priorityStyle,
+            timePreferences: Array.from(survey.timePreferences),
+        }).catch(() => {});
+        const name = survey.displayName.trim();
+        if (name) localStorage.setItem(`clockin_display_name:${userId}`, name);
+        onComplete(name || "there");
+    }
+
     function handleConnectGoogle() {
         setCheckingGoogle(true);
         const url = `${import.meta.env.VITE_API_URL}/api/google/login?user_id=${userId}`;
@@ -417,33 +432,37 @@ export default function OnboardingSurvey({ userId, onComplete }: Props) {
         setSubmitting(true);
         setError(null);
         try {
-            // 1. Save initial perceptron weights
+            // Always save weights
             await initializeWeights(userId, {
                 priorityStyle: survey.priorityStyle,
                 timePreferences: Array.from(survey.timePreferences),
             });
 
-            // 2. Save blocked time ranges as busy times
-            const ALL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-            await Promise.all(
-                survey.blockedRanges
-                    .filter((r) => r.startTime && r.endTime && r.startTime < r.endTime)
-                    .map((r) =>
-                        createBusyTime({
-                            title: "Blocked (preferences)",
-                            start_time: r.startTime + ":00",
-                            end_time: r.endTime + ":00",
-                            days_of_week: ALL_DAYS,
-                            source: "manual",
-                        })
-                    )
-            );
+            if (!isReopening) {
+                // First-time only: save blocked ranges as busy times
+                const ALL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+                await Promise.all(
+                    survey.blockedRanges
+                        .filter((r) => r.startTime && r.endTime && r.startTime < r.endTime)
+                        .map((r) =>
+                            createBusyTime({
+                                title: "Blocked (preferences)",
+                                start_time: r.startTime + ":00",
+                                end_time: r.endTime + ":00",
+                                days_of_week: ALL_DAYS,
+                                source: "manual",
+                            })
+                        )
+                );
+                // Persist in both localStorage (fast path) and Supabase user metadata
+                // (device-agnostic source of truth so the survey never re-appears on a new device)
+                localStorage.setItem(`clockin_onboarding_done:${userId}`, "true");
+                await supabase.auth.updateUser({ data: { onboarding_done: true } });
+            }
 
-            // 3. Persist display name + completion flag
+            // Always save display name
             const name = survey.displayName.trim() || "there";
             localStorage.setItem(`clockin_display_name:${userId}`, name);
-            localStorage.setItem(`clockin_onboarding_done:${userId}`, "true");
-
             onComplete(name);
         } catch {
             setError("Could not save your preferences — make sure the backend is running and try again.");
@@ -454,7 +473,7 @@ export default function OnboardingSurvey({ userId, onComplete }: Props) {
     const canAdvanceStep1 = survey.displayName.trim().length > 0;
 
     return (
-        <Overlay>
+        <Overlay onClick={handleQuickSave}>
             <Card onClick={(e) => e.stopPropagation()}>
                 {/* Progress dots */}
                 <ProgressRow>
@@ -465,7 +484,9 @@ export default function OnboardingSurvey({ userId, onComplete }: Props) {
 
                 {step === 1 && (
                     <StepWrapper>
-                        <StepTitle>What should we call you? 🐝</StepTitle>
+                        <StepTitle style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            What should we call you? <TutorialBeeIcon style={{ width: 36, height: "auto" }} />
+                        </StepTitle>
                         <StepSub>
                             We'll use this to personalize your ClockIn experience.
                         </StepSub>
@@ -613,14 +634,16 @@ export default function OnboardingSurvey({ userId, onComplete }: Props) {
 
                 {step === 6 && (
                     <StepWrapper>
-                        <BeeEmoji>🐝</BeeEmoji>
+                        <BeeIcon />
                         <DoneTitle>
-                            You're all set,{" "}
-                            {survey.displayName.trim() || "there"}!
+                            {isReopening
+                                ? "Preferences updated!"
+                                : `You're all set, ${survey.displayName.trim() || "there"}!`}
                         </DoneTitle>
                         <DoneSub>
-                            Your schedule is now personalized from day one. The more you use
-                            ClockIn, the smarter it gets — it learns your habits over time.
+                            {isReopening
+                                ? "Your scheduling preferences have been saved. ClockIn will use these going forward."
+                                : "Your schedule is now personalized from day one. The more you use ClockIn, the smarter it gets — it learns your habits over time."}
                         </DoneSub>
                         {error && <ErrorText>{error}</ErrorText>}
                         <NextBtn
@@ -628,7 +651,7 @@ export default function OnboardingSurvey({ userId, onComplete }: Props) {
                             disabled={submitting}
                             onClick={handleFinish}
                         >
-                            {submitting ? "Saving…" : "Let's go!"}
+                            {submitting ? "Saving…" : isReopening ? "Save" : "Let's go!"}
                         </NextBtn>
                     </StepWrapper>
                 )}
