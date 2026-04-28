@@ -19,7 +19,9 @@ function OnboardingController() {
     const [surveyed, setSurveyed] = useState(false);
 
     if (!user) return null;
-    const needsOnboarding = !surveyed && !localStorage.getItem(`clockin_onboarding_done:${user.id}`);
+    // user.onboardingDone comes from Supabase user metadata — works across devices.
+    // localStorage is kept as a fast-path cache to avoid a flicker on the same device.
+    const needsOnboarding = !surveyed && !user.onboardingDone && !localStorage.getItem(`clockin_onboarding_done:${user.id}`);
     if (!needsOnboarding) return null;
 
     function handleSurveyComplete() {

@@ -11,10 +11,6 @@ import BackButton from "../components/navigation/BackButton";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
 import NightHomepageIcon from "../components/icons/NightHomepageIcon";
 import { useTheme } from "../context/ThemeContext";
-import TutorialButton from "../components/onboardingComponents/TutorialButton.tsx";
-import {TASKS_TUTORIAL_STEPS} from "../constants/TaskListTutorialSteps.ts";
-import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
-import {useUserVisits} from "../hooks/useUserVisits.ts";
 
 // ── Page Styled Components ────────────────────────────────────────────────────
 

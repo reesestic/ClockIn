@@ -3,7 +3,9 @@ import styled from "styled-components";
 import ScheduleView from "../components/scheduleComponents/ScheduleView.tsx";
 import ScheduleFilterModal from "../components/modal/ScheduleFilterModal.tsx";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import HomepageBlankIcon from "../components/icons/HomepageBlankIcon";
+import NightHomepageIcon from "../components/icons/NightHomepageIcon";
 
 import type { Task } from "../types/Task";
 import type { Schedule } from "../types/Schedule";
@@ -32,7 +34,7 @@ const PageBg = styled.div`
   overflow: hidden;
 `;
 
-const BlurredBg = styled(HomepageBlankIcon)`
+const bgStyles = `
   position: fixed;
   inset: -40px;
   width: calc(100% + 80px);
@@ -42,11 +44,18 @@ const BlurredBg = styled(HomepageBlankIcon)`
   transform: scale(1.05);
 `;
 
+const DayBlurredBg = styled(HomepageBlankIcon)`${bgStyles}`;
+const NightBlurredBg = styled(NightHomepageIcon)`${bgStyles}`;
+
 const BgDim = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.18);
   z-index: 1;
+
+  [data-theme="dark"] & {
+    background: rgba(10, 7, 25, 0.35);
+  }
 `;
 
 const BackBtnWrapper = styled.div`
@@ -144,11 +153,12 @@ export default function PlannerPage() {
                     getBusyTimes()
                         .then((all) => {
                             const google = all.filter((bt) => bt.source === "google");
-                            const ignoredIds: string[] = JSON.parse(
+                            const ignoredKeys = new Set<string>(JSON.parse(
                                 localStorage.getItem(`clockin_ignored_cal:${user?.id}`) ?? "[]"
-                            );
+                            ));
                             const blocks = busyTimesToBlocks(google, dates).map((b) => {
-                                return ignoredIds.includes(b.id) ? { ...b, isIgnored: true } : b;
+                                const key = `${b.title}|${b.start}|${b.end}|${b.date}`;
+                                return ignoredKeys.has(key) ? { ...b, isIgnored: true } : b;
                             });
                             setCalendarBlocks(blocks);
                         })
@@ -219,12 +229,12 @@ export default function PlannerPage() {
             const updated = prev.map((b) =>
                 groupIds.has(b.id) ? { ...b, isIgnored: willIgnore } : b
             );
-            const ignoredIds = updated
+            const ignoredKeys = updated
                 .filter((b) => b.isIgnored)
-                .map((b) => b.id);
+                .map((b) => `${b.title}|${b.start}|${b.end}|${b.date}`);
             localStorage.setItem(
                 `clockin_ignored_cal:${user?.id}`,
-                JSON.stringify([...new Set(ignoredIds)])
+                JSON.stringify([...new Set(ignoredKeys)])
             );
             return updated;
         });
@@ -241,11 +251,12 @@ export default function PlannerPage() {
         ? { blocks: visibleCalendarBlocks }
         : null;
 
+    const { isDark } = useTheme();
     const { visits } = useUserVisits();
     useAutoTutorial(visits?.visited_schedule, SCHEDULE_TUTORIAL_STEPS, "schedule");
     return (
         <PageBg>
-            <BlurredBg />
+            {isDark ? <NightBlurredBg /> : <DayBlurredBg />}
             <BgDim />
             <BackBtnWrapper>
                 <BackButton to={ROUTES.HOME} style={{ color: "#fff" }} />

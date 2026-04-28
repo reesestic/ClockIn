@@ -4,6 +4,8 @@ import { initializeWeights } from "../../api/onboardingApi";
 import type { PriorityStyle } from "../../api/onboardingApi";
 import { createBusyTime } from "../../api/busyTimesApi";
 import { getGoogleStatus } from "../../api/googleApi";
+import { supabase } from "../../supabaseClient";
+import TutorialBeeIcon from "../icons/TutorialBeeIcon";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -327,10 +329,11 @@ const DoneSub = styled.p`
     margin: 0 0 32px 0;
 `;
 
-const BeeEmoji = styled.div`
-    font-size: 56px;
-    text-align: center;
-    margin-bottom: 16px;
+const BeeIcon = styled(TutorialBeeIcon)`
+    width: 80px;
+    height: auto;
+    display: block;
+    margin: 0 auto 16px;
 `;
 
 const ErrorText = styled.p`
@@ -451,7 +454,10 @@ export default function OnboardingSurvey({ userId, onComplete, isReopening = fal
                             })
                         )
                 );
+                // Persist in both localStorage (fast path) and Supabase user metadata
+                // (device-agnostic source of truth so the survey never re-appears on a new device)
                 localStorage.setItem(`clockin_onboarding_done:${userId}`, "true");
+                await supabase.auth.updateUser({ data: { onboarding_done: true } });
             }
 
             // Always save display name
@@ -478,7 +484,9 @@ export default function OnboardingSurvey({ userId, onComplete, isReopening = fal
 
                 {step === 1 && (
                     <StepWrapper>
-                        <StepTitle>What should we call you? 🐝</StepTitle>
+                        <StepTitle style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            What should we call you? <TutorialBeeIcon style={{ width: 36, height: "auto" }} />
+                        </StepTitle>
                         <StepSub>
                             We'll use this to personalize your ClockIn experience.
                         </StepSub>
@@ -626,7 +634,7 @@ export default function OnboardingSurvey({ userId, onComplete, isReopening = fal
 
                 {step === 6 && (
                     <StepWrapper>
-                        <BeeEmoji>🐝</BeeEmoji>
+                        <BeeIcon />
                         <DoneTitle>
                             {isReopening
                                 ? "Preferences updated!"

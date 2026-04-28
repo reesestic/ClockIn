@@ -74,6 +74,10 @@ function calBlockToBusyTimeId(blockId: string): string | null {
     return blockId.split(":")[1] ?? null;
 }
 
+function stableCalKey(b: { title: string; start: string; end: string; date: string }): string {
+    return `${b.title}|${b.start}|${b.end}|${b.date}`;
+}
+
 type Props = {
     onClose: () => void;
     onConfirm: (schedule: Schedule) => void;
@@ -399,6 +403,10 @@ const RightPanel = styled.div`
     overflow: hidden;
     padding: 16px 18px 12px;
     min-width: 0;
+
+    [data-theme="dark"] & {
+        background: #857bb5;
+    }
 `;
 
 const RightTitle = styled.h2`
@@ -625,13 +633,24 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     const initTaskBlocksRef = useRef(
         initialSchedule?.blocks.filter((b) => !b.isCalendarEvent) ?? []
     );
-    const ignoredIdSetRef = useRef(
-        new Set((initialCalendarBlocks ?? []).filter((b) => b.isIgnored).map((b) => b.id))
-    );
+    const ignoredIdSetRef = useRef<Set<string>>((() => {
+        try {
+            const saved = localStorage.getItem(`clockin_ignored_cal:${userId}`);
+            if (saved) return new Set<string>(JSON.parse(saved));
+        } catch {}
+        return new Set((initialCalendarBlocks ?? []).filter((b) => b.isIgnored).map((b) => stableCalKey(b)));
+    })());
 
-    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>(() =>
-        [...new Set(initTaskBlocksRef.current.map((b) => b.task_id).filter((id): id is string => !!id))]
-    );
+    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem(`clockin_selected_tasks:${userId}`);
+            if (saved) {
+                const ids = JSON.parse(saved) as string[];
+                if (ids.length > 0) return ids;
+            }
+        } catch {}
+        return [...new Set(initTaskBlocksRef.current.map((b) => b.task_id).filter((id): id is string => !!id))];
+    });
     const [allowedDays, setAllowedDays] = useState<string[]>(weekDays.map((d) => d.date));
     const [showTaskPicker, setShowTaskPicker] = useState(false);
 
@@ -660,6 +679,10 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     const [error, setError] = useState<string | null>(null);
 
     const prevBlocksRef = useRef<ScheduleBlock[]>(initTaskBlocksRef.current);
+
+    useEffect(() => {
+        localStorage.setItem(`clockin_selected_tasks:${userId}`, JSON.stringify(selectedTaskIds));
+    }, [selectedTaskIds, userId]);
 
     // ── Manual drag-to-place ───────────────────────────────────────────────────
     const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -736,7 +759,7 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
             .then((all) => {
                 const googleEvents = all.filter((bt) => bt.source === "google");
                 const calBlocks = busyTimesToBlocks(googleEvents, allowedDates).map((b) =>
-                    ignoredIdSetRef.current.has(b.id) ? { ...b, isIgnored: true } : b
+                    ignoredIdSetRef.current.has(stableCalKey(b)) ? { ...b, isIgnored: true } : b
                 );
                 setBlocks([...calBlocks, ...initTaskBlocksRef.current]);
                 if (calBlocks.length > 0) setHasCalendarEvents(true);
@@ -826,8 +849,9 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
     function saveIgnoredIds(updatedBlocks: ScheduleBlock[]) {
         const ids = new Set<string>();
         for (const b of updatedBlocks) {
-            if (b.isCalendarEvent && b.isIgnored) ids.add(b.id);
+            if (b.isCalendarEvent && b.isIgnored) ids.add(stableCalKey(b));
         }
+        ignoredIdSetRef.current = ids;
         localStorage.setItem(`clockin_ignored_cal:${userId}`, JSON.stringify(Array.from(ids)));
     }
 
@@ -956,9 +980,18 @@ export default function ScheduleFilterModal({ onClose, onConfirm, allTasks, user
         !!t.due_date &&
         !!t.task_duration && t.task_duration > 0;
 
-    const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!));
+    const todayStart = useMemo(() => {
+        const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+    }, []);
+
+    const isFuture = (t: Task) => {
+        if (!t.due_date) return false;
+        return new Date(t.due_date.length <= 10 ? t.due_date + "T00:00" : t.due_date) >= todayStart;
+    };
+
+    const selectedTasks = allTasks.filter((t) => selectedTaskIds.includes(t.id!) && isFuture(t));
     const unselectedTasks = allTasks.filter(
-        (t) => !selectedTaskIds.includes(t.id!) && isSchedulable(t)
+        (t) => !selectedTaskIds.includes(t.id!) && isSchedulable(t) && isFuture(t)
     );
     const showGrid = blocks.length > 0 || (!loading && !syncing);
 

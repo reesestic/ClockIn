@@ -26,6 +26,9 @@ import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import {useNotes} from "../context/NoteContext.tsx";
 import LottieLoading from "../components/ui/LottieLoading.tsx";
+import {STICKY_NOTE_TUTORIAL_STEPS} from "../constants/StickyNoteTutorialSteps.ts";
+import {useAutoTutorial} from "../hooks/useAutoTutorial.ts";
+import {useUserVisits} from "../hooks/useUserVisits.ts";
 
 // ─── Custom event types ───────────────────────────────────────────────────────
 

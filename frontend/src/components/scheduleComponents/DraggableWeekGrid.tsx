@@ -88,7 +88,15 @@ const DayCol = styled.div<{ $isOver: boolean; $lightBg?: boolean; $isEnabled?: b
           ? ($isEnabled ? "#ffffff" : "#f0f0f0")
           : "transparent"};
   transition: background 0.1s;
-  [data-theme="dark"] & { border-left-color: rgba(0,0,0,0.2); }
+  [data-theme="dark"] & {
+      border-left-color: rgba(0,0,0,0.2);
+      background: ${({ $isOver, $lightBg, $isEnabled }) =>
+          $isOver
+              ? "#d8d4ee"
+              : $lightBg
+              ? ($isEnabled ? "#eeeeee" : "#e0e0e0")
+              : "transparent"};
+  }
 `;
 
 const DayHeaderArea = styled.div<{ $lightBg?: boolean }>`
@@ -167,7 +175,7 @@ const BlockEl = styled.div<{
           ? "1.5px dashed #3a7bd5"
           : "1.5px solid rgba(0,0,0,0.1)"};
   color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
-      $isIgnored ? "#aaa" : $isCalendarEvent ? "#2a5ba8" : ($textColor ?? "white")};
+      $isIgnored ? "#ffffff" : $isCalendarEvent ? "#2a5ba8" : ($textColor ?? "white")};
   border-radius: 6px;
   padding: 2px 7px;
   font-size: 11px;
@@ -203,7 +211,7 @@ const BlockEl = styled.div<{
       border-color: ${({ $isCalendarEvent, $isIgnored }) =>
           $isIgnored ? "#bbb" : $isCalendarEvent ? "#7a6fc4" : "rgba(255,255,255,0.15)"};
       color: ${({ $textColor, $isCalendarEvent, $isIgnored }) =>
-          $isIgnored ? "#aaa" : $isCalendarEvent ? "#c8c0f0" : ($textColor ?? "white")};
+          $isIgnored ? "#ffffff" : $isCalendarEvent ? "#c8c0f0" : ($textColor ?? "white")};
   }
 `;
 
