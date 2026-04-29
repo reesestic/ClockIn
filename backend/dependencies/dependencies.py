@@ -21,8 +21,7 @@ from services.busy_times_service import BusyTimesService
 from services.stats_service import StatsService
 from services.google_service import GoogleService
 from services.plants_service import PlantsService
-
-
+from services.pdf_parser_service import PDFParserService
 
 
 load_dotenv()
@@ -31,9 +30,11 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 # Instances
 openai_service = AIService(api_key)
+pdf_parser_service = PDFParserService()
+
 
 task_repository = TaskRepository(supabase)
-task_service = TaskService(task_repository)
+task_service = TaskService(task_repository, pdf_parser_service, openai_service)
 
 schedule_repository = ScheduleRepository()
 schedule_service = ScheduleService()

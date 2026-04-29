@@ -195,6 +195,8 @@ type SortKey = "none" | "due_date" | "difficulty" | "importance" | "task_duratio
 type TaskListProps = TaskSidebarProps & {
     onAddTask?: () => void;
     hideControls?: boolean;
+    onOpenUpload?: () => void;
+
     viewMode?: ViewMode;
     onViewModeChange?: (mode: ViewMode) => void;
 };
@@ -213,6 +215,7 @@ export default function TaskList({
                                      mode,
                                      onSplitTask,
                                      hideControls = false,
+                                     onOpenUpload,
                                      viewMode = "list",
                                      onViewModeChange,
                                  }: TaskListProps) {
@@ -242,6 +245,11 @@ export default function TaskList({
                         <div data-tutorial-id="add-task">
                             <AddButton onClick={onAddTask} title="Add task">+</AddButton>
                         </div>
+                    )}
+                    {onOpenUpload && (
+                        <button onClick={onOpenUpload}>
+                            Upload
+                        </button>
                     )}
                     <div data-tutorial-id="search-bar" style={{ flex: 1, minWidth: 0 }}>
                         <SearchInput

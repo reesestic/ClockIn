@@ -64,3 +64,83 @@ class AIService:
             "steps": parsed.get("steps", []),
             "is_pomodoro": not has_enough_info,
         }
+
+    async def extract_tasks_from_document(self, title: str, text: str, user_id: str, color: str):
+        from datetime import datetime
+
+        prompt = f"""
+        You are a productivity assistant.
+    
+        Convert this assignment into a SMALL SET of high-quality, actionable tasks.
+    
+        RULES:
+        - Only create tasks for IMPORTANT, meaningful chunks of work
+        - Do NOT create trivial or overly granular tasks
+        - Typically between 2–6 tasks depending on complexity
+        - Combine related steps into a single task when appropriate
+    
+        Each task MUST:
+        - be clear and specific
+        - be easy to start immediately
+        - include a useful description (what to physically do)
+        - include realistic task_duration (minutes)
+        - include importance (1–3)
+        - include difficulty (1–3)
+        - All tasks should share the SAME due_date unless explicitly stated otherwise.
+        - If no due date is provided, leave due_date as null.
+    
+        GOOD EXAMPLE:
+        "Set up OAuth credentials and configure environment variables in your Next.js app"
+    
+        BAD EXAMPLE:
+        "Work on OAuth"
+        "Start project"
+    
+        Return JSON:
+    
+        {{
+          "tasks": [
+            {{
+              "title": "",
+              "description": "",
+              "task_duration": 0,
+              "importance": 1,
+              "difficulty": 1,
+              "due_date": "",
+              "status": "to do",
+              "can_schedule": true
+            }}
+          ]
+        }}
+    
+        Today is {datetime.utcnow().isoformat()}
+    
+        Assignment:
+        {text}
+        """
+
+        response = await self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+
+        raw = response.choices[0].message.content
+        parsed = json.loads(raw)
+
+        tasks = parsed.get("tasks", [])
+
+        for task in tasks:
+            task["color"] = color
+            task["task_duration"] = int(task.get("task_duration") or 30)
+            task["importance"] = int(task.get("importance") or 2)
+            task["difficulty"] = int(task.get("difficulty") or 2)
+            task["user_id"] = user_id
+
+            # 🔥 make sure tasks are usable in your UI
+            task["can_schedule"] = (
+                    bool(task.get("title")) and
+                    task["task_duration"] > 0
+            )
+
+        return tasks

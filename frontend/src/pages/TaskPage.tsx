@@ -227,7 +227,7 @@ function SplitTaskModal({ task, onConfirm, onCancel }: SplitTaskModalProps) {
     const blockDuration = Math.floor((task.task_duration ?? 0) / split);
 
     return (
-        <ModalBackdrop onClick={onCancel}>
+        <ModalBackdrop>
             <ModalCard onClick={e => e.stopPropagation()}>
                 <ModalTitle>
                     Split <ModalTitleHighlight>"{task.title}"</ModalTitleHighlight> into{" "}
