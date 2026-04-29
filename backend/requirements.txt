@@ -9,3 +9,4 @@ PyJWT
 httpx
 pydantic
 pymupdf
+python-multipart
