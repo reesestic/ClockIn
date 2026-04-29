@@ -1,6 +1,6 @@
 import {supabase} from "../supabaseClient.ts";
 
-function buildHeaders(token: string, body?: any, extra?: HeadersInit): HeadersInit {
+function buildHeaders(token: string, body?: BodyInit | null, extra?: HeadersInit): HeadersInit {
     const headers: Record<string, string> = {
         Authorization: `Bearer ${token}`,
         ...(extra as Record<string, string>),
@@ -26,7 +26,6 @@ export async function authFetch(url: string, options: RequestInit = {}) {
         headers: buildHeaders(token, options.body, options.headers),
     });
 
-    // Retry on expired token
     if (response.status === 401) {
         const { data: refreshed, error } = await supabase.auth.refreshSession();
         if (error || !refreshed.session) {
