@@ -8,3 +8,4 @@ numpy
 PyJWT
 httpx
 pydantic
+pymupdf
