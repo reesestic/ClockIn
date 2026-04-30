@@ -102,14 +102,18 @@ export default function TaskSidebar({
 
     const handleConfirm = async () => {
         for (const task of proposedTasks) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { _modalId, ...cleanTask } = task;
+            console.log("Saving task color:", cleanTask.color); // checking color
             await onAddTask({
-                title: task.title,
-                description: task.description,
-                due_date: task.due_date ?? null,
-                task_duration: task.task_duration ?? 0,
-                importance: task.importance ?? 1,
-                difficulty: task.difficulty ?? 1,
+                title: cleanTask.title,
+                description: cleanTask.description,
+                due_date: cleanTask.due_date ?? null,
+                task_duration: cleanTask.task_duration ?? 0,
+                importance: cleanTask.importance ?? 1,
+                difficulty: cleanTask.difficulty ?? 1,
                 status: "to do",
+                color: cleanTask.color ?? "yellow",
             });
         }
         setShowConfirmModal(false);
@@ -148,7 +152,7 @@ export default function TaskSidebar({
                         onClose={() => setShowUploadModal(false)}
                         onTasksGenerated={(tasks) => {
                             setShowUploadModal(false);
-                            setProposedTasks(tasks);
+                            setProposedTasks(tasks.map((t, i) => ({ ...t, _modalId: i })));
                             setShowConfirmModal(true);
                         }}
                     />
@@ -158,14 +162,15 @@ export default function TaskSidebar({
                     <TaskConfirmModal
                         tasks={proposedTasks}
                         isLoading={false}
-                        onUpdateTask={(i, updated) => {
+                        onUpdateTask={(_, updated) => {
+                            console.log("Updated task color:", updated.color);
                             setProposedTasks(prev =>
-                                prev.map((t, idx) => idx === i ? updated : t)
+                                prev.map(t => t._modalId === updated._modalId ? updated : t)
                             );
                         }}
-                        onRemoveTask={(i) => {
+                        onRemoveTask={(modalId) => {
                             setProposedTasks(prev =>
-                                prev.filter((_, idx) => idx !== i)
+                                prev.filter(t => t._modalId !== modalId)
                             );
                         }}
                         onConfirm={handleConfirm}

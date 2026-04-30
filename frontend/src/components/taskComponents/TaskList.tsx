@@ -5,13 +5,14 @@ import TaskSelectable from "./TaskSelectable.tsx";
 import type { TaskSidebarProps } from "./TaskSidebarProps.ts";
 import { useState } from "react";
 import type { ViewMode } from "../../pages/TaskPage.tsx";
+import UploadIcon from "../icons/UploadIcon.tsx";
 
 // ── Styled Components ────────────────────────────────────────────────────────
 
 const TaskContainer = styled.div`
     background-color: #ffffff;
     border-radius: 5px;
-    max-width: 90%;
+    max-width: 95%;
     margin: auto;
     padding-bottom: 2%;
     min-height: 100vh;
@@ -65,6 +66,27 @@ const SearchInput = styled.input`
     }
 `;
 
+const AddButton = styled.button`
+    background: #f5f5f5;
+    border: 1px solid #999;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 1rem;
+    cursor: pointer;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    &:hover {
+        background-color: #e0e0e0;
+        border-color: #777;
+        color: #333;
+    }
+`;
+
 const SortSelect = styled.select`
     padding: 4px 8px;
     border: 1px solid #e0e0e0;
@@ -87,24 +109,48 @@ const SortSelect = styled.select`
     }
 `;
 
-const AddButton = styled.button`
-    background: #f5f5f5;
-    border: 1px solid #999;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    font-size: 1rem;
-    cursor: pointer;
-    color: black;
+const UploadWrapper = styled.button`
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
+    justify-content: flex-start; /* 🔥 important */
+
+    width: 42px;
+    height: 42px;
+
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 8px;
     flex-shrink: 0;
+    overflow: hidden;
+
+    transition: width 0.2s ease;
+
     &:hover {
-        background-color: #e0e0e0;
-        border-color: #777;
-        color: #333;
+        width: 140px; /* expands right */
+    }
+
+    svg {
+        width: 35px;
+        height: 35px;
+        flex-shrink: 0;
+        display: block;
+    }
+`;
+
+const UploadLabel = styled.span`
+    margin-left: 10px; /* 🔥 this is the magic */
+    
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4B94DB;
+    white-space: nowrap;
+
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    ${UploadWrapper}:hover & {
+        opacity: 1;
     }
 `;
 
@@ -246,11 +292,14 @@ export default function TaskList({
                             <AddButton onClick={onAddTask} title="Add task">+</AddButton>
                         </div>
                     )}
+
                     {onOpenUpload && (
-                        <button onClick={onOpenUpload}>
-                            Upload
-                        </button>
+                        <UploadWrapper onClick={onOpenUpload} title="Upload Task">
+                            <UploadIcon />
+                            <UploadLabel>Upload Task</UploadLabel>
+                        </UploadWrapper>
                     )}
+
                     <div data-tutorial-id="search-bar" style={{ flex: 1, minWidth: 0 }}>
                         <SearchInput
                             value={search}

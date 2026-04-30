@@ -15,10 +15,10 @@ import ModalTaskEditable from "./ModalTaskEditable.tsx";
 interface TaskConfirmModalProps {
     tasks: Task[];
     isLoading: boolean;
-    onUpdateTask: (index: number, updated: Task) => void;
     onConfirm: () => void;
-    onRemoveTask: (index: number) => void;
     onCancel: () => void;
+    onRemoveTask: (modalId: number) => void;
+    onUpdateTask: (modalId: number, updated: Task) => void;
 }
 
 export default function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onConfirm, onCancel, onRemoveTask }: TaskConfirmModalProps) {
@@ -40,10 +40,10 @@ export default function TaskConfirmModal({ tasks, isLoading, onUpdateTask, onCon
                     <TaskList>
                         {tasks.map((task, i) => (
                             <ModalTaskEditable
-                                key={task.title + i}
+                                key={task._modalId ?? i}
                                 task={task}
-                                onChange={updated => onUpdateTask(i, updated)}
-                                onRemove={() => onRemoveTask(i)}
+                                onChange={updated => onUpdateTask(updated._modalId ?? i, updated)}
+                                onRemove={() => onRemoveTask(task._modalId ?? i)}
                             />
                         ))}
                     </TaskList>
