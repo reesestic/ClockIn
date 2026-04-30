@@ -865,14 +865,14 @@ export default function TimerScreen() {
                 mode:    locationState.mode,
                 item:    locationState.item  ?? null,
                 hasPlan: !!locationState.hasPlan,
-                savedAt: Date.now(),
+                savedAt: Date.now(), // eslint-disable-line react-hooks/purity
             };
             saveContext(ctx);
             return ctx;
         }
         const persisted = loadContext();
         if (persisted) return persisted;
-        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() }; // eslint-disable-line react-hooks/purity
+        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const { mode, item, hasPlan } = resolvedContext;
