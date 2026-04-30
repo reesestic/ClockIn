@@ -8,7 +8,7 @@ import type { TimerSession } from "../../types/TimerSession.ts";
 import digital7 from "../../assets/fonts/digital-7.ttf";
 import type { ScheduleBlock } from "../../types/ScheduleBlock.ts";
 import type { Task } from "../../types/Task.ts";
-import { getTask, updateTaskStatus } from "../../api/taskApi.ts";
+import {deleteTask, getTask, updateTaskStatus} from "../../api/taskApi.ts";
 import { fetchActivePlant, growPlant, fetchCompletedPlants  } from "../../api/plantApi.ts";
 import TaskEditable from "../taskComponents/TaskEditable.tsx";
 import { PLANT_CONFIG, type PlantVariety } from "../../types/PlantConfig.ts";
@@ -16,9 +16,13 @@ import {PlantVisual} from "../plantComponents/PlantVisual.tsx";
 import PlantRevealSequence from "../plantComponents/PlantRevealSequence";
 import PlantStageAnimator from "../plantComponents/PlantStageAnimator.tsx";
 import { usePlants } from "../../context/usePlants.ts";
+import TutorialButton from "../onboardingComponents/TutorialButton.tsx";                  // ✅ added
+import { TIMER_SCREEN_TUTORIAL_STEPS } from "../../constants/TimerScreenTutorialSteps.ts"; // ✅ added
+import { useUserVisits } from "../../hooks/useUserVisits.ts";                              // ✅ added
+import { useAutoTutorial } from "../../hooks/useAutoTutorial.ts";                          // ✅ added
 
 /* ─────────────────────────────────────────
-   TYPES
+TYPES
 ───────────────────────────────────────── */
 
 type Status = "idle" | "running" | "paused";
@@ -629,10 +633,8 @@ const PlantContainer = styled.div`
     bottom: 45px;
     left: 50%;
     transform: translateX(-50%);
-    
     height: clamp(140px, 22vw, 220px);
     max-height: 35%;
-    
     width: auto;
     display: flex;
     align-items: flex-end;
@@ -813,7 +815,7 @@ const StepItem = styled.div<{ $active: boolean; $done: boolean }>`
     margin-bottom: 0.5rem;
     border-radius: 8px;
     background: ${({ $active, $done }) =>
-        $active ? "rgba(75,148,219,0.12)" : $done ? "rgba(0,0,0,0.03)" : "transparent"};
+    $active ? "rgba(75,148,219,0.12)" : $done ? "rgba(0,0,0,0.03)" : "transparent"};
     border-left: 3px solid ${({ $active }) => ($active ? "#FFF59A" : "transparent")};
     opacity: ${({ $done }) => ($done ? 0.4 : 1)};
     transition: background 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
@@ -855,7 +857,6 @@ export default function TimerScreen() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Fix: typed location.state instead of `any`
     const locationState = (location.state as LocationState) || {};
 
     const resolvedContext = useMemo<PersistedContext>(() => {
@@ -920,10 +921,13 @@ export default function TimerScreen() {
     const stepIndexRef = useRef(0);
     const stepElapsedRef = useRef(0);
     const localPlantProgressRef = useRef(0);
-    // Fix: initialize to 0, set real value in useEffect to avoid Date.now() during render
     const lastPlantSyncRef = useRef(0);
     const midSessionEarnedRef = useRef<PlantEarned[]>([]);
     const previousTaskStatusRef = useRef<string | null>(null);
+
+    // ✅ Tutorial hooks
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_timer, TIMER_SCREEN_TUTORIAL_STEPS, "timer");
 
     useEffect(() => {
         if (currentTask?.status) {
@@ -959,17 +963,14 @@ export default function TimerScreen() {
         const deltaSeconds = Math.floor((now - lastPlantSyncRef.current) / 1000);
         if (deltaSeconds <= 0) return;
         try {
-            // In syncPlantProgress, save last known variety
             const result = await growPlant(deltaSeconds);
             if (result?.plants_earned_count > 0) {
-                // new plant earned — immediately show stage 1 of new variety
                 const last = result.plants_earned[result.plants_earned.length - 1];
                 if (last?.variety) {
                     setPlantVariety(last.variety as PlantVariety);
-                    setPlantStage(1); // show immediately, don't wait
+                    setPlantStage(1);
                 }
             }
-// then update stage from result
             if (result?.stage != null) setPlantStage(result.stage);
             localPlantProgressRef.current = result.progress ?? 0;
             lastPlantSyncRef.current = now;
@@ -991,11 +992,6 @@ export default function TimerScreen() {
         };
     }, [syncPlantProgress]);
 
-    /* ══════════════════════════════════════════
-       SESSION SAVE / END
-       Hoisted above mount useEffect so forceEndSession
-       is declared before it is referenced
-    ══════════════════════════════════════════ */
     async function saveSessionToDB(session: Session, now: number, taskCompleted = false) {
         if (!session.hasStartedWork) return null;
         const elapsed = Math.floor((now - session.startTime) / 1000);
@@ -1018,7 +1014,6 @@ export default function TimerScreen() {
         }
     }
 
-    // Fix: hoisted above the mount useEffect that calls it
     async function forceEndSession(session: Session) {
         const data = await saveSessionToDB(session, Date.now());
         clearAll();
@@ -1035,14 +1030,10 @@ export default function TimerScreen() {
         async function loadActivePlant() {
             try {
                 const data = await fetchActivePlant();
-
                 console.log("🌱 Plant on mount:", data);
-
                 if (data?.progress_seconds != null) {
                     localPlantProgressRef.current = data.progress_seconds;
-
                     setPlantStage(data.stage ?? 1);
-
                     if (data.variety && PLANT_CONFIG[data.variety as PlantVariety]) {
                         setPlantVariety(data.variety as PlantVariety);
                     }
@@ -1125,19 +1116,13 @@ export default function TimerScreen() {
     useEffect(() => {
         const interval = setInterval(async () => {
             const now = Date.now();
-
             if (statusRef.current !== "running") return;
-
             const session = loadSession();
             if (!session || session.paused || !session.endTime) return;
-
             const remaining = Math.max(0, Math.ceil((session.endTime - now) / 1000));
             setSeconds(remaining);
-
             setSessionElapsedSeconds(computeActiveSeconds(session, now));
-
             localPlantProgressRef.current += 1;
-            // Edit this back to 30/60 seconds later
             if (localPlantProgressRef.current % 10 === 0) {
                 const result = await syncPlantProgress();
                 if (result?.stage != null) setPlantStage(result.stage);
@@ -1148,7 +1133,6 @@ export default function TimerScreen() {
                     ];
                 }
             }
-
             if (remaining <= 0) {
                 await syncPlantProgress();
                 session.paused = true;
@@ -1160,12 +1144,10 @@ export default function TimerScreen() {
                 setSeconds(0);
                 return;
             }
-
             const steps = workflowStepsRef.current;
             if (steps.length > 0) {
                 stepElapsedRef.current += 1;
                 const currentDuration = steps[stepIndexRef.current]?.duration_seconds ?? 0;
-
                 if (stepElapsedRef.current >= currentDuration) {
                     const nextIndex = Math.min(stepIndexRef.current + 1, steps.length - 1);
                     stepIndexRef.current = nextIndex;
@@ -1178,15 +1160,12 @@ export default function TimerScreen() {
                     );
                 }
             }
-
             session.currentStepIndex = stepIndexRef.current;
             session.stepElapsedSecs  = stepElapsedRef.current;
             saveSession(session);
-
         }, 1000);
-
         return () => clearInterval(interval);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     /* ══════════════════════════════════════════
        TAB CONTROL
@@ -1269,7 +1248,6 @@ export default function TimerScreen() {
         return () => window.removeEventListener("beforeunload", handleUnload);
     }, [currentTask]);
 
-    // for context of fetching plants
     const { refetchPlants } = usePlants();
 
     /* ══════════════════════════════════════════
@@ -1302,19 +1280,12 @@ export default function TimerScreen() {
         const h = parseInt(padded.slice(0, 2), 10);
         const m = parseInt(padded.slice(2, 4), 10);
         const s = parseInt(padded.slice(4, 6), 10);
-
         if (m > 59 || s > 59 || h > 24 || (h === 0 && m === 0 && s === 0)) {
             setToast("Invalid time entered!");
-
-            setTimeout(() => {
-                setToast(null);
-            }, 3000);
-
+            setTimeout(() => setToast(null), 3000);
             return;
         }
-
         const totalSeconds = h * 3600 + m * 60 + s;
-
         if (!totalSeconds) return;
         const now = Date.now();
         let session = loadSession();
@@ -1408,7 +1379,6 @@ export default function TimerScreen() {
         }
         const now = Date.now();
         const deltaSeconds = Math.floor((now - lastPlantSyncRef.current) / 1000);
-
         let finalEarned: PlantEarned[] = [];
         if (deltaSeconds > 0) {
             try {
@@ -1423,22 +1393,15 @@ export default function TimerScreen() {
                 console.warn("Final plant sync failed", e);
             }
         }
-
-        const earnedList = [
-            ...midSessionEarnedRef.current,
-            ...finalEarned,
-        ];
-
+        const earnedList = [...midSessionEarnedRef.current, ...finalEarned];
         const result = await saveSessionToDB(session, now, taskCompleted ?? false);
-
         if (currentTask?.id) {
             if (taskCompleted) {
-                await updateTaskStatus(currentTask.id, "completed");
+                await deleteTask(currentTask.id);
             } else {
                 await updateTaskStatus(currentTask.id, previousTaskStatusRef.current ?? "to_do");
             }
         }
-
         clearAll();
         midSessionEarnedRef.current = [];
         setStatus("idle");
@@ -1458,9 +1421,7 @@ export default function TimerScreen() {
         setShowTaskComplete(false);
     }
 
-    function handleEndSessionClick() {
-        setShowEndConfirm(true);
-    }
+    function handleEndSessionClick() { setShowEndConfirm(true); }
 
     function handleReuseYes() {
         const session = loadSession()!;
@@ -1484,12 +1445,8 @@ export default function TimerScreen() {
     async function handleOpenReveal() {
         try {
             const data: CompletedPlant[] = await fetchCompletedPlants();
-
             const map: Record<string, number> = {};
-            data.forEach((p: CompletedPlant) => {
-                map[p.variety] = p.count;
-            });
-
+            data.forEach((p: CompletedPlant) => { map[p.variety] = p.count; });
             setCompletedCounts(map);
             setShowReveal(true);
         } catch (e) {
@@ -1508,7 +1465,6 @@ export default function TimerScreen() {
     /* ─────────────────────────────────────
        RENDER
     ───────────────────────────────────── */
-
     const { h, mm, ss } = formatDigits(digits);
     const totalTyped = digitsToSeconds(digits);
     const canStart = totalTyped > 0;
@@ -1541,42 +1497,42 @@ export default function TimerScreen() {
                         <EndSessionButton onClick={handleEndSessionClick}>End Session</EndSessionButton>
 
                         <Main>
-                            {status === "idle" && (
-                                <div style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center"
-                                }}>
-                                    <TimerInputRow
-                                        ref={inputRef}
-                                        tabIndex={0}
-                                        onKeyDown={handleKeyDown}
-                                        onClick={() => inputRef.current?.focus()}
-                                    >
-                                        <DigitGroup $active={digits.length >= 5}>{h}</DigitGroup>
-                                        <Colon>:</Colon>
-                                        <DigitGroup $active={digits.length >= 3 && digits.length < 5}>{mm}</DigitGroup>
-                                        <Colon>:</Colon>
-                                        <DigitGroup $active={digits.length < 3}>{ss}</DigitGroup>
-                                    </TimerInputRow>
 
-                                    <div style={{
-                                        fontSize: "1.3rem",
-                                        fontWeight: 600,              // 🔥 more bold
-                                        color: "rgba(255,255,255,0.85)", // 🔥 more visible
-                                        marginTop: "0.1rem",
-                                        marginBottom: "0.5rem",
-                                        textAlign: "center",
-                                        letterSpacing: "0.02em"
-                                    }}>
-                                        Click the digits and start typing to set a time!
+                            {/* ✅ data-tutorial-id wraps the whole timer display area */}
+                            <div data-tutorial-id="active-timer">
+                                {status === "idle" && (
+                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                        <TimerInputRow
+                                            ref={inputRef}
+                                            tabIndex={0}
+                                            onKeyDown={handleKeyDown}
+                                            onClick={() => inputRef.current?.focus()}
+                                        >
+                                            <DigitGroup $active={digits.length >= 5}>{h}</DigitGroup>
+                                            <Colon>:</Colon>
+                                            <DigitGroup $active={digits.length >= 3 && digits.length < 5}>{mm}</DigitGroup>
+                                            <Colon>:</Colon>
+                                            <DigitGroup $active={digits.length < 3}>{ss}</DigitGroup>
+                                        </TimerInputRow>
+
+                                        <div style={{
+                                            fontSize: "1.3rem",
+                                            fontWeight: 600,
+                                            color: "rgba(255,255,255,0.85)",
+                                            marginTop: "0.1rem",
+                                            marginBottom: "0.5rem",
+                                            textAlign: "center",
+                                            letterSpacing: "0.02em"
+                                        }}>
+                                            Click the digits and start typing to set a time!
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {status !== "idle" && (
-                                <TimeDisplay>{formatSeconds(seconds)}</TimeDisplay>
-                            )}
+                                {status !== "idle" && (
+                                    <TimeDisplay>{formatSeconds(seconds)}</TimeDisplay>
+                                )}
+                            </div>
 
                             <Controls>
                                 {status === "idle"    && <Btn onClick={start} disabled={!canStart} style={{ opacity: canStart ? 1 : 0.35 }}>Start</Btn>}
@@ -1587,16 +1543,9 @@ export default function TimerScreen() {
 
                         <PlantContainer>
                             {plantVariety ? (
-                                <PlantStageAnimator
-                                    variety={plantVariety}
-                                    stage={plantStage}
-                                />
+                                <PlantStageAnimator variety={plantVariety} stage={plantStage} />
                             ) : (
-                                <div style={{
-                                    color: "rgba(255,255,255,0.6)",
-                                    fontSize: "0.9rem",
-                                    fontWeight: 600
-                                }}>
+                                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem", fontWeight: 600 }}>
                                     Loading...
                                 </div>
                             )}
@@ -1624,10 +1573,7 @@ export default function TimerScreen() {
 
                                     {sidebarTask && (
                                         <TaskCardWrapper>
-                                            <TaskEditable
-                                                task={sidebarTask}
-                                                isEditable={false}
-                                            />
+                                            <TaskEditable task={sidebarTask} isEditable={false} />
                                         </TaskCardWrapper>
                                     )}
 
@@ -1685,6 +1631,9 @@ export default function TimerScreen() {
                                 </Sidebar>
                             </>
                         )}
+
+                        {/* ✅ TutorialButton — no targetSelector on step 1 so no wrapper needed */}
+                        <TutorialButton steps={TIMER_SCREEN_TUTORIAL_STEPS} />
                     </Window>
                 </Frame>
 
@@ -1707,16 +1656,11 @@ export default function TimerScreen() {
                     <Overlay>
                         <OverlayContent onClick={e => e.stopPropagation()}>
                             <OverlayTitle>End Timer Session?</OverlayTitle>
-                            <PrimaryBtn onClick={() => setShowEndConfirm(false)}>
-                                Continue
-                            </PrimaryBtn>
+                            <PrimaryBtn onClick={() => setShowEndConfirm(false)}>Continue</PrimaryBtn>
                             <SecondaryBtn onClick={() => {
                                 setShowEndConfirm(false);
-                                if (currentTask) {
-                                    setShowTaskComplete(true);
-                                } else {
-                                    confirmEndSession();
-                                }
+                                if (currentTask) { setShowTaskComplete(true); }
+                                else { confirmEndSession(); }
                             }}>
                                 End Timer
                             </SecondaryBtn>
@@ -1728,9 +1672,7 @@ export default function TimerScreen() {
                     <Overlay>
                         <OverlayContent onClick={e => e.stopPropagation()}>
                             <OverlayTitle>Did you finish your task?</OverlayTitle>
-
                             <OverlayTaskTitle>"{currentTask?.title}"</OverlayTaskTitle>
-
                             <TaskCompleteGrid>
                                 <TaskCompleteOption $primary onClick={() => confirmEndSession(true)}>
                                     <TaskCompleteOptionTitle $primary>Yes ✓</TaskCompleteOptionTitle>
@@ -1738,7 +1680,6 @@ export default function TimerScreen() {
                                         Marked as complete and removed from your task list. Shows as done on your schedule.
                                     </TaskCompleteOptionDesc>
                                 </TaskCompleteOption>
-
                                 <TaskCompleteOption onClick={() => confirmEndSession(false)}>
                                     <TaskCompleteOptionTitle>Not yet</TaskCompleteOptionTitle>
                                     <TaskCompleteOptionDesc>
@@ -1755,42 +1696,25 @@ export default function TimerScreen() {
                         <SummaryCard>
                             <SummaryTitle>Good Job!</SummaryTitle>
 
-                            {/* ================= PLANT SECTION ================= */}
                             {(summaryData?.plantsEarned ?? 0) > 0 ? (() => {
-
                                 const earnedList = (summaryData?.plantsEarnedList as PlantEarned[]) ?? [];
                                 const lastPlant = earnedList[earnedList.length - 1];
-
                                 const variety: PlantVariety =
                                     (lastPlant?.variety && PLANT_CONFIG[lastPlant.variety as PlantVariety])
                                         ? (lastPlant.variety as PlantVariety)
                                         : (plantVariety ?? "sunflower");
-
                                 const maxStage = PLANT_CONFIG[variety].stages.length;
-
                                 return (
                                     <>
                                         <SummarySubtitle>
                                             You grew {summaryData?.plantsEarned ?? 0} plant{(summaryData?.plantsEarned ?? 0) > 1 ? "s" : ""}!
                                         </SummarySubtitle>
-
                                         <div style={{ margin: "1rem 0" }}>
-
-                                            {/* CENTERED PLANT */}
-                                            <div style={{
-                                                display: "flex",
-                                                justifyContent: "center",
-                                                marginBottom: "0.6rem"
-                                            }}>
+                                            <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.6rem" }}>
                                                 <div style={{ transform: "scale(0.75)" }}>
-                                                    <PlantVisual
-                                                        variety={variety}
-                                                        stage={maxStage}
-                                                    />
+                                                    <PlantVisual variety={variety} stage={maxStage} />
                                                 </div>
                                             </div>
-
-                                            {/* CLEAN BUTTON */}
                                             <div
                                                 onClick={handleOpenReveal}
                                                 style={{
@@ -1810,25 +1734,20 @@ export default function TimerScreen() {
                                             >
                                                 🌱 See what you grew
                                             </div>
-
                                         </div>
                                     </>
                                 );
                             })() : (() => {
-
                                 const progress = localPlantProgressRef.current;
                                 const safeVariety = plantVariety ?? "sunflower";
                                 const maxStage = PLANT_CONFIG[safeVariety].stages.length;
                                 const remaining = 30 * maxStage - progress;
-
                                 return (
                                     <SummarySubtitle>
                                         Your next plant will grow in {remaining}s 🌱
                                     </SummarySubtitle>
                                 );
                             })()}
-
-                            {/* ================= TIMER ================= */}
 
                             <div style={{ fontSize: "0.85rem", marginTop: "1rem", color: "#333" }}>
                                 You studied for
@@ -1850,8 +1769,6 @@ export default function TimerScreen() {
                                 <span>hours</span><span>minutes</span><span>seconds</span>
                             </div>
 
-                            {/* ================= BUTTONS ================= */}
-
                             <ButtonStack>
                                 <PrimaryBtn onClick={() => navigate(ROUTES.TIMER_ENTRY_PAGE)}>
                                     Study Again
@@ -1860,10 +1777,8 @@ export default function TimerScreen() {
                                     Leave Timer
                                 </SecondaryBtn>
                             </ButtonStack>
-
                         </SummaryCard>
 
-                        {/* ================= REVEAL MODAL ================= */}
                         {showReveal && (
                             <PlantRevealSequence
                                 plants={(summaryData?.plantsEarnedList as PlantEarned[]) ?? []}

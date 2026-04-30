@@ -6,7 +6,7 @@ export const HOME_TUTORIAL_STEPS: TutorialStep[] = [
         title: "Welcome to ClockIn!",
         body: "Let's get familiar with the",
         highlight: "features before you begin.",
-        targetSelector: "[data-tutorial='home-btn']",
+        targetSelector: "",
         modalPosition: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
         beePosition: { top: "50%", right: "35%" },
     },
