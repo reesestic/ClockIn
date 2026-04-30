@@ -872,7 +872,7 @@ export default function TimerScreen() {
         }
         const persisted = loadContext();
         if (persisted) return persisted;
-        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() };
+        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() }; // eslint-disable-line react-hooks/purity
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const { mode, item, hasPlan } = resolvedContext;
