@@ -52,7 +52,7 @@ const SubHeader = styled.h4`
 const ScrollableTaskList = styled.div`
     flex: 1;
     overflow-y: auto;
-    width: 80%;
+    width: 100%;
     border-radius: 5px;
     margin: 1% auto;
     scrollbar-width: none;

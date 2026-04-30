@@ -12,6 +12,10 @@ import GardenMonstera from "./GardenMonstera";
 import GardenBonsai from "./GardenBonsai";
 import GardenCactus from "./GardenCactus";
 import BackButton from "../navigation/BackButton.tsx";
+import TutorialButton from "../onboardingComponents/TutorialButton.tsx";
+import {GARDEN_TUTORIAL_STEPS} from "../../constants/GardenTutorialSteps.ts";
+import {useUserVisits} from "../../hooks/useUserVisits.ts";
+import {useAutoTutorial} from "../../hooks/useAutoTutorial.ts";
 
 const Wrapper = styled.div`
     position: fixed;
@@ -54,9 +58,10 @@ interface PlantSlotSVGProps {
     state: PlantState;
     selected: boolean;
     onSelect: (svgX: number, svgY: number) => void;
+    tutorialId?: string; // ✅ optional — only passed to one plant
 }
 
-function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
+function PlantSlotSVG({ slot, state, selected, onSelect, tutorialId }: PlantSlotSVGProps) {
     const vb = PLANT_VIEWBOXES[slot.variety];
     const PlantContent = PLANT_COMPONENTS[slot.variety];
 
@@ -65,6 +70,7 @@ function PlantSlotSVG({ slot, state, selected, onSelect }: PlantSlotSVGProps) {
 
     return (
         <g
+            data-tutorial-id={tutorialId} // ✅ undefined on all others = no attribute rendered
             transform={`
                 translate(${slot.svgX}, ${slot.svgY})
                 scale(${scale})
@@ -209,6 +215,8 @@ export default function GardenScene() {
 
     const selectedSlot = PLANT_SLOTS.find(s => s.id === selectedId);
     const selectedState = selectedSlot ? getState(selectedSlot) : null;
+    const { visits } = useUserVisits();
+    useAutoTutorial(visits?.visited_garden, GARDEN_TUTORIAL_STEPS, "garden");
 
     return (
         <Wrapper
@@ -223,10 +231,10 @@ export default function GardenScene() {
             {/* Tooltip */}
             {selectedSlot && tooltipPos && (() => {
                 const screenH = tooltipPos.screenH;
-                const offset = screenH * 0.04; // small gap between tooltip and plant edge
+                const offset = screenH * 0.04;
                 const top = tooltipPos.above
-                    ? tooltipPos.y - offset - 90   // 90 = approx tooltip height, sits above plant top
-                    : tooltipPos.y + offset;        // sits below plant base
+                    ? tooltipPos.y - offset - 90
+                    : tooltipPos.y + offset;
 
                 return (
                     <div style={{
@@ -247,23 +255,23 @@ export default function GardenScene() {
                         minWidth: 180,
                         pointerEvents: "auto",
                     }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: "#4B94DB" }}>
-                {selectedSlot.label}
-            </span>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: "#4B94DB" }}>
+                            {selectedSlot.label}
+                        </span>
                         {selectedState === "locked" && (
                             <span style={{ fontSize: 13, color: "#4B94DB", opacity: 0.5 }}>
-                    Not yet found 🔒
-                </span>
+                                Not yet found 🔒
+                            </span>
                         )}
                         {selectedState === "owned" && (
                             <>
-                    <span style={{ fontSize: 13, color: "#4B94DB" }}>
-                        Grown <strong>{countMap[selectedSlot.variety] ?? 0}</strong> time{(countMap[selectedSlot.variety] ?? 0) !== 1 ? "s" : ""}
-                    </span>
+                                <span style={{ fontSize: 13, color: "#4B94DB" }}>
+                                    Grown <strong>{countMap[selectedSlot.variety] ?? 0}</strong> time{(countMap[selectedSlot.variety] ?? 0) !== 1 ? "s" : ""}
+                                </span>
                                 {firstGrownMap[selectedSlot.variety] && (
                                     <span style={{ fontSize: 12, color: "#4B94DB", opacity: 0.6 }}>
-                            First grown {formatDate(firstGrownMap[selectedSlot.variety])}
-                        </span>
+                                        First grown {formatDate(firstGrownMap[selectedSlot.variety])}
+                                    </span>
                                 )}
                             </>
                         )}
@@ -329,15 +337,16 @@ export default function GardenScene() {
                     </filter>
                 </defs>
 
-                <GardenBackground/>
+                <GardenBackground />
 
-                {PLANT_SLOTS.map(slot => (
+                {PLANT_SLOTS.map((slot, i) => (
                     <PlantSlotSVG
                         key={slot.id}
                         slot={slot}
                         state={getState(slot)}
                         selected={selectedId === slot.id}
                         onSelect={(svgX, svgY) => handleSelect(slot.id, svgX, svgY)}
+                        tutorialId={i === 0 ? "garden-plant" : undefined} // ✅ only the first plant gets the spotlight
                     />
                 ))}
             </svg>
@@ -348,6 +357,7 @@ export default function GardenScene() {
                     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
                 }
             `}</style>
+            <TutorialButton steps={GARDEN_TUTORIAL_STEPS} />
         </Wrapper>
     );
 }

@@ -97,13 +97,13 @@ const DotsRow = styled.div`
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;        /* 8 × 2 */
     z-index: 10003;
 `;
 
 const Dot = styled.div<{ $active: boolean }>`
-    width: ${p => p.$active ? "12px" : "9px"};
-    height: ${p => p.$active ? "12px" : "9px"};
+    width: ${p => p.$active ? "24px" : "18px"};   /* 12×2, 9×2 */
+    height: ${p => p.$active ? "24px" : "18px"};
     border-radius: 50%;
     background: ${p => p.$active ? "#4B94DB" : "rgba(255,255,255,0.6)"};
     border: 2px solid ${p => p.$active ? "#4B94DB" : "rgba(255,255,255,0.8)"};
@@ -114,9 +114,9 @@ const ArrowBtn = styled.button`
     background: none;
     border: none;
     color: white;
-    font-size: 1.4rem;
+    font-size: 5rem;      /* 2.5 × 2 */
     cursor: pointer;
-    padding: 2px 6px;
+    padding: 4px 12px;    /* 2×2, 6×2 */
     opacity: 0.8;
     transition: opacity 0.15s;
     line-height: 1;
@@ -149,7 +149,6 @@ interface SpotlightRect {
 
 const SPOTLIGHT_PADDING = 16;
 
-// Tail is at viewBox x:343 y:253 out of 343×387
 const BEE_TAIL_VB_X = 343;
 const BEE_TAIL_VB_Y = 253;
 const BEE_VB_W = 343;
@@ -169,11 +168,18 @@ export default function TutorialOverlay() {
     }, []);
 
     useEffect(() => {
-        if (!isActive || !step?.targetSelector) return;
+        // ✅ Clear spotlight immediately when step has no targetSelector
+        if (!isActive || !step?.targetSelector) {
+            setSpotlight(null);
+            return;
+        }
 
         const timer = setTimeout(() => {
             const el = document.querySelector(step.targetSelector!);
-            if (!el) return;
+            if (!el) {
+                setSpotlight(null); // ✅ Element not found — clear spotlight
+                return;
+            }
 
             const rect = el.getBoundingClientRect();
             setSpotlight({
@@ -187,7 +193,6 @@ export default function TutorialOverlay() {
         return () => clearTimeout(timer);
     }, [isActive, currentStep, step?.targetSelector]);
 
-    // Measure the bee's tail position in screen coords after each step change
     useEffect(() => {
         if (!beeRef.current) return;
 
@@ -199,7 +204,7 @@ export default function TutorialOverlay() {
                 x: rect.left + BEE_TAIL_VB_X * scaleX,
                 y: rect.top  + BEE_TAIL_VB_Y * scaleY,
             });
-        }, 60); // slight delay so CardWrapper has painted at its new position
+        }, 60);
 
         return () => clearTimeout(timer);
     }, [isActive, currentStep, dims]);
@@ -211,17 +216,18 @@ export default function TutorialOverlay() {
     const offsetX = step.spotlightOffset?.x ?? 0;
     const offsetY = step.spotlightOffset?.y ?? 0;
 
-    const targetX = spotlight ? spotlight.x + spotlight.width / 2 + offsetX : 0;
+    const targetX = spotlight ? spotlight.x + spotlight.width  / 2 + offsetX : 0;
     const targetY = spotlight ? spotlight.y + spotlight.height / 2 + offsetY : 0;
 
-    const showLine = step.id !== "welcome" && step.id !== "gist" && spotlight !== null;
-
-    const cpX = (beeTail.x + targetX) / 2 + (targetY - beeTail.y) * 0.3 + (step.lineCurve?.offsetX ?? 0);
-    const cpY = (beeTail.y + targetY) / 2 - Math.abs(targetX - beeTail.x) * 0.25 + (step.lineCurve?.offsetY ?? 0);
-
+    // ✅ No more hard-coded step IDs — line shows only when there's a real spotlight
     const spotlightPath = spotlight
         ? `M 0 0 H ${w} V ${h} H 0 Z M ${spotlight.x} ${spotlight.y} h ${spotlight.width} v ${spotlight.height} h -${spotlight.width} Z`
         : null;
+
+    const showLine = spotlightPath !== null; // ✅ null path = no line, full stop
+
+    const cpX = (beeTail.x + targetX) / 2 + (targetY - beeTail.y) * 0.3 + (step.lineCurve?.offsetX ?? 0);
+    const cpY = (beeTail.y + targetY) / 2 - Math.abs(targetX - beeTail.x) * 0.25 + (step.lineCurve?.offsetY ?? 0);
 
     return (
         <>
@@ -235,6 +241,7 @@ export default function TutorialOverlay() {
                     )}
                 </defs>
 
+                {/* ✅ spotlightPath null = plain overlay, no cutout */}
                 {spotlightPath ? (
                     <path
                         d={spotlightPath}
@@ -264,6 +271,7 @@ export default function TutorialOverlay() {
 
             <SkipBtn onClick={stop}>Skip ✕</SkipBtn>
 
+            {/* ✅ Line only renders when there's a real spotlight to point at */}
             {showLine && (
                 <LineSvg key={currentStep}>
                     <path
