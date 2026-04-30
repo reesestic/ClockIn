@@ -203,13 +203,6 @@ export default function Availability() {
                 </SettingRow>
 
                 <Divider />
-
-                {/* Row 3 — Study Time Preferences */}
-                <ActionBtn>
-                    Edit Study Time Preferences
-                </ActionBtn>
-
-                <Divider />
             </Card>
         </Page>
     );

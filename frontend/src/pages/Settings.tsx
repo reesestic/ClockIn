@@ -19,12 +19,15 @@ const PageBackButton = styled(BackButton)`
 
 const Page = styled.div`
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
+    height: auto;
     background: white;
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
+    overflow-y: auto;  
+    padding-bottom: 40px;
 
     [data-theme="dark"] & {
         background: #9f95c6;
@@ -56,7 +59,7 @@ const PageTitle = styled.div`
 
 const Card = styled.div`
     margin-top: 40px;
-    width: 100%;
+    width: calc(100% - 48px); 
     max-width: 480px;
     background: #f5f5f5;
     border-radius: 16px;

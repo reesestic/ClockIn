@@ -47,6 +47,7 @@ export async function saveTask(activeTask: Omit<Task, "id" | "can_schedule">) {
                 task_duration: activeTask.task_duration,
                 due_date: activeTask.due_date,
                 status: "to do",
+                color: activeTask.color ?? "yellow",
             })
         }
     );

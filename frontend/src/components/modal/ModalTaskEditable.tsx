@@ -298,8 +298,7 @@ const ContextMenu = styled.div`
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 100;
     min-width: 180px;
-    padding-left: 2%;
-    padding-right: 2%;
+    padding: 4px;
 `;
 
 const ColorMenuItem = styled.div`
@@ -512,5 +511,6 @@ const RemoveButton = styled.button`
     flex-shrink: 0;
     opacity: 0.6;
     transition: opacity 0.15s, color 0.15s;
+    margin-left: 20px;
     &:hover { opacity: 1; color: #d9534f; }
 `;
