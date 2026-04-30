@@ -486,7 +486,7 @@ export default function TaskEditable({
 
     useEffect(() => {
         if (initialEditing) setTimeout(() => titleRef.current?.focus(), 0);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Central update — always recomputes can_schedule
     const updateLocal = (patch: Partial<Task>) => {

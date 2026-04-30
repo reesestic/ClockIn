@@ -910,7 +910,7 @@ export default function TimerScreen() {
 
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(() => {
         const s = loadSession();
-        return s ? computeActiveSeconds(s, Date.now()) : 0; // eslint-disable-line react-hooks/purity
+        return s ? computeActiveSeconds(s, Date.now()) : 0;
     });
 
     // Refs
@@ -1165,7 +1165,7 @@ export default function TimerScreen() {
             saveSession(session);
         }, 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     /* ══════════════════════════════════════════
        TAB CONTROL

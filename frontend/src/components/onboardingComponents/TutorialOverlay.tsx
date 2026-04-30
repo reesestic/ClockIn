@@ -168,8 +168,8 @@ export default function TutorialOverlay() {
     }, []);
 
     useEffect(() => {
-        // ✅ Clear spotlight immediately when step has no targetSelector
         if (!isActive || !step?.targetSelector) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSpotlight(null);
             return;
         }
