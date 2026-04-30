@@ -859,20 +859,22 @@ export default function TimerScreen() {
 
     const locationState = (location.state as LocationState) || {};
 
+    const initialNow = useRef(Date.now()).current;
+
     const resolvedContext = useMemo<PersistedContext>(() => {
         if (locationState.mode) {
             const ctx: PersistedContext = {
                 mode:    locationState.mode,
                 item:    locationState.item  ?? null,
                 hasPlan: !!locationState.hasPlan,
-                savedAt: Date.now(),
+                savedAt: initialNow, // ✅ fixed
             };
             saveContext(ctx);
             return ctx;
         }
         const persisted = loadContext();
         if (persisted) return persisted;
-        return { mode: "free", item: null, hasPlan: false, savedAt: Date.now() };
+        return { mode: "free", item: null, hasPlan: false, savedAt: initialNow }; // ✅ fixed
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const { mode, item, hasPlan } = resolvedContext;
