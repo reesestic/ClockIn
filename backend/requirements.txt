@@ -10,3 +10,4 @@ httpx
 pydantic
 pymupdf
 python-multipart
+requests
