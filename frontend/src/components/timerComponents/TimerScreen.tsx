@@ -16,10 +16,10 @@ import {PlantVisual} from "../plantComponents/PlantVisual.tsx";
 import PlantRevealSequence from "../plantComponents/PlantRevealSequence";
 import PlantStageAnimator from "../plantComponents/PlantStageAnimator.tsx";
 import { usePlants } from "../../context/usePlants.ts";
-import TutorialButton from "../onboardingComponents/TutorialButton.tsx";                  // ✅ added
-import { TIMER_SCREEN_TUTORIAL_STEPS } from "../../constants/TimerScreenTutorialSteps.ts"; // ✅ added
-import { useUserVisits } from "../../hooks/useUserVisits.ts";                              // ✅ added
-import { useAutoTutorial } from "../../hooks/useAutoTutorial.ts";                          // ✅ added
+import TutorialButton from "../onboardingComponents/TutorialButton.tsx";                  
+import { TIMER_SCREEN_TUTORIAL_STEPS } from "../../constants/TimerScreenTutorialSteps.ts"; 
+import { useUserVisits } from "../../hooks/useUserVisits.ts";                              
+import { useAutoTutorial } from "../../hooks/useAutoTutorial.ts";                          
 
 /* ─────────────────────────────────────────
 TYPES
@@ -1123,7 +1123,7 @@ export default function TimerScreen() {
             setSeconds(remaining);
             setSessionElapsedSeconds(computeActiveSeconds(session, now));
             localPlantProgressRef.current += 1;
-            if (localPlantProgressRef.current % 10 === 0) {
+            if (localPlantProgressRef.current % 30 === 0) {
                 const result = await syncPlantProgress();
                 if (result?.stage != null) setPlantStage(result.stage);
                 if (result?.plants_earned_count > 0) {

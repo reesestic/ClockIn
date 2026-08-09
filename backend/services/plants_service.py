@@ -11,7 +11,7 @@ PLANT_CONFIG = {
 }
 
 # Edit this back to 30/60 later
-SECONDS_PER_STAGE = 10  # testing
+SECONDS_PER_STAGE = 30  
 
 
 class PlantsService:
