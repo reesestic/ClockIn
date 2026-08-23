@@ -1,145 +1,220 @@
 # ClockIn Study Hub
 
-## 🛠 Tech Stack 
+> Plan your work. Focus your time. Grow your progress.
+
+ClockIn is a full-stack productivity platform that transforms assignments and
+user input into structured study plans. It combines intelligent task
+prioritization, calendar availability, focus tracking, and progress rewards
+within one application.
+
+ClockIn was developed by a cross-functional team through the Boston University
+Spark! Innovation Fellowship.
+
+<p align="center">
+  <img src="docs/clockin-hero.jpg" width="100%" alt="ClockIn Study Hub">
+</p>
+
+## Project Links
+
+- [Open the Live Application](https://clock-in-orcin.vercel.app/)
+- [Read the ClockIn Case Study](https://medium.com/@clewis27/clockin-b98a8865dab4)
+
+> **Project status:** Active feature development has concluded, but the project
+> remains maintained and available as a functional demonstration.
+
+## Application Preview
+
+<p align="center">
+  <img src="docs/scheduler.png" width="45%" alt="ClockIn intelligent study scheduler">
+  <img src="docs/timer.png" width="45%" alt="ClockIn focus timer">
+</p>
+
+<p align="center">
+  <img src="docs/garden.png" width="45%" alt="ClockIn progress garden">
+  <img src="docs/sticky-notes.png" width="45%" alt="ClockIn task-convertible sticky notes">
+</p>
+
+> **Screens shown:** Intelligent study scheduler, focus timer, progress garden,
+> and task-convertible sticky notes.
+
+## Features
+
+- **Intelligent study planning** — prioritizes tasks using deadlines,
+  importance, estimated completion time, and user-defined value.
+- **AI-assisted task creation** — converts uploaded assignment information into
+  structured, actionable tasks.
+- **Google Calendar integration** — considers existing calendar events and
+  availability when organizing study time.
+- **Focus timer** — tracks active and paused study sessions while protecting
+  against abandoned or stale sessions.
+- **Sticky notes** — allows users to quickly record ideas and convert notes into
+  scheduled tasks.
+- **Progress garden** — rewards completed focus time with plants that visually
+  represent the user’s progress.
+- **Persistent accounts** — stores tasks, schedules, statistics, focus sessions,
+  and completed plants through Supabase.
+- **Responsive interface** — supports productivity workflows across desktop and
+  mobile screen sizes.
+
+## Technical Highlights
+
+- **Batched timer synchronization** — reduced repeated backend requests by
+  approximately 97% by batching focus-time updates instead of writing to the
+  backend on every timer tick.
+- **Planner prioritization** — scores tasks using deadlines, importance,
+  estimated duration, and user value to produce an actionable daily plan.
+- **Adaptive scheduling** — uses scheduling edits and completion behavior to
+  better match future tasks with users’ preferred study times and working
+  patterns.
+- **AI task pipeline** — extracts assignment information from uploaded documents
+  and converts larger assignments into smaller, actionable tasks.
+- **Calendar-aware planning** — combines Google Calendar events with manually
+  entered busy times when determining user availability.
+- **Layered backend design** — separates FastAPI controllers, services, and
+  database operations to keep application behavior maintainable.
+- **Persistent timer state** — maintains active and paused sessions while
+  detecting sessions left open beyond the allowed duration.
+
+## Architecture
+
+ClockIn consists of three primary layers:
+
+- The **React and TypeScript frontend** provides the planner, task management,
+  timer, calendar, statistics, and garden interfaces.
+- The **FastAPI backend** processes application logic and coordinates requests
+  between the frontend, external services, and persistent data.
+- **Supabase/PostgreSQL** manages authentication and stores user tasks, calendar
+  information, timer sessions, statistics, and completed plants.
+
+ClockIn also integrates with the **Google Calendar API** for availability data
+and the **OpenAI API** for AI-assisted task creation.
+
+## 🛠 Tech Stack
 
 ### Frontend
+
 - React
 - TypeScript
 - Vite
 - DND Kit
+- HTML/CSS
 
 ### Backend
+
 - Python
 - FastAPI
+- Uvicorn
 
-### Database & Services
-- Supabase (PostgreSQL + Auth)
+### Database and Services
+
+- Supabase
+- PostgreSQL
+- Supabase Authentication
+- Google Calendar API
+- OpenAI API
 
 ### Deployment
-- Vercel (Frontend Hosting)
-- Railway (Backend Hosting)
-  
-## 🚀 Local Dev Instructions
-### 🛠 Installation
 
-To install and develop ClockIn locally, there are 3 main steps:
+- Vercel — frontend hosting
+- Railway — backend hosting
 
-1. Clone the Repo
+## Team and Contributions
 
-2. Install dependencies
+ClockIn was developed by a four-person cross-functional team. The team
+collaborated across product planning, system design, software development,
+testing, user research, and UI/UX design.
 
-3. Run development servers
+<p align="center">
+  <img src="docs/clockin-team.jpg" width="85%" alt="The ClockIn team presenting at Boston University Spark! Demo Day">
+</p>
 
-## 📦 First Step: Clone the Repo
+<p align="center">
+  <em>The ClockIn team presenting the project at Boston University Spark! Demo Day.</em>
+</p>
 
-Navigate to the root directory where you would like the project created and clone the repository:
+- **Kevin Kupeli** — Developed the task page, note-to-task conversion pipeline,
+  task atomization, and onboarding experience.
+- **Reese Stichter** — Developed sticky notes, the progress garden, focus timer,
+  and Google Calendar integration; contributed to overall system design and
+  served as Scrum lead.
+- **Alicia Lin** — Developed the scheduling and learning pipelines, dark mode,
+  and user authentication.
+- **Clara Lewis** — Created application assets, typography, color system, and
+  visual branding.
 
-`git clone <repo-url>`
+## Product Development
 
-After cloning the repo locally, you will have the backend and frontend folders needed for development, along with the required requirements.txt file.
+The team used Agile development practices to plan, prioritize, and deliver
+ClockIn across multiple development sprints.
 
-### 🎨 Frontend Setup
+- Conducted more than 30 user interviews to understand student productivity
+  challenges.
+- Prioritized functionality using user value, development effort, and project
+  requirements.
+- Converted product requirements into user stories and scoped sprint
+  deliverables.
+- Collaborated across technical and UI/UX roles to translate designs into
+  reusable application components.
 
-To set up the frontend after cloning, run the following commands from the root:
+## 🚀 Local Development
 
-`cd ClockIn`
+### Requirements
 
-`cd frontend`
+- Node.js and npm
+- Python 3.11+
+- A Supabase project
 
-`npm install`
+### Clone the Repository
 
-This installs the node_modules folder that is not uploaded to GitHub but is required for functionality.
+```bash
+git clone https://github.com/reesestic/ClockIn.git
+cd ClockIn
+```
 
-### 🧠 Backend Setup
+Copy `.env.example` to `.env` and add the required Supabase and API
+configuration values.
 
-After setting up the frontend, to set up the backend, there are three main steps.
+### Frontend Setup
 
-First, navigate back to the ClockIn folder:
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-`cd ClockIn`
+The frontend runs at [http://localhost:5173](http://localhost:5173).
 
-Second, navigate into the backend folder:
+### Backend Setup
 
-`cd backend`
+From a separate terminal:
 
-Then create the virtual environment:
+```bash
+cd ClockIn/backend
+python -m venv venv
+```
 
-`python -m venv venv`
+Activate the virtual environment:
 
-Now activate the virtual environment:
+```bash
+# macOS/Linux
+source venv/bin/activate
 
-Mac/Linux:
-`source venv/bin/activate`
+# Windows PowerShell
+.\venv\Scripts\Activate.ps1
+```
 
-Windows (Command Prompt):
-`venv\Scripts\activate`
+Install the dependencies and start the API:
 
-Windows (PowerShell):
-`.\venv\Scripts\Activate.ps1`
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-If activation fails in PowerShell due to execution policy restrictions, run:
+The backend runs at [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-`Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+> **Important:** Both development servers must be running for full application
+> functionality.
 
-After activation, your virtual environment should be active and you are ready for step two.
+## License
 
-## 📚 Second Step: Install Dependencies
-
-Install the backend dependencies inside your activated virtual environment:
-
-`pip install -r requirements.txt`
-
-This installs the required backend packages listed in requirements.txt.
-
-🔐 Environment Variables
-
-For your .env file:
-
-Copy .env.example and rename it to .env, then fill in your own API keys.
-
-Example:
-
-SUPABASE_URL=your-url
-
-SUPABASE_KEY=your-key
-
-## ▶️ Third Step: Run Development Servers
-
-You must run both the frontend and backend servers during development.
-
-### Run the Frontend (React + Vite)
-
-From **inside the frontend folder**:
-
-`npm run dev`
-
-The frontend will run at:
-http://localhost:5173
-
-### Run the Backend (FastAPI)
-
-From **inside the backend folder** __(with venv activated)__:
-
-`uvicorn main:app --reload`
-
-The backend will run at:
-http://127.0.0.1:8000
-
-### ✅ Important
-
-**Both frontend** and backend servers must be running simultaneously for full application functionality.
-
-## 🖥️ Development Branching and Pull Request Strategies
-
-### Branching Strategy
-- GitHub Flow (main/feature)
-- The main branch will be continuously deployable, and new features will be implemented in temporary branches that will merge with the main branch after thorough testing and review has been completed
-
-### Pull Request Process
-- Developers will create a descriptively titled branch of the repository to modify the file they would like to edit
-- After finishing the changes and performing local testing, the developer will ask the code to be reviewed by another technical teammate
-- After passing the review, the developer will pull any recent changes, resolving any conflicts on their end, and then merge their changes with the main branch
-- If two developers are working on the same file, the second developer will pull changes made by the first developer, resolve conflicts on their end, and then merge with the main branch
-- If the code within a branch does not work or is rejected by a review, the developer will either work to debug the code or delete the branch.
-
-
+This project is available under the [MIT License](LICENSE).
