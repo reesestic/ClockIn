@@ -171,8 +171,8 @@ git clone https://github.com/reesestic/ClockIn.git
 cd ClockIn
 ```
 
-Copy `.env.example` to `.env` and add the required Supabase and API
-configuration values.
+Copy `backend/.env.example` to `backend/.env` and add the required Supabase and
+API configuration values.
 
 ### Frontend Setup
 
@@ -189,7 +189,7 @@ The frontend runs at [http://localhost:5173](http://localhost:5173).
 From a separate terminal:
 
 ```bash
-cd ClockIn/backend
+cd backend
 python -m venv venv
 ```
 
