@@ -133,7 +133,8 @@ testing, user research, and UI/UX design.
 </p>
 
 - **Kevin Kupeli** — Developed the task page, note-to-task conversion pipeline,
-  task atomization, and onboarding experience.
+  task atomization, and onboarding experience; contributed to overall OpenAI model
+  integration and served as Product Owner.
 - **Reese Stichter** — Developed sticky notes, the progress garden, focus timer,
   and Google Calendar integration; contributed to overall system design and
   served as Scrum lead.
